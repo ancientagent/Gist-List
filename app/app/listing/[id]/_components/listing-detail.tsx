@@ -31,6 +31,15 @@ interface Listing {
   description: string | null;
   price: number | null;
   condition: string | null;
+  conditionNotes: string | null;
+  brand: string | null;
+  model: string | null;
+  year: string | null;
+  color: string | null;
+  material: string | null;
+  size: string | null;
+  specs: string | null;
+  imageQualityIssue: string | null;
   itemIdentified: boolean;
   confidence: number | null;
   category: string | null;
@@ -38,6 +47,7 @@ interface Listing {
   avgMarketPrice: number | null;
   suggestedPriceMin: number | null;
   suggestedPriceMax: number | null;
+  marketInsights: string | null;
   recommendedPlatforms: string[];
   qualifiedPlatforms: string[];
   willingToShip: boolean;
@@ -53,7 +63,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const router = useRouter();
   const [listing, setListing] = useState<Listing | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [viewfinderCollapsed, setViewfinderCollapsed] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -149,7 +158,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   if (!listing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
       </div>
     );
   }
@@ -159,35 +168,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Camera Viewfinder (Collapsed) */}
-      {!viewfinderCollapsed && (
-        <div className="h-48 bg-black relative">
-          <Camera className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/50" />
-          <p className="absolute bottom-4 left-0 right-0 text-center text-white text-sm">
-            Additional photo capture coming soon
-          </p>
-        </div>
-      )}
-
-      {/* Pull Tab */}
-      <button
-        onClick={() => setViewfinderCollapsed(!viewfinderCollapsed)}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 py-2 flex items-center justify-center text-white transition-colors"
-      >
-        {viewfinderCollapsed ? (
-          <ChevronDown className="w-5 h-5" />
-        ) : (
-          <ChevronUp className="w-5 h-5" />
-        )}
-      </button>
-
       {/* List Mode Content */}
       <div className="max-w-2xl mx-auto p-4 pb-24">
         {/* Analysis Loading */}
         {isAnalyzing && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-            <span className="text-indigo-900 font-medium">Analyzing your item...</span>
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+            <span className="text-purple-900 font-medium">Analyzing your item...</span>
           </div>
         )}
 
@@ -246,26 +233,95 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           />
         </div>
 
-        {/* Price & Condition */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4 grid grid-cols-2 gap-4">
-          <div>
-            <Label>Price ($)</Label>
-            <Input
-              type="number"
-              value={listing.price || ''}
-              onChange={(e) => setListing({ ...listing, price: parseFloat(e.target.value) || null })}
-              className="mt-2"
-              placeholder="0.00"
-            />
+        {/* Item Details */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <Label className="text-base font-medium mb-3 block">Item Details</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm">Brand</Label>
+              <Input
+                value={(listing as any).brand || ''}
+                onChange={(e) => setListing({ ...listing, brand: e.target.value } as any)}
+                className="mt-1"
+                placeholder="e.g., Nike, Apple"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Model</Label>
+              <Input
+                value={(listing as any).model || ''}
+                onChange={(e) => setListing({ ...listing, model: e.target.value } as any)}
+                className="mt-1"
+                placeholder="e.g., Air Jordan 1"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Year/Version</Label>
+              <Input
+                value={(listing as any).year || ''}
+                onChange={(e) => setListing({ ...listing, year: e.target.value } as any)}
+                className="mt-1"
+                placeholder="e.g., 2023"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Size</Label>
+              <Input
+                value={(listing as any).size || ''}
+                onChange={(e) => setListing({ ...listing, size: e.target.value } as any)}
+                className="mt-1"
+                placeholder="e.g., 10, Medium, L"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Color</Label>
+              <Input
+                value={(listing as any).color || ''}
+                onChange={(e) => setListing({ ...listing, color: e.target.value } as any)}
+                className="mt-1"
+                placeholder="e.g., Blue, Red"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Material</Label>
+              <Input
+                value={(listing as any).material || ''}
+                onChange={(e) => setListing({ ...listing, material: e.target.value } as any)}
+                className="mt-1"
+                placeholder="e.g., Leather, Cotton"
+              />
+            </div>
           </div>
-          <div>
-            <Label>Condition</Label>
-            <Input
-              value={listing.condition || ''}
-              onChange={(e) => setListing({ ...listing, condition: e.target.value })}
-              className="mt-2"
-              placeholder="New, Used, etc."
-            />
+        </div>
+
+        {/* Price & Condition */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <Label className="text-base font-medium mb-3 block">Price & Condition</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm">Price ($)</Label>
+              <Input
+                type="number"
+                value={listing.price || ''}
+                onChange={(e) => setListing({ ...listing, price: parseFloat(e.target.value) || null })}
+                className="mt-1"
+                placeholder={listing.avgMarketPrice ? `Suggested: $${listing.avgMarketPrice.toFixed(2)}` : '0.00'}
+              />
+              {!listing.price && listing.avgMarketPrice && (
+                <p className="text-xs text-emerald-600 mt-1">
+                  AI suggests: ${listing.avgMarketPrice.toFixed(2)}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label className="text-sm">Condition</Label>
+              <Input
+                value={listing.condition || ''}
+                onChange={(e) => setListing({ ...listing, condition: e.target.value })}
+                className="mt-1"
+                placeholder="New, Like New, Good, etc."
+              />
+            </div>
           </div>
         </div>
 

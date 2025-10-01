@@ -1,7 +1,7 @@
 
 'use client';
 
-import { TrendingUp, Clock, Package, DollarSign, Sparkles } from 'lucide-react';
+import { TrendingUp, Clock, Package, DollarSign, Sparkles, AlertCircle, ThumbsUp } from 'lucide-react';
 
 interface Listing {
   avgMarketPrice: number | null;
@@ -10,6 +10,8 @@ interface Listing {
   price: number | null;
   shippingCostEst: number | null;
   category: string | null;
+  marketInsights: string | null;
+  conditionNotes: string | null;
 }
 
 export default function InsightsSection({ listing }: { listing: Listing }) {
@@ -18,41 +20,104 @@ export default function InsightsSection({ listing }: { listing: Listing }) {
     listing.suggestedPriceMin !== null ||
     listing.suggestedPriceMax !== null;
 
+  // Calculate price intelligence
+  const getPriceIntelligence = () => {
+    if (!listing.price || !listing.avgMarketPrice) return null;
+
+    const priceDiff = listing.price - listing.avgMarketPrice;
+    const percentDiff = (priceDiff / listing.avgMarketPrice) * 100;
+
+    if (percentDiff > 20) {
+      return {
+        type: 'warning',
+        message: `Your price is ${Math.abs(percentDiff).toFixed(0)}% higher than market average. Consider lowering to $${listing.avgMarketPrice.toFixed(2)} for faster sale.`,
+        icon: AlertCircle,
+        color: 'amber',
+      };
+    } else if (percentDiff < -20) {
+      return {
+        type: 'info',
+        message: `Your price is ${Math.abs(percentDiff).toFixed(0)}% lower than market average. You could price it higher at $${listing.avgMarketPrice.toFixed(2)}.`,
+        icon: TrendingUp,
+        color: 'emerald',
+      };
+    } else {
+      return {
+        type: 'success',
+        message: 'Your price is within market range. Good pricing strategy!',
+        icon: ThumbsUp,
+        color: 'emerald',
+      };
+    }
+  };
+
+  const priceIntelligence = getPriceIntelligence();
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-5 h-5 text-indigo-600" />
+        <Sparkles className="w-5 h-5 text-purple-600" />
         <h3 className="font-medium">AI Insights</h3>
       </div>
 
       <div className="space-y-3">
+        {/* Condition Notes */}
+        {listing.conditionNotes && (
+          <div className="bg-blue-50 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 text-sm">
+                <div className="font-medium text-blue-900 mb-1">Condition Assessment</div>
+                <div className="text-blue-700 whitespace-pre-line">{listing.conditionNotes}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Price Insights */}
         {hasPriceInsights && (
-          <div className="bg-indigo-50 rounded-lg p-3">
+          <div className="bg-purple-50 rounded-lg p-3">
             <div className="flex items-start gap-2">
-              <DollarSign className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+              <DollarSign className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1 text-sm">
-                <div className="font-medium text-indigo-900 mb-1">Market Price</div>
+                <div className="font-medium text-purple-900 mb-1">Market Price Analysis</div>
                 {listing.avgMarketPrice && (
-                  <div className="text-indigo-700">
-                    Average: ${listing.avgMarketPrice.toFixed(2)}
+                  <div className="text-purple-700">
+                    Average: <span className="font-semibold">${listing.avgMarketPrice.toFixed(2)}</span>
                   </div>
                 )}
                 {listing.suggestedPriceMin && listing.suggestedPriceMax && (
-                  <div className="text-indigo-700">
+                  <div className="text-purple-700">
                     Suggested range: ${listing.suggestedPriceMin.toFixed(2)} - $
                     {listing.suggestedPriceMax.toFixed(2)}
                   </div>
                 )}
-                {listing.price && listing.avgMarketPrice && (
-                  <div className="text-xs mt-1 text-indigo-600">
-                    {listing.price > listing.avgMarketPrice
-                      ? '⬆️ Your price is above average'
-                      : listing.price < listing.avgMarketPrice
-                      ? '⬇️ Your price is below average'
-                      : '✓ Your price matches the average'}
-                  </div>
-                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Price Intelligence (only if user entered a price) */}
+        {priceIntelligence && (
+          <div className={`bg-${priceIntelligence.color}-50 rounded-lg p-3 border border-${priceIntelligence.color}-200`}>
+            <div className="flex items-start gap-2">
+              <priceIntelligence.icon className={`w-4 h-4 text-${priceIntelligence.color}-600 mt-0.5 flex-shrink-0`} />
+              <div className="flex-1 text-sm">
+                <div className={`font-medium text-${priceIntelligence.color}-900 mb-1`}>Price Recommendation</div>
+                <div className={`text-${priceIntelligence.color}-700`}>{priceIntelligence.message}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Market Insights */}
+        {listing.marketInsights && (
+          <div className="bg-indigo-50 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 text-sm">
+                <div className="font-medium text-indigo-900 mb-1">Market Trends</div>
+                <div className="text-indigo-700 whitespace-pre-line">{listing.marketInsights}</div>
               </div>
             </div>
           </div>

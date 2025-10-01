@@ -1,21 +1,82 @@
 
 'use client';
 
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
-const PLATFORMS = [
-  'eBay',
-  'Mercari',
-  'OfferUp',
-  'Facebook Marketplace',
-  'Craigslist',
-  'Reverb',
-  'Nextdoor',
-  'Poshmark',
-  'Vinted',
-];
+interface PlatformField {
+  name: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  required: boolean;
+  value?: string;
+  options?: string[];
+  placeholder?: string;
+}
+
+const PLATFORM_FIELDS: Record<string, (category?: string) => PlatformField[]> = {
+  'eBay': (category) => {
+    const baseFields: PlatformField[] = [
+      { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Like New', 'Very Good', 'Good', 'Acceptable', 'For Parts'] },
+      { name: 'brand', label: 'Brand', type: 'text', required: true },
+      { name: 'model', label: 'Model', type: 'text', required: false },
+      { name: 'shipping_weight', label: 'Shipping Weight (lbs)', type: 'number', required: true },
+      { name: 'handling_time', label: 'Handling Time (days)', type: 'number', required: true, placeholder: 'e.g., 1-3' },
+    ];
+    
+    if (category?.toLowerCase().includes('clothing') || category?.toLowerCase().includes('shoe')) {
+      baseFields.push({ name: 'size', label: 'Size', type: 'text', required: true });
+      baseFields.push({ name: 'color', label: 'Color', type: 'text', required: true });
+    }
+    
+    if (category?.toLowerCase().includes('electronics')) {
+      baseFields.push({ name: 'upc', label: 'UPC/EAN', type: 'text', required: false });
+    }
+    
+    return baseFields;
+  },
+  'Mercari': (category) => [
+    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Like New', 'Good', 'Fair', 'Poor'] },
+    { name: 'brand', label: 'Brand', type: 'text', required: true },
+    { name: 'size', label: 'Size', type: 'text', required: !!(category?.toLowerCase().includes('clothing') || category?.toLowerCase().includes('shoe')) },
+    { name: 'color', label: 'Color', type: 'text', required: !!(category?.toLowerCase().includes('clothing')) },
+    { name: 'shipping_weight', label: 'Weight (lbs)', type: 'number', required: true },
+  ],
+  'Poshmark': (category) => [
+    { name: 'brand', label: 'Brand', type: 'text', required: true },
+    { name: 'size', label: 'Size', type: 'text', required: true },
+    { name: 'color', label: 'Color', type: 'text', required: true },
+    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New with Tags', 'New without Tags', 'Excellent Used', 'Good Used', 'Fair Used'] },
+    { name: 'material', label: 'Material', type: 'text', required: false },
+  ],
+  'Facebook Marketplace': (category) => [
+    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Used - Like New', 'Used - Good', 'Used - Fair'] },
+    { name: 'location', label: 'Location', type: 'text', required: true, placeholder: 'City, State' },
+  ],
+  'OfferUp': (category) => [
+    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Like New', 'Good', 'Fair', 'Poor'] },
+    { name: 'location', label: 'Location', type: 'text', required: true, placeholder: 'City, State' },
+  ],
+  'Reverb': (category) => [
+    { name: 'brand', label: 'Brand', type: 'text', required: true },
+    { name: 'model', label: 'Model', type: 'text', required: true },
+    { name: 'year', label: 'Year', type: 'text', required: false },
+    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['Brand New', 'Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'Non-Functioning'] },
+    { name: 'finish', label: 'Finish/Color', type: 'text', required: false },
+    { name: 'shipping_weight', label: 'Weight (lbs)', type: 'number', required: true },
+  ],
+  'Vinted': (category) => [
+    { name: 'brand', label: 'Brand', type: 'text', required: true },
+    { name: 'size', label: 'Size', type: 'text', required: true },
+    { name: 'color', label: 'Color', type: 'text', required: true },
+    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New with tags', 'New without tags', 'Very good', 'Good', 'Satisfactory'] },
+  ],
+};
 
 export default function PlatformPreview({
   recommendedPlatforms,
@@ -26,89 +87,234 @@ export default function PlatformPreview({
   qualifiedPlatforms: string[];
   listingId: string;
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [platformData, setPlatformData] = useState<Record<string, Record<string, string>>>({});
+  const [listingData, setListingData] = useState<any>(null);
 
-  const displayPlatforms = qualifiedPlatforms.length > 0 ? qualifiedPlatforms : PLATFORMS;
+  useEffect(() => {
+    // Pre-select top 2-3 recommended platforms
+    const topRecommended = recommendedPlatforms.slice(0, 3);
+    setSelectedPlatforms(topRecommended);
+    
+    // Fetch listing data
+    fetchListingData();
+  }, [recommendedPlatforms]);
 
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : displayPlatforms.length - 1));
+  const fetchListingData = async () => {
+    try {
+      const response = await fetch(`/api/listings/${listingId}`);
+      const data = await response.json();
+      setListingData(data);
+    } catch (error) {
+      console.error('Failed to fetch listing:', error);
+    }
   };
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev < displayPlatforms.length - 1 ? prev + 1 : 0));
+  const handlePlatformToggle = (platform: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(platform)
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
   };
 
-  if (displayPlatforms.length === 0) {
-    return null;
-  }
+  const handleFieldChange = (platform: string, field: string, value: string) => {
+    setPlatformData(prev => ({
+      ...prev,
+      [platform]: {
+        ...prev[platform],
+        [field]: value,
+      },
+    }));
+  };
 
-  const currentPlatform = displayPlatforms[currentIndex];
-  const isRecommended = recommendedPlatforms.includes(currentPlatform);
+  const getPlatformFields = (platform: string): PlatformField[] => {
+    const fieldGenerator = PLATFORM_FIELDS[platform];
+    if (!fieldGenerator) return [];
+    
+    const fields = fieldGenerator(listingData?.category);
+    
+    // Pre-fill fields with AI-detected data
+    return fields.map(field => {
+      let value = platformData[platform]?.[field.name] || '';
+      
+      // Auto-populate from listing data if available
+      if (!value) {
+        switch (field.name) {
+          case 'condition':
+            value = listingData?.condition || '';
+            break;
+          case 'brand':
+            // Extract brand from title or description
+            value = extractBrand(listingData?.title, listingData?.description) || '';
+            break;
+          case 'model':
+            value = extractModel(listingData?.title, listingData?.description) || '';
+            break;
+          case 'shipping_weight':
+            value = listingData?.weight?.toString() || '';
+            break;
+          case 'location':
+            value = ''; // User needs to provide
+            break;
+        }
+      }
+      
+      return { ...field, value };
+    });
+  };
+
+  const extractBrand = (title?: string, description?: string): string => {
+    // Simple brand extraction (can be enhanced with AI)
+    const text = `${title} ${description}`.toLowerCase();
+    const brands = ['nike', 'adidas', 'apple', 'samsung', 'sony', 'lg', 'canon', 'nikon', 'fender', 'gibson'];
+    
+    for (const brand of brands) {
+      if (text.includes(brand)) {
+        return brand.charAt(0).toUpperCase() + brand.slice(1);
+      }
+    }
+    return '';
+  };
+
+  const extractModel = (title?: string, description?: string): string => {
+    // Extract model number patterns (e.g., "iPhone 13", "Galaxy S21")
+    const text = `${title} ${description}`;
+    const modelPattern = /\b([A-Z0-9]+-?[A-Z0-9]+)\b/;
+    const match = text.match(modelPattern);
+    return match ? match[1] : '';
+  };
+
+  const displayPlatforms = qualifiedPlatforms.length > 0 ? qualifiedPlatforms : Object.keys(PLATFORM_FIELDS);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium">Platform Preview</h3>
-        {isRecommended && (
-          <div className="flex items-center gap-1 text-amber-600 text-sm">
-            <Star className="w-4 h-4 fill-current" />
-            <span>Recommended</span>
-          </div>
-        )}
+      <h3 className="font-medium mb-4">Platform Preview</h3>
+      
+      {/* Platform Selection */}
+      <div className="mb-6">
+        <Label className="mb-3 block text-sm font-medium">Select Platforms to Post</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {displayPlatforms.map((platform) => {
+            const isRecommended = recommendedPlatforms.includes(platform);
+            const isSelected = selectedPlatforms.includes(platform);
+            
+            return (
+              <div
+                key={platform}
+                className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => handlePlatformToggle(platform)}
+              >
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => handlePlatformToggle(platform)}
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{platform}</span>
+                    {isRecommended && (
+                      <Star className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="relative">
-        <div className="flex items-center justify-between mb-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePrev}
-            className="h-8 w-8"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          
-          <div className="flex-1 text-center">
-            <h4 className="font-semibold text-lg">{currentPlatform}</h4>
-            <p className="text-xs text-gray-500">
-              {currentIndex + 1} of {displayPlatforms.length}
+      {/* Platform-Specific Fields */}
+      {selectedPlatforms.length > 0 && (
+        <div className="space-y-6">
+          <div className="border-t pt-4">
+            <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+              Required Platform Fields
+            </h4>
+            <p className="text-xs text-gray-600 mb-4">
+              Complete all required fields to ensure successful posting. Missing fields may cause your post to fail.
             </p>
           </div>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleNext}
-            className="h-8 w-8"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
 
-        <div className="bg-gray-50 rounded-lg p-4 min-h-[120px]">
-          <p className="text-sm text-gray-600">
-            Platform-specific fields and requirements will appear here.
-          </p>
-          <div className="mt-3 space-y-2">
-            <div className="text-xs text-gray-500">
-              <strong>Category:</strong> Auto-detected
-            </div>
-            <div className="text-xs text-gray-500">
-              <strong>Shipping:</strong> Based on your preferences
-            </div>
-            <div className="text-xs text-gray-500">
-              <strong>Format:</strong> Optimized for {currentPlatform}
-            </div>
-          </div>
-        </div>
+          {selectedPlatforms.map((platform) => {
+            const fields = getPlatformFields(platform);
+            const requiredFields = fields.filter(f => f.required);
+            const missingRequired = requiredFields.filter(f => !f.value);
+            
+            return (
+              <div key={platform} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="font-medium flex items-center gap-2">
+                    {platform}
+                    {recommendedPlatforms.includes(platform) && (
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                        Recommended
+                      </span>
+                    )}
+                  </h5>
+                  {missingRequired.length > 0 && (
+                    <span className="text-xs text-red-600 font-medium">
+                      {missingRequired.length} required field{missingRequired.length > 1 ? 's' : ''} missing
+                    </span>
+                  )}
+                </div>
 
-        {recommendedPlatforms.length > 0 && (
-          <div className="mt-3 text-xs text-gray-500">
-            <strong>Best for this item:</strong>{' '}
-            {recommendedPlatforms.join(', ')}
-          </div>
-        )}
-      </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {fields.map((field) => (
+                    <div key={field.name} className={field.type === 'text' ? 'col-span-2' : ''}>
+                      <Label className="text-xs">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </Label>
+                      {field.type === 'select' ? (
+                        <select
+                          value={field.value || ''}
+                          onChange={(e) => handleFieldChange(platform, field.name, e.target.value)}
+                          className={`w-full mt-1 px-3 py-2 text-sm border rounded-md ${
+                            field.required && !field.value
+                              ? 'border-red-300 bg-red-50'
+                              : 'border-gray-300'
+                          }`}
+                        >
+                          <option value="">Select...</option>
+                          {field.options?.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input
+                          type={field.type}
+                          value={field.value || ''}
+                          onChange={(e) => handleFieldChange(platform, field.name, e.target.value)}
+                          placeholder={field.placeholder || field.required ? 'Required' : 'Optional'}
+                          className={`mt-1 ${
+                            field.required && !field.value
+                              ? 'border-red-300 bg-red-50'
+                              : ''
+                          }`}
+                        />
+                      )}
+                      {field.required && !field.value && (
+                        <p className="text-xs text-red-600 mt-1">This field is required by {platform}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {selectedPlatforms.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <p className="text-sm">Select at least one platform to see required fields</p>
+        </div>
+      )}
     </div>
   );
 }

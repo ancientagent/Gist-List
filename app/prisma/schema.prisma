@@ -90,6 +90,19 @@ model Listing {
   theGist           String?  @db.Text
   price             Float?
   condition         String?
+  conditionNotes    String?  @db.Text
+  
+  // Item Details
+  brand             String?
+  model             String?
+  year              String?
+  color             String?
+  material          String?
+  size              String?
+  specs             String?  @db.Text
+  
+  // Image Quality
+  imageQualityIssue String?  @db.Text
   
   // AI Analysis
   itemIdentified    Boolean  @default(false)

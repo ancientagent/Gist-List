@@ -17,8 +17,9 @@ export default function CameraScreen() {
   const [theGist, setTheGist] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [viewfinderExpanded, setViewfinderExpanded] = useState(true);
+  const [isPressHolding, setIsPressHolding] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const pressTimerRef = useRef<any>(null);
 
   // Initialize camera
   useEffect(() => {
@@ -55,19 +56,20 @@ export default function CameraScreen() {
       
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'en-US';
 
         recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results?.[0]?.[0]?.transcript;
-          if (transcript) {
-            setTheGist((prev) => (prev ? `${prev} ${transcript}` : transcript));
+          let transcript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
           }
-          setIsListening(false);
+          setTheGist(transcript);
         };
 
-        recognitionRef.current.onerror = () => {
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
           setIsListening(false);
         };
 
@@ -78,10 +80,44 @@ export default function CameraScreen() {
     }
   }, []);
 
+  const handlePressStart = () => {
+    if (isCapturing) return;
+    
+    setIsPressHolding(true);
+    
+    // Start voice recording
+    if (recognitionRef.current) {
+      try {
+        setIsListening(true);
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        setIsListening(false);
+      }
+    }
+  };
+
+  const handlePressEnd = async () => {
+    setIsPressHolding(false);
+    
+    // Stop voice recording
+    if (recognitionRef.current && isListening) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Failed to stop speech recognition:', error);
+      }
+    }
+    
+    // Capture photo
+    await capturePhoto();
+  };
+
   const capturePhoto = async () => {
     if (!videoRef.current || isCapturing) return;
 
     setIsCapturing(true);
+    setIsListening(false);
 
     try {
       // Create canvas to capture photo
@@ -98,29 +134,6 @@ export default function CameraScreen() {
         const blob = await new Promise<Blob>((resolve) => {
           canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.95);
         });
-
-        // Start voice recognition if available
-        if (recognitionRef.current && !theGist) {
-          try {
-            setIsListening(true);
-            recognitionRef.current.start();
-            
-            // Timeout after 5 seconds
-            setTimeout(() => {
-              if (isListening && recognitionRef.current) {
-                try {
-                  recognitionRef.current.stop();
-                } catch (e) {
-                  // Ignore errors
-                }
-                setIsListening(false);
-              }
-            }, 5000);
-          } catch (error) {
-            console.error('Speech recognition error:', error);
-            setIsListening(false);
-          }
-        }
 
         // Upload photo and create listing
         const formData = new FormData();
@@ -152,11 +165,7 @@ export default function CameraScreen() {
   return (
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Camera Viewfinder */}
-      <div
-        className={`relative overflow-hidden transition-all duration-300 ${
-          viewfinderExpanded ? 'flex-1' : 'h-32'
-        }`}
-      >
+      <div className="relative flex-1 overflow-hidden">
         <video
           ref={videoRef}
           autoPlay
@@ -171,25 +180,14 @@ export default function CameraScreen() {
             {session?.user?.name || 'Guest'}
           </div>
           {isListening && (
-            <div className="bg-red-500 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2">
-              <Mic className="w-4 h-4 animate-pulse" />
-              Listening...
+            <div className="bg-emerald-500 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
+              <Mic className="w-4 h-4" />
+              <span className="animate-listening">Listening</span>
+              <span className="animate-listening-dots">...</span>
             </div>
           )}
         </div>
       </div>
-
-      {/* Pull Tab */}
-      <button
-        onClick={() => setViewfinderExpanded(!viewfinderExpanded)}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 py-2 flex items-center justify-center text-white transition-colors"
-      >
-        {viewfinderExpanded ? (
-          <ChevronDown className="w-5 h-5" />
-        ) : (
-          <ChevronUp className="w-5 h-5" />
-        )}
-      </button>
 
       {/* The Gist Input Section */}
       <div className="bg-white p-4 pb-safe">
@@ -201,33 +199,61 @@ export default function CameraScreen() {
           value={theGist}
           onChange={(e) => setTheGist(e.target.value)}
           className="w-full min-h-[80px] resize-none"
-          disabled={isCapturing}
+          disabled={isCapturing || isListening}
         />
         
         <div className="mt-4">
-          <Button
-            onClick={capturePhoto}
+          <button
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={() => {
+              if (isPressHolding) handlePressEnd();
+            }}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
             disabled={isCapturing || !stream}
-            className="w-full h-14 text-lg bg-indigo-600 hover:bg-indigo-700"
+            className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+              isCapturing
+                ? 'bg-gray-400 cursor-not-allowed'
+                : isPressHolding
+                ? 'bg-emerald-600 text-white scale-95'
+                : 'bg-purple-600 hover:bg-purple-700 text-white active:scale-95'
+            }`}
           >
             {isCapturing ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Capturing...
               </>
+            ) : isPressHolding ? (
+              <>
+                <Mic className="mr-2 h-5 w-5" />
+                Recording... Release to Snap
+              </>
             ) : (
               <>
                 <Camera className="mr-2 h-5 w-5" />
-                Capture & Analyze
+                Hold to Record, Tap to Snap
               </>
             )}
-          </Button>
+          </button>
         </div>
 
         <p className="text-xs text-gray-500 text-center mt-3">
-          Tap capture to take photo and activate voice-to-text
+          Press & hold to record voice, release to capture photo
         </p>
       </div>
+
+      <style jsx>{`
+        @keyframes listening-dots {
+          0%, 20% { opacity: 0; }
+          40% { opacity: 0.5; }
+          60%, 100% { opacity: 1; }
+        }
+        .animate-listening-dots {
+          animation: listening-dots 1.5s infinite;
+        }
+      `}</style>
     </div>
   );
 }
