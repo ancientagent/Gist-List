@@ -113,6 +113,10 @@ export default function CameraScreen() {
     await capturePhoto();
   };
 
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [retakeMessage, setRetakeMessage] = useState<string | null>(null);
+
   const capturePhoto = async () => {
     if (!videoRef.current || isCapturing) return;
 
@@ -130,12 +134,17 @@ export default function CameraScreen() {
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
+        // Show captured image in viewfinder
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        setCapturedImage(imageDataUrl);
+        
         // Convert to blob
         const blob = await new Promise<Blob>((resolve) => {
           canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.95);
         });
 
         // Upload photo and create listing
+        setIsAnalyzing(true);
         const formData = new FormData();
         formData.append('photo', blob, 'photo.jpg');
         formData.append('theGist', theGist);
@@ -151,28 +160,56 @@ export default function CameraScreen() {
           throw new Error(data.error || 'Failed to create listing');
         }
 
-        toast.success('Photo captured! Analyzing...');
-        router.push(`/listing/${data.listingId}`);
+        // Check AI confidence
+        if (data.confidence && data.confidence > 0.7 && data.itemIdentified) {
+          // Confident - proceed to List Mode
+          toast.success('Item identified!');
+          router.push(`/listing/${data.listingId}`);
+        } else {
+          // Not confident - ask to retake
+          setIsAnalyzing(false);
+          setRetakeMessage(
+            data.imageQualityIssue || 
+            'Unable to identify item clearly. Please retake with better lighting and focus.'
+          );
+        }
       }
     } catch (error: any) {
       console.error('Capture error:', error);
       toast.error(error?.message || 'Failed to capture photo');
+      setIsAnalyzing(false);
     } finally {
       setIsCapturing(false);
     }
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
+    setRetakeMessage(null);
+    setIsAnalyzing(false);
   };
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Camera Viewfinder */}
       <div className="relative flex-1 overflow-hidden">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-        />
+        {capturedImage ? (
+          // Show captured image
+          <img 
+            src={capturedImage} 
+            alt="Captured" 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          // Show live camera feed
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
+        )}
         
         {/* Camera overlay indicators */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
@@ -186,7 +223,29 @@ export default function CameraScreen() {
               <span className="animate-listening-dots">...</span>
             </div>
           )}
+          {isAnalyzing && (
+            <div className="bg-purple-500 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Analyzing</span>
+              <span className="animate-listening-dots">...</span>
+            </div>
+          )}
         </div>
+
+        {/* Retake Message */}
+        {retakeMessage && (
+          <div className="absolute bottom-24 left-4 right-4 bg-red-500/90 backdrop-blur-sm rounded-lg p-4 text-white">
+            <p className="text-sm font-medium mb-2">Photo Quality Issue</p>
+            <p className="text-xs mb-3">{retakeMessage}</p>
+            <Button 
+              onClick={handleRetake}
+              size="sm"
+              className="w-full bg-white text-red-600 hover:bg-gray-100"
+            >
+              Retake Photo
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* The Gist Input Section */}

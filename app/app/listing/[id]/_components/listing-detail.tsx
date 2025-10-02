@@ -77,7 +77,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [customCondition, setCustomCondition] = useState('');
 
   useEffect(() => {
     fetchListing();
@@ -166,32 +165,12 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   };
 
   const handleConditionChange = (value: string) => {
-    if (value === 'custom') {
-      // Don't update condition yet, wait for custom input
-      return;
-    }
-    
     const newPrice = calculatePriceForCondition(value);
     setListing({
       ...listing!,
       condition: value,
       price: newPrice
     });
-  };
-
-  const handleCustomConditionSubmit = () => {
-    if (!CONDITION_OPTIONS.includes(customCondition)) {
-      toast.error('Please enter a valid condition from the dropdown');
-      return;
-    }
-    
-    const newPrice = calculatePriceForCondition(customCondition);
-    setListing({
-      ...listing!,
-      condition: customCondition,
-      price: newPrice
-    });
-    setCustomCondition('');
   };
 
   const handleFulfillmentChange = (type: string) => {
@@ -378,43 +357,31 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           <Label className="text-base font-medium mb-3 block">Price & Condition</Label>
           <div className="space-y-4">
             <div>
+              <Label className="text-sm">Condition Description</Label>
+              <Textarea
+                value={listing.conditionNotes || ''}
+                onChange={(e) => setListing({ ...listing, conditionNotes: e.target.value })}
+                className="mt-1"
+                rows={3}
+                placeholder="Describe the item's condition in detail (scratches, wear, damage, etc.)"
+              />
+            </div>
+
+            <div>
               <Label className="text-sm">Condition</Label>
               <Select
                 value={listing.condition || 'undefined'}
                 onValueChange={handleConditionChange}
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 w-fit min-w-[180px]">
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
                 <SelectContent>
                   {CONDITION_OPTIONS.map((opt) => (
                     <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                   ))}
-                  <SelectItem value="custom">Custom (type below)...</SelectItem>
                 </SelectContent>
               </Select>
-              
-              {/* Custom Condition Input */}
-              <div className="mt-2 flex gap-2">
-                <Input
-                  value={customCondition}
-                  onChange={(e) => setCustomCondition(e.target.value)}
-                  placeholder="Or type custom condition..."
-                  className="flex-1"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCustomConditionSubmit();
-                    }
-                  }}
-                />
-                <Button
-                  size="sm"
-                  onClick={handleCustomConditionSubmit}
-                  disabled={!customCondition}
-                >
-                  Set
-                </Button>
-              </div>
             </div>
             
             <div>
@@ -426,20 +393,12 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                 className="mt-1"
                 placeholder="0.00"
               />
-              {listing.avgMarketPrice && (
+              {listing.avgMarketPrice && listing.condition && (
                 <p className="text-xs text-emerald-600 mt-1">
-                  AI market price for {listing.condition || 'this condition'}: ${calculatePriceForCondition(listing.condition || 'Good')?.toFixed(2) || listing.avgMarketPrice.toFixed(2)}
+                  Suggested price for {listing.condition}: ${calculatePriceForCondition(listing.condition)?.toFixed(2) || listing.avgMarketPrice.toFixed(2)}
                 </p>
               )}
             </div>
-
-            {listing.conditionNotes && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-900">
-                  <strong>Condition Notes:</strong> {listing.conditionNotes}
-                </p>
-              </div>
-            )}
           </div>
         </div>
 

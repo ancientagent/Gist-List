@@ -297,22 +297,7 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                       },
                     });
 
-                    // Create condition improvement notification
-                    if (finalResult.conditionNotes && (
-                      finalResult.conditionNotes.toLowerCase().includes('clean') ||
-                      finalResult.conditionNotes.toLowerCase().includes('repair') ||
-                      finalResult.conditionNotes.toLowerCase().includes('damage') ||
-                      finalResult.conditionNotes.toLowerCase().includes('stain')
-                    )) {
-                      await prisma.aINotification.create({
-                        data: {
-                          listingId,
-                          type: 'ALERT',
-                          message: `Condition Assessment: ${finalResult.conditionNotes}`,
-                          field: 'condition',
-                        },
-                      });
-                    }
+                    // Condition notes are now just stored in the field, no notification needed
 
                     // Create notifications for missing required fields
                     if (finalResult.missingRequiredFields?.length > 0) {
