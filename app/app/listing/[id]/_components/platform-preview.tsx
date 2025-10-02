@@ -2,11 +2,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, Info } from 'lucide-react';
+import { Star, Info, Crown, Tag } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 interface PlatformField {
   name: string;
@@ -122,14 +123,17 @@ export default function PlatformPreview({
   qualifiedPlatforms,
   listingId,
   listing,
+  userTier,
 }: {
   recommendedPlatforms: string[];
   qualifiedPlatforms: string[];
   listingId: string;
   listing: any;
+  userTier?: string;
 }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [platformData, setPlatformData] = useState<Record<string, Record<string, string>>>({});
+  const isPremium = userTier === 'BASIC' || userTier === 'PRO';
 
   useEffect(() => {
     // Pre-select top 2-3 recommended platforms
@@ -167,7 +171,29 @@ export default function PlatformPreview({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-      <h3 className="font-medium mb-4">Platform Preview</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="font-medium">Fine Details</h3>
+        {isPremium && (
+          <Badge className="bg-purple-600 text-white">
+            <Crown className="w-3 h-3 mr-1" />
+            Premium
+          </Badge>
+        )}
+      </div>
+
+      {!isPremium && (
+        <div className="bg-gradient-to-r from-purple-50 to-emerald-50 border-2 border-purple-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <Crown className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
+              <p className="text-xs text-gray-600 mt-1">
+                Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Upgrade to Basic or Pro!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Platform Selection */}
       <div className="mb-6">
@@ -276,6 +302,39 @@ export default function PlatformPreview({
       {selectedPlatforms.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <p className="text-sm">Select at least one platform to see preview</p>
+        </div>
+      )}
+
+      {/* Search Tags (Premium Feature) */}
+      {isPremium && listing.searchTags && listing.searchTags.length > 0 && (
+        <div className="border-t pt-4 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag className="w-4 h-4 text-emerald-600" />
+            <Label className="text-sm font-medium">SEO Search Tags</Label>
+            <Badge variant="outline" className="text-xs">
+              Ordered by effectiveness
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {listing.searchTags.map((tag: string, index: number) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className={`${
+                  index < 5
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : index < 10
+                    ? 'bg-purple-100 text-purple-800 border-purple-300'
+                    : 'bg-gray-100 text-gray-800 border-gray-300'
+                }`}
+              >
+                #{index + 1} {tag}
+              </Badge>
+            ))}
+          </div>
+          <p className="text-xs text-gray-600 mt-2">
+            Use these tags in your listings for better search visibility and discoverability.
+          </p>
         </div>
       )}
     </div>

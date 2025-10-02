@@ -105,13 +105,17 @@ CRITICAL REQUIREMENTS:
    - Screen condition (for electronics)
    - Stitching integrity (for items with seams)
    
-   CONDITION NOTES FORMAT:
-   "Current State: [describe observed condition]
-    Issues Detected: [list all damage/wear/dirt]
-    Value Impact: [how condition affects price - be honest]
-    Seller Actions: [specific steps to improve: 'Clean with X', 'Repair Y', 'Replace Z', 'Photograph from better angle']"
+   CONDITION NOTES FORMAT (CRITICAL - SELLER POV):
+   Write from the perspective of the SELLER, not an observer. Use FACTS from the image, NO UNCERTAINTY.
+   BAD: "The item appears to have some scratches and may need cleaning"
+   GOOD: "Light surface scratches on the top cover. Dust visible in the crevices."
    
-   BE BRUTALLY HONEST - Buyers will see these issues, so detecting them helps sellers prepare!
+   Structure:
+   "Item shows: [specific observed issues - be factual]
+    Functional status: [if assessable from image]
+    Recommended before listing: [specific actions: 'Clean with microfiber cloth', 'Repair torn seam', 'Replace missing button']"
+   
+   BE FACTUAL - No "appears to be", "seems like", "might have". State what IS visible.
 
 3. TITLE GENERATION (CRITICAL):
    Use proven, classic title formats based on market research:
@@ -166,10 +170,28 @@ CRITICAL REQUIREMENTS:
    - Vinted: Fashion and accessories
    Recommend top 2-3 platforms, list all qualified platforms
 
-8. REQUIRED FIELD VALIDATION:
-   Check if these critical fields can be determined:
-   - brand, model, condition, category, size (if applicable)
-   If any REQUIRED field is uncertain, add a question to "questionsForUser"
+8. SEARCH TAGS (SEO OPTIMIZATION):
+   Generate up to 20 search tags ordered by effectiveness:
+   - Primary keywords (brand, model, category)
+   - Secondary keywords (color, material, size, condition)
+   - Style/aesthetic keywords (vintage, modern, retro, etc.)
+   - Use case keywords (gift, collector, daily use, etc.)
+   - Platform-specific popular search terms
+   Example: ["nike air jordan", "jordan 1 retro", "high top sneakers", "red white shoes", "size 10 mens", "basketball shoes", "collectible sneakers"]
+
+9. ALERTS & ACTIONS:
+   Generate smart notifications:
+   
+   ALERTS (required fields only):
+   - Only for fields that MUST be filled for posting (brand, model, category, size if applicable)
+   - Format: { type: "ALERT", field: "brand", message: "Brand is required for posting" }
+   
+   ACTIONS (actionable insights):
+   - Damage detection + inoperable check for electronics: If damage found and item NOT shown powered on → { type: "ACTION", actionType: "inoperable_check", message: "Damage detected. Is the item still functional?" }
+   - Photo quality: If blurry/poor → { type: "ACTION", actionType: "retake_photo", message: "Image is blurry. Retake for better results?" }
+   - Additional photos needed: { type: "ACTION", actionType: "add_photo", message: "Add photos of the damage/serial number for transparency" }
+   - Price insight: If user price doesn't match condition → { type: "ACTION", actionType: "insight", message: "Price seems high for current condition. Consider adjusting." }
+   - Cleaning recommendations: { type: "ACTION", actionType: "question", message: "Item shows dirt. Clean before photographing?" }
 
 Provide a JSON response:
 {
@@ -190,17 +212,17 @@ Provide a JSON response:
   "title": "optimized title using classic format",
   "description": "comprehensive, compelling description with all details",
   "condition": "New/Like New/Very Good/Good/Fair/Poor",
-  "conditionNotes": "DETAILED condition assessment with specific issues and improvement suggestions",
+  "conditionNotes": "FACTUAL condition assessment from seller POV - no uncertainty",
   "tags": ["relevant", "keywords"],
+  "searchTags": ["up to 20 SEO-optimized search tags ordered by effectiveness"],
   "recommendedPlatforms": ["top 2-3 platforms"],
   "qualifiedPlatforms": ["all qualifying platforms"],
   "avgMarketPrice": number or null (baseline for GOOD condition),
   "suggestedPriceMin": number or null,
   "suggestedPriceMax": number or null,
   "marketInsights": "detailed market analysis with condition impact",
-  "needsMoreInfo": true/false,
-  "questionsForUser": ["specific questions about missing required fields"],
-  "missingRequiredFields": ["field names that are required but uncertain"]
+  "alerts": [{ "field": "field_name", "message": "Required field message" }],
+  "actions": [{ "actionType": "retake_photo|add_photo|inoperable_check|question|insight", "message": "Action message", "data": {} }]
 }
 
 Respond with raw JSON only. No markdown, no code blocks.`,
@@ -253,18 +275,6 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                   try {
                     const finalResult = JSON.parse(buffer);
                     
-                    // Check for image quality issues
-                    if (finalResult.imageQualityIssue) {
-                      await prisma.aINotification.create({
-                        data: {
-                          listingId,
-                          type: 'ALERT',
-                          message: `Image Quality Issue: ${finalResult.imageQualityIssue}. Please retake the photo.`,
-                          field: 'photo',
-                        },
-                      });
-                    }
-                    
                     // Update listing in database
                     await prisma.listing.update({
                       where: { id: listingId },
@@ -287,6 +297,7 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         condition: finalResult.condition ?? null,
                         conditionNotes: finalResult.conditionNotes ?? null,
                         tags: finalResult.tags ?? [],
+                        searchTags: finalResult.searchTags ?? [],
                         recommendedPlatforms: finalResult.recommendedPlatforms ?? [],
                         qualifiedPlatforms: finalResult.qualifiedPlatforms ?? [],
                         avgMarketPrice: finalResult.avgMarketPrice ?? null,
@@ -297,30 +308,33 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                       },
                     });
 
-                    // Condition notes are now just stored in the field, no notification needed
-
-                    // Create notifications for missing required fields
-                    if (finalResult.missingRequiredFields?.length > 0) {
-                      for (const field of finalResult.missingRequiredFields) {
+                    // Create ALERTS (required fields only)
+                    if (finalResult.alerts?.length > 0) {
+                      for (const alert of finalResult.alerts) {
                         await prisma.aINotification.create({
                           data: {
                             listingId,
                             type: 'ALERT',
-                            message: `Required field "${field}" could not be determined. Please provide this information.`,
-                            field: field,
+                            message: alert.message,
+                            field: alert.field,
+                            actionType: null,
+                            actionData: null,
                           },
                         });
                       }
                     }
 
-                    // Create notifications if AI has questions
-                    if (finalResult.needsMoreInfo && finalResult.questionsForUser?.length > 0) {
-                      for (const question of finalResult.questionsForUser) {
+                    // Create ACTIONS (actionable insights)
+                    if (finalResult.actions?.length > 0) {
+                      for (const action of finalResult.actions) {
                         await prisma.aINotification.create({
                           data: {
                             listingId,
-                            type: 'PREFERENCE',
-                            message: question,
+                            type: 'ACTION',
+                            message: action.message,
+                            field: null,
+                            actionType: action.actionType,
+                            actionData: action.data ? JSON.stringify(action.data) : null,
                           },
                         });
                       }

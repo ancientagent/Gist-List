@@ -109,6 +109,7 @@ model Listing {
   confidence        Float?
   category          String?
   tags              String[] // array of tags
+  searchTags        String[] // SEO-optimized search tags (up to 20)
   
   // Market Research
   avgMarketPrice    Float?
@@ -183,9 +184,11 @@ model PlatformData {
 model AINotification {
   id          String   @id @default(cuid())
   listingId   String
-  type        String   // "ALERT" (red !) or "PREFERENCE" (blue ?)
+  type        String   // "ALERT" (required fields) or "ACTION" (actionable insights)
   message     String   @db.Text
-  field       String?  // which field this relates to
+  field       String?  // which field this relates to (for ALERTs)
+  actionType  String?  // "retake_photo", "add_photo", "inoperable_check", "question", "insight"
+  actionData  String?  @db.Text // JSON data for action (e.g., photo index for retake)
   resolved    Boolean  @default(false)
   createdAt   DateTime @default(now())
   

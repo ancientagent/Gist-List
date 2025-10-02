@@ -25,7 +25,15 @@ export async function GET(
       where: { id: listingId, userId },
       include: {
         photos: { orderBy: { order: 'asc' } },
-        notifications: { orderBy: { createdAt: 'desc' } },
+        notifications: { 
+          where: { resolved: false },
+          orderBy: { createdAt: 'desc' }
+        },
+        user: {
+          select: {
+            subscriptionTier: true,
+          }
+        }
       },
     });
 

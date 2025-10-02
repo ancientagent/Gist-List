@@ -53,6 +53,7 @@ interface Listing {
   confidence: number | null;
   category: string | null;
   tags: string[];
+  searchTags: string[];
   avgMarketPrice: number | null;
   suggestedPriceMin: number | null;
   suggestedPriceMax: number | null;
@@ -69,6 +70,9 @@ interface Listing {
   meetupPreference: string | null;
   photos: any[];
   notifications: any[];
+  user?: {
+    subscriptionTier: string;
+  };
 }
 
 export default function ListingDetail({ listingId }: { listingId: string }) {
@@ -77,11 +81,23 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
 
   useEffect(() => {
     fetchListing();
     startAnalysis();
   }, [listingId]);
+
+  const scrollToField = (field: string) => {
+    setHighlightedField(field);
+    // Scroll to element with id matching field name
+    const element = document.getElementById(`field-${field}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Remove highlight after 3 seconds
+      setTimeout(() => setHighlightedField(null), 3000);
+    }
+  };
 
   const fetchListing = async () => {
     try {
@@ -169,8 +185,45 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     setListing({
       ...listing!,
       condition: value,
-      price: newPrice
+      // Only update price if user hasn't set their own price yet
+      price: listing?.price ? listing.price : newPrice
     });
+  };
+
+  // Determine if user's price is reasonable for the condition
+  const getPriceSuggestionColor = (): string | null => {
+    if (!listing?.price || !listing?.condition || !listing?.avgMarketPrice) return null;
+    
+    const conditionPrice = calculatePriceForCondition(listing.condition);
+    if (!conditionPrice) return null;
+    
+    const priceDiff = listing.price - conditionPrice;
+    const percentDiff = (priceDiff / conditionPrice) * 100;
+    
+    // If more than 15% off, suggest higher (green)
+    if (percentDiff < -15) return 'green';
+    // If more than 15% over, suggest lower (red)
+    if (percentDiff > 15) return 'red';
+    
+    return null;
+  };
+
+  const getConditionAwarePriceInsight = (): string | null => {
+    if (!listing?.price || !listing?.condition || !listing?.avgMarketPrice) return null;
+    
+    const conditionPrice = calculatePriceForCondition(listing.condition);
+    if (!conditionPrice) return null;
+    
+    const priceDiff = listing.price - conditionPrice;
+    const percentDiff = (priceDiff / conditionPrice) * 100;
+    
+    if (Math.abs(percentDiff) < 15) return null; // Price is reasonable
+    
+    if (percentDiff > 15) {
+      return `Your price seems high for "${listing.condition}" condition. Market data suggests $${conditionPrice.toFixed(2)}`;
+    } else {
+      return `You could ask for more! Items in "${listing.condition}" condition typically sell for $${conditionPrice.toFixed(2)}`;
+    }
   };
 
   const handleFulfillmentChange = (type: string) => {
@@ -233,13 +286,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           </div>
         )}
 
-        {/* Notifications */}
-        {(alertNotifications.length > 0 || preferenceNotifications.length > 0) && (
+        {/* Alerts and Actions */}
+        {listing.notifications && listing.notifications.length > 0 && (
           <div className="mb-4">
             <NotificationList 
-              notifications={[...alertNotifications, ...preferenceNotifications]} 
+              notifications={listing.notifications} 
               listingId={listingId}
               onResolve={fetchListing}
+              onScrollToField={scrollToField}
             />
           </div>
         )}
@@ -256,7 +310,9 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         </div>
 
         {/* Photo Gallery */}
-        <PhotoGallery photos={listing.photos || []} listingId={listingId} />
+        <div id="photo-gallery">
+          <PhotoGallery photos={listing.photos || []} listingId={listingId} />
+        </div>
 
         {/* Title */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -356,18 +412,23 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <Label className="text-base font-medium mb-3 block">Price & Condition</Label>
           <div className="space-y-4">
-            <div>
+            <div id="field-conditionNotes" className={highlightedField === 'conditionNotes' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
               <Label className="text-sm">Condition Description</Label>
               <Textarea
                 value={listing.conditionNotes || ''}
                 onChange={(e) => setListing({ ...listing, conditionNotes: e.target.value })}
-                className="mt-1"
-                rows={3}
+                className="mt-1 min-h-[60px] resize-none overflow-hidden"
+                style={{ height: 'auto' }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = target.scrollHeight + 'px';
+                }}
                 placeholder="Describe the item's condition in detail (scratches, wear, damage, etc.)"
               />
             </div>
 
-            <div>
+            <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
               <Label className="text-sm">Condition</Label>
               <Select
                 value={listing.condition || 'undefined'}
@@ -384,7 +445,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               </Select>
             </div>
             
-            <div>
+            <div id="field-price" className={highlightedField === 'price' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
               <Label className="text-sm">Price ($)</Label>
               <Input
                 type="number"
@@ -393,9 +454,17 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                 className="mt-1"
                 placeholder="0.00"
               />
-              {listing.avgMarketPrice && listing.condition && (
-                <p className="text-xs text-emerald-600 mt-1">
-                  Suggested price for {listing.condition}: ${calculatePriceForCondition(listing.condition)?.toFixed(2) || listing.avgMarketPrice.toFixed(2)}
+              {/* Show suggested price only when field is empty OR when user price differs significantly */}
+              {!listing.price && listing.avgMarketPrice && listing.condition && (
+                <p className="text-xs text-gray-600 mt-1">
+                  AI suggested: ${calculatePriceForCondition(listing.condition)?.toFixed(2) || listing.avgMarketPrice.toFixed(2)}
+                </p>
+              )}
+              {listing.price && getConditionAwarePriceInsight() && (
+                <p className={`text-xs mt-1 font-medium ${
+                  getPriceSuggestionColor() === 'green' ? 'text-emerald-600' : 'text-red-600'
+                }`}>
+                  {getConditionAwarePriceInsight()}
                 </p>
               )}
             </div>
@@ -523,12 +592,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           )}
         </div>
 
-        {/* Platform Preview */}
+        {/* Fine Details (Platform Preview + Search Tags) */}
         <PlatformPreview 
           recommendedPlatforms={listing.recommendedPlatforms || []}
           qualifiedPlatforms={listing.qualifiedPlatforms || []}
           listingId={listingId}
           listing={listing}
+          userTier={listing.user?.subscriptionTier}
         />
 
         {/* Insights */}
