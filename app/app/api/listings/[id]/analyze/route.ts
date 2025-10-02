@@ -57,7 +57,7 @@ export async function POST(
           },
           {
             type: 'text',
-            text: `You are an expert resale assistant and market researcher. Analyze this image thoroughly.
+            text: `You are an EXPERT resale inspector and market analyst with years of experience evaluating items for condition and value. Analyze this image with EXTREME ATTENTION TO DETAIL.
 
 ${listing.theGist ? `User notes: "${listing.theGist}"` : ''}
 
@@ -65,13 +65,53 @@ CRITICAL REQUIREMENTS:
 
 1. IMAGE QUALITY CHECK:
    - Assess if the image is blurry, poorly lit, or unrecognizable
+   - Check if all angles are visible or if more photos are needed
    - If quality is poor, set "imageQualityIssue" with specific feedback
    - Only proceed with analysis if image quality is acceptable
 
-2. ITEM CONDITION ASSESSMENT:
-   - Detect any damage, dirt, dust, scratches, wear, dents, or defects
-   - Note if cleaning or repairs could improve selling chances
-   - Provide specific condition insights in "conditionNotes"
+2. INTENSIVE CONDITION INSPECTION (CRITICAL - BE THOROUGH):
+   INSPECT THE ITEM LIKE A PROFESSIONAL APPRAISER:
+   
+   Physical Damage:
+   - Scratches (surface, deep, hairline)
+   - Dents, dings, or deformations
+   - Cracks, chips, or breaks
+   - Scuffs, scrapes, or abrasions
+   - Tears, rips, or holes (for textiles)
+   - Rust, corrosion, or oxidation (for metals)
+   - Discoloration or fading
+   - Missing parts or pieces
+   
+   Cleanliness & Maintenance:
+   - Dirt, dust, or grime buildup
+   - Stains (oil, water, ink, food)
+   - Pet hair or odors (if visible)
+   - Mold or mildew signs
+   - Fingerprints or smudges
+   - Need for cleaning or polishing
+   
+   Wear & Aging:
+   - Normal wear patterns
+   - Edge wear or fraying
+   - Sole wear (for shoes)
+   - Button or zipper condition
+   - Elastic condition (for clothing)
+   - Creasing or cracking (leather)
+   - Yellowing (for plastics/white items)
+   
+   Functionality (if assessable):
+   - Signs of working condition
+   - Battery compartment condition
+   - Screen condition (for electronics)
+   - Stitching integrity (for items with seams)
+   
+   CONDITION NOTES FORMAT:
+   "Current State: [describe observed condition]
+    Issues Detected: [list all damage/wear/dirt]
+    Value Impact: [how condition affects price - be honest]
+    Seller Actions: [specific steps to improve: 'Clean with X', 'Repair Y', 'Replace Z', 'Photograph from better angle']"
+   
+   BE BRUTALLY HONEST - Buyers will see these issues, so detecting them helps sellers prepare!
 
 3. TITLE GENERATION (CRITICAL):
    Use proven, classic title formats based on market research:
@@ -91,57 +131,76 @@ CRITICAL REQUIREMENTS:
    - Year/Version (if applicable)
    - Color/Finish
    - Material
-   - Dimensions/Size
+   - Dimensions/Size (both physical and packaging)
+   - Weight (estimate if visible)
    - Specifications (for electronics: storage, RAM, screen size, etc.)
    - Serial numbers or identifying marks (if visible)
    - Original packaging status
 
 5. PRICE INTELLIGENCE:
-   - Research current market prices for this exact item
-   - Provide avgMarketPrice, suggestedPriceMin, suggestedPriceMax
+   - Research current market prices for this exact item in this condition
+   - Provide avgMarketPrice for GOOD condition as baseline
    - Include marketInsights with:
      * How many similar items are currently listed
-     * What prices they're selling for
+     * What prices they're actually SELLING for (not just listed)
      * Demand level (high/medium/low)
      * Best time to list (if known)
+     * Condition impact on price
+   
+6. SHIPPING ESTIMATION:
+   - Estimate weight based on item type and size
+   - Estimate dimensions (L×W×H in inches)
+   - Calculate rough shipping cost using standard carrier rates
+   - Format: estimatedWeight (lbs), estimatedDimensions (string), shippingCostEst (number)
 
-6. PLATFORM RECOMMENDATIONS:
-   Based on item category and condition:
-   - eBay: Electronics, collectibles, vintage items
+7. PLATFORM RECOMMENDATIONS:
+   Based on item category, condition, and shipping needs:
+   - eBay: Electronics, collectibles, vintage items, anything shippable
    - Mercari: Fashion, home goods, general items
-   - Poshmark: Clothing, shoes, accessories
-   - Facebook Marketplace: Local pickup items, furniture
+   - Poshmark: Clothing, shoes, accessories (fashion focus)
+   - Facebook Marketplace: Local pickup items, furniture, large items
    - OfferUp: Local items, larger goods
+   - Craigslist: Local only, larger items, vehicles
+   - Nextdoor: Local neighborhood items
    - Reverb: Musical instruments, audio equipment
    - Vinted: Fashion and accessories
    Recommend top 2-3 platforms, list all qualified platforms
 
+8. REQUIRED FIELD VALIDATION:
+   Check if these critical fields can be determined:
+   - brand, model, condition, category, size (if applicable)
+   If any REQUIRED field is uncertain, add a question to "questionsForUser"
+
 Provide a JSON response:
 {
-  "imageQualityIssue": null or "Specific issue: blurry/poor lighting/unrecognizable",
+  "imageQualityIssue": null or "Specific issue: blurry/poor lighting/unrecognizable/need more angles",
   "itemIdentified": true or false,
   "confidence": 0.0 to 1.0,
   "category": "specific category",
-  "brand": "exact brand name",
-  "model": "exact model number/name",
-  "year": "year or version",
-  "color": "color/finish",
-  "material": "material(s)",
-  "size": "size/dimensions",
-  "specs": "key specifications",
+  "brand": "exact brand name or null",
+  "model": "exact model number/name or null",
+  "year": "year or version or null",
+  "color": "color/finish or null",
+  "material": "material(s) or null",
+  "size": "size/dimensions or null",
+  "specs": "key specifications or null",
+  "estimatedWeight": number (in lbs) or null,
+  "estimatedDimensions": "LxWxH" or null,
+  "shippingCostEst": number or null,
   "title": "optimized title using classic format",
   "description": "comprehensive, compelling description with all details",
-  "condition": "New/Like New/Good/Fair/Poor",
-  "conditionNotes": "damage, wear, cleanliness assessment, improvement suggestions",
+  "condition": "New/Like New/Very Good/Good/Fair/Poor",
+  "conditionNotes": "DETAILED condition assessment with specific issues and improvement suggestions",
   "tags": ["relevant", "keywords"],
   "recommendedPlatforms": ["top 2-3 platforms"],
   "qualifiedPlatforms": ["all qualifying platforms"],
-  "avgMarketPrice": number or null,
+  "avgMarketPrice": number or null (baseline for GOOD condition),
   "suggestedPriceMin": number or null,
   "suggestedPriceMax": number or null,
-  "marketInsights": "detailed market analysis",
+  "marketInsights": "detailed market analysis with condition impact",
   "needsMoreInfo": true/false,
-  "questionsForUser": []
+  "questionsForUser": ["specific questions about missing required fields"],
+  "missingRequiredFields": ["field names that are required but uncertain"]
 }
 
 Respond with raw JSON only. No markdown, no code blocks.`,
@@ -157,10 +216,10 @@ Respond with raw JSON only. No markdown, no code blocks.`,
         Authorization: `Bearer ${process.env.ABACUSAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini',
+        model: 'gpt-4o',
         messages,
         stream: true,
-        max_tokens: 2000,
+        max_tokens: 2500,
         response_format: { type: 'json_object' },
       }),
     });
@@ -220,6 +279,9 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         material: finalResult.material ?? null,
                         size: finalResult.size ?? null,
                         specs: finalResult.specs ?? null,
+                        weight: finalResult.estimatedWeight ?? null,
+                        dimensions: finalResult.estimatedDimensions ?? null,
+                        shippingCostEst: finalResult.shippingCostEst ?? null,
                         title: finalResult.title ?? null,
                         description: finalResult.description ?? null,
                         condition: finalResult.condition ?? null,
@@ -236,18 +298,37 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                     });
 
                     // Create condition improvement notification
-                    if (finalResult.conditionNotes && finalResult.conditionNotes.toLowerCase().includes('clean')) {
+                    if (finalResult.conditionNotes && (
+                      finalResult.conditionNotes.toLowerCase().includes('clean') ||
+                      finalResult.conditionNotes.toLowerCase().includes('repair') ||
+                      finalResult.conditionNotes.toLowerCase().includes('damage') ||
+                      finalResult.conditionNotes.toLowerCase().includes('stain')
+                    )) {
                       await prisma.aINotification.create({
                         data: {
                           listingId,
                           type: 'ALERT',
-                          message: `Condition Suggestion: ${finalResult.conditionNotes}`,
+                          message: `Condition Assessment: ${finalResult.conditionNotes}`,
                           field: 'condition',
                         },
                       });
                     }
 
-                    // Create notifications if needed
+                    // Create notifications for missing required fields
+                    if (finalResult.missingRequiredFields?.length > 0) {
+                      for (const field of finalResult.missingRequiredFields) {
+                        await prisma.aINotification.create({
+                          data: {
+                            listingId,
+                            type: 'ALERT',
+                            message: `Required field "${field}" could not be determined. Please provide this information.`,
+                            field: field,
+                          },
+                        });
+                      }
+                    }
+
+                    // Create notifications if AI has questions
                     if (finalResult.needsMoreInfo && finalResult.questionsForUser?.length > 0) {
                       for (const question of finalResult.questionsForUser) {
                         await prisma.aINotification.create({

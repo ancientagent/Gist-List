@@ -117,11 +117,15 @@ model Listing {
   bestPostTime      String?
   marketInsights    String?  @db.Text
   
-  // Shipping
-  willingToShip     Boolean  @default(false)
+  // Shipping & Local
+  fulfillmentType   String?  @default("shipping") // "shipping" or "local"
+  willingToShip     Boolean  @default(true)
+  okForLocals       Boolean  @default(false) // if shipping, can locals also contact
   weight            Float?
   dimensions        String?  // "LxWxH"
   shippingCostEst   Float?
+  location          String?  // for local sales
+  meetupPreference  String?  // delivery/meetup preference
   
   // Pro Features
   buyerInfoPackage  String?  @db.Text // JSON string with manuals, specs, dealers, etc.

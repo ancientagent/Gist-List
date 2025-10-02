@@ -16,28 +16,16 @@ interface Notification {
 
 export default function NotificationList({
   notifications,
-  type,
   listingId,
   onResolve,
 }: {
   notifications: Notification[];
-  type: 'alert' | 'preference';
   listingId: string;
   onResolve: () => void;
 }) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   if (notifications.length === 0) return null;
-
-  const toggleExpand = (id: string) => {
-    const newSet = new Set(expandedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setExpandedIds(newSet);
-  };
 
   const resolveNotification = async (notificationId: string) => {
     try {
@@ -54,58 +42,89 @@ export default function NotificationList({
     }
   };
 
-  const Icon = type === 'alert' ? AlertCircle : HelpCircle;
-  const colorClass = type === 'alert' ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200';
-  const iconColorClass = type === 'alert' ? 'text-red-600' : 'text-blue-600';
-  const textColorClass = type === 'alert' ? 'text-red-900' : 'text-blue-900';
+  const alertCount = notifications.filter(n => n.type === 'ALERT').length;
+  const preferenceCount = notifications.filter(n => n.type === 'PREFERENCE').length;
 
   return (
-    <div className="space-y-2">
-      {notifications.map((notification) => {
-        const isExpanded = expandedIds.has(notification.id);
-        
-        return (
-          <div
-            key={notification.id}
-            className={`border rounded-lg overflow-hidden ${colorClass}`}
-          >
-            <button
-              onClick={() => toggleExpand(notification.id)}
-              className="w-full p-3 flex items-center gap-3 hover:bg-black/5 transition-colors"
-            >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${iconColorClass}`} />
-              {!isExpanded ? (
-                <span className={`flex-1 text-left text-sm font-medium ${textColorClass}`}>
-                  {type === 'alert' ? 'Action Required' : 'Question'}
-                </span>
-              ) : (
-                <span className={`flex-1 text-left text-sm ${textColorClass}`}>
-                  {notification.message}
-                </span>
-              )}
-              {isExpanded ? (
-                <ChevronUp className={`w-4 h-4 ${iconColorClass}`} />
-              ) : (
-                <ChevronDown className={`w-4 h-4 ${iconColorClass}`} />
-              )}
-            </button>
-
-            {isExpanded && (
-              <div className="px-3 pb-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => resolveNotification(notification.id)}
-                  className={`${type === 'alert' ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700'}`}
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Resolve
-                </Button>
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Header - Always visible */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {alertCount > 0 && (
+              <div className="flex items-center gap-1">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <span className="text-sm font-medium text-red-900">{alertCount}</span>
+              </div>
+            )}
+            {preferenceCount > 0 && (
+              <div className="flex items-center gap-1">
+                <HelpCircle className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">{preferenceCount}</span>
               </div>
             )}
           </div>
-        );
-      })}
+          <span className="font-medium text-gray-900">
+            {alertCount > 0 && preferenceCount > 0
+              ? 'Actions & Questions'
+              : alertCount > 0
+              ? 'Actions Required'
+              : 'Questions for You'}
+          </span>
+        </div>
+        {isCollapsed ? (
+          <ChevronDown className="w-5 h-5 text-gray-500" />
+        ) : (
+          <ChevronUp className="w-5 h-5 text-gray-500" />
+        )}
+      </button>
+
+      {/* Notification List - Collapsible */}
+      {!isCollapsed && (
+        <div className="border-t">
+          <div className="p-4 space-y-3">
+            {notifications.map((notification) => {
+              const isAlert = notification.type === 'ALERT';
+              const Icon = isAlert ? AlertCircle : HelpCircle;
+              const bgClass = isAlert ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200';
+              const iconClass = isAlert ? 'text-red-600' : 'text-blue-600';
+              const textClass = isAlert ? 'text-red-900' : 'text-blue-900';
+              
+              return (
+                <div
+                  key={notification.id}
+                  className={`border rounded-lg p-3 ${bgClass}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconClass}`} />
+                    <div className="flex-1">
+                      <p className={`text-sm ${textClass}`}>
+                        {notification.message}
+                      </p>
+                      {notification.field && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Field: {notification.field}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => resolveNotification(notification.id)}
+                      className="flex-shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

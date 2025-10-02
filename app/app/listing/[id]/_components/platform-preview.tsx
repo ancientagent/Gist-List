@@ -2,113 +2,140 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, Check, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Star, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PlatformField {
   name: string;
   label: string;
   type: 'text' | 'number' | 'select';
-  required: boolean;
   value?: string;
-  options?: string[];
+  confidence?: number; // 0-1, how confident AI is
+  isUnique?: boolean; // unique to this platform
   placeholder?: string;
 }
 
-const PLATFORM_FIELDS: Record<string, (category?: string) => PlatformField[]> = {
-  'eBay': (category) => {
-    const baseFields: PlatformField[] = [
-      { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Like New', 'Very Good', 'Good', 'Acceptable', 'For Parts'] },
-      { name: 'brand', label: 'Brand', type: 'text', required: true },
-      { name: 'model', label: 'Model', type: 'text', required: false },
-      { name: 'shipping_weight', label: 'Shipping Weight (lbs)', type: 'number', required: true },
-      { name: 'handling_time', label: 'Handling Time (days)', type: 'number', required: true, placeholder: 'e.g., 1-3' },
-    ];
+// These are fields that AI might not be confident about or are platform-specific
+const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[]> = {
+  'eBay': (listing) => {
+    const fields: PlatformField[] = [];
     
-    if (category?.toLowerCase().includes('clothing') || category?.toLowerCase().includes('shoe')) {
-      baseFields.push({ name: 'size', label: 'Size', type: 'text', required: true });
-      baseFields.push({ name: 'color', label: 'Color', type: 'text', required: true });
+    // UPC/EAN for electronics (unique to eBay)
+    if (listing.category?.toLowerCase().includes('electronics')) {
+      fields.push({
+        name: 'upc',
+        label: 'UPC/EAN',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'If you have the barcode...'
+      });
     }
     
-    if (category?.toLowerCase().includes('electronics')) {
-      baseFields.push({ name: 'upc', label: 'UPC/EAN', type: 'text', required: false });
-    }
+    // Handling time (unique field)
+    fields.push({
+      name: 'handling_time',
+      label: 'Handling Time (days)',
+      type: 'number',
+      value: listing.handlingTime || '1',
+      confidence: listing.handlingTime ? 1 : 0.5,
+      isUnique: true,
+      placeholder: '1-3'
+    });
     
-    return baseFields;
+    return fields;
   },
-  'Mercari': (category) => [
-    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Like New', 'Good', 'Fair', 'Poor'] },
-    { name: 'brand', label: 'Brand', type: 'text', required: true },
-    { name: 'size', label: 'Size', type: 'text', required: !!(category?.toLowerCase().includes('clothing') || category?.toLowerCase().includes('shoe')) },
-    { name: 'color', label: 'Color', type: 'text', required: !!(category?.toLowerCase().includes('clothing')) },
-    { name: 'shipping_weight', label: 'Weight (lbs)', type: 'number', required: true },
-  ],
-  'Poshmark': (category) => [
-    { name: 'brand', label: 'Brand', type: 'text', required: true },
-    { name: 'size', label: 'Size', type: 'text', required: true },
-    { name: 'color', label: 'Color', type: 'text', required: true },
-    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New with Tags', 'New without Tags', 'Excellent Used', 'Good Used', 'Fair Used'] },
-    { name: 'material', label: 'Material', type: 'text', required: false },
-  ],
-  'Facebook Marketplace': (category) => [
-    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Used - Like New', 'Used - Good', 'Used - Fair'] },
-    { name: 'location', label: 'Location', type: 'text', required: true, placeholder: 'City, State' },
-  ],
-  'OfferUp': (category) => [
-    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New', 'Like New', 'Good', 'Fair', 'Poor'] },
-    { name: 'location', label: 'Location', type: 'text', required: true, placeholder: 'City, State' },
-  ],
-  'Reverb': (category) => [
-    { name: 'brand', label: 'Brand', type: 'text', required: true },
-    { name: 'model', label: 'Model', type: 'text', required: true },
-    { name: 'year', label: 'Year', type: 'text', required: false },
-    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['Brand New', 'Mint', 'Excellent', 'Very Good', 'Good', 'Fair', 'Poor', 'Non-Functioning'] },
-    { name: 'finish', label: 'Finish/Color', type: 'text', required: false },
-    { name: 'shipping_weight', label: 'Weight (lbs)', type: 'number', required: true },
-  ],
-  'Vinted': (category) => [
-    { name: 'brand', label: 'Brand', type: 'text', required: true },
-    { name: 'size', label: 'Size', type: 'text', required: true },
-    { name: 'color', label: 'Color', type: 'text', required: true },
-    { name: 'condition', label: 'Condition', type: 'select', required: true, options: ['New with tags', 'New without tags', 'Very good', 'Good', 'Satisfactory'] },
-  ],
+  'Mercari': (listing) => {
+    // Mercari uses standard fields mostly
+    return [];
+  },
+  'Poshmark': (listing) => {
+    const fields: PlatformField[] = [];
+    
+    // Original price (unique to Poshmark)
+    fields.push({
+      name: 'original_price',
+      label: 'Original Retail Price',
+      type: 'number',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'Original purchase price'
+    });
+    
+    return fields;
+  },
+  'Facebook Marketplace': (listing) => {
+    // Facebook uses standard fields
+    return [];
+  },
+  'OfferUp': (listing) => {
+    // OfferUp uses standard fields
+    return [];
+  },
+  'Craigslist': (listing) => {
+    // Craigslist uses standard fields
+    return [];
+  },
+  'Nextdoor': (listing) => {
+    // Nextdoor uses standard fields
+    return [];
+  },
+  'Reverb': (listing) => {
+    const fields: PlatformField[] = [];
+    
+    // Serial number (unique to Reverb for instruments)
+    fields.push({
+      name: 'serial_number',
+      label: 'Serial Number',
+      type: 'text',
+      value: listing.serialNumber || '',
+      confidence: listing.serialNumber ? 1 : 0,
+      isUnique: true,
+      placeholder: 'If visible on instrument'
+    });
+    
+    // Finish/color for instruments
+    fields.push({
+      name: 'finish',
+      label: 'Finish/Color',
+      type: 'text',
+      value: listing.color || '',
+      confidence: listing.color ? 0.8 : 0.3,
+      placeholder: 'e.g., Sunburst, Matte Black'
+    });
+    
+    return fields;
+  },
+  'Vinted': (listing) => {
+    // Vinted uses standard fields
+    return [];
+  },
 };
 
 export default function PlatformPreview({
   recommendedPlatforms,
   qualifiedPlatforms,
   listingId,
+  listing,
 }: {
   recommendedPlatforms: string[];
   qualifiedPlatforms: string[];
   listingId: string;
+  listing: any;
 }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [platformData, setPlatformData] = useState<Record<string, Record<string, string>>>({});
-  const [listingData, setListingData] = useState<any>(null);
 
   useEffect(() => {
     // Pre-select top 2-3 recommended platforms
     const topRecommended = recommendedPlatforms.slice(0, 3);
     setSelectedPlatforms(topRecommended);
-    
-    // Fetch listing data
-    fetchListingData();
   }, [recommendedPlatforms]);
-
-  const fetchListingData = async () => {
-    try {
-      const response = await fetch(`/api/listings/${listingId}`);
-      const data = await response.json();
-      setListingData(data);
-    } catch (error) {
-      console.error('Failed to fetch listing:', error);
-    }
-  };
 
   const handlePlatformToggle = (platform: string) => {
     setSelectedPlatforms(prev => 
@@ -129,63 +156,14 @@ export default function PlatformPreview({
   };
 
   const getPlatformFields = (platform: string): PlatformField[] => {
-    const fieldGenerator = PLATFORM_FIELDS[platform];
+    const fieldGenerator = PLATFORM_UNCERTAIN_FIELDS[platform];
     if (!fieldGenerator) return [];
     
-    const fields = fieldGenerator(listingData?.category);
-    
-    // Pre-fill fields with AI-detected data
-    return fields.map(field => {
-      let value = platformData[platform]?.[field.name] || '';
-      
-      // Auto-populate from listing data if available
-      if (!value) {
-        switch (field.name) {
-          case 'condition':
-            value = listingData?.condition || '';
-            break;
-          case 'brand':
-            // Extract brand from title or description
-            value = extractBrand(listingData?.title, listingData?.description) || '';
-            break;
-          case 'model':
-            value = extractModel(listingData?.title, listingData?.description) || '';
-            break;
-          case 'shipping_weight':
-            value = listingData?.weight?.toString() || '';
-            break;
-          case 'location':
-            value = ''; // User needs to provide
-            break;
-        }
-      }
-      
-      return { ...field, value };
-    });
+    return fieldGenerator(listing);
   };
 
-  const extractBrand = (title?: string, description?: string): string => {
-    // Simple brand extraction (can be enhanced with AI)
-    const text = `${title} ${description}`.toLowerCase();
-    const brands = ['nike', 'adidas', 'apple', 'samsung', 'sony', 'lg', 'canon', 'nikon', 'fender', 'gibson'];
-    
-    for (const brand of brands) {
-      if (text.includes(brand)) {
-        return brand.charAt(0).toUpperCase() + brand.slice(1);
-      }
-    }
-    return '';
-  };
-
-  const extractModel = (title?: string, description?: string): string => {
-    // Extract model number patterns (e.g., "iPhone 13", "Galaxy S21")
-    const text = `${title} ${description}`;
-    const modelPattern = /\b([A-Z0-9]+-?[A-Z0-9]+)\b/;
-    const match = text.match(modelPattern);
-    return match ? match[1] : '';
-  };
-
-  const displayPlatforms = qualifiedPlatforms.length > 0 ? qualifiedPlatforms : Object.keys(PLATFORM_FIELDS);
+  const displayPlatforms = qualifiedPlatforms.length > 0 ? qualifiedPlatforms : Object.keys(PLATFORM_UNCERTAIN_FIELDS);
+  const selectedDisplayPlatforms = displayPlatforms.filter(p => selectedPlatforms.includes(p));
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -227,92 +205,77 @@ export default function PlatformPreview({
         </div>
       </div>
 
-      {/* Platform-Specific Fields */}
-      {selectedPlatforms.length > 0 && (
-        <div className="space-y-6">
-          <div className="border-t pt-4">
-            <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-500" />
-              Required Platform Fields
-            </h4>
-            <p className="text-xs text-gray-600 mb-4">
-              Complete all required fields to ensure successful posting. Missing fields may cause your post to fail.
-            </p>
+      {/* Platform-Specific Fields with Tabs */}
+      {selectedDisplayPlatforms.length > 0 && (
+        <div className="border-t pt-4">
+          <div className="mb-3 flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Platform-Specific Fields</p>
+              <p className="text-xs text-gray-600">
+                These are unique fields or values the AI is uncertain about. Review and complete as needed.
+              </p>
+            </div>
           </div>
 
-          {selectedPlatforms.map((platform) => {
-            const fields = getPlatformFields(platform);
-            const requiredFields = fields.filter(f => f.required);
-            const missingRequired = requiredFields.filter(f => !f.value);
-            
-            return (
-              <div key={platform} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h5 className="font-medium flex items-center gap-2">
-                    {platform}
-                    {recommendedPlatforms.includes(platform) && (
-                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                        Recommended
-                      </span>
-                    )}
-                  </h5>
-                  {missingRequired.length > 0 && (
-                    <span className="text-xs text-red-600 font-medium">
-                      {missingRequired.length} required field{missingRequired.length > 1 ? 's' : ''} missing
-                    </span>
-                  )}
-                </div>
+          <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${selectedDisplayPlatforms.length}, 1fr)` }}>
+              {selectedDisplayPlatforms.map((platform) => (
+                <TabsTrigger key={platform} value={platform} className="text-xs">
+                  {platform}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {fields.map((field) => (
-                    <div key={field.name} className={field.type === 'text' ? 'col-span-2' : ''}>
-                      <Label className="text-xs">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </Label>
-                      {field.type === 'select' ? (
-                        <select
-                          value={field.value || ''}
-                          onChange={(e) => handleFieldChange(platform, field.name, e.target.value)}
-                          className={`w-full mt-1 px-3 py-2 text-sm border rounded-md ${
-                            field.required && !field.value
-                              ? 'border-red-300 bg-red-50'
-                              : 'border-gray-300'
-                          }`}
-                        >
-                          <option value="">Select...</option>
-                          {field.options?.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          type={field.type}
-                          value={field.value || ''}
-                          onChange={(e) => handleFieldChange(platform, field.name, e.target.value)}
-                          placeholder={field.placeholder || field.required ? 'Required' : 'Optional'}
-                          className={`mt-1 ${
-                            field.required && !field.value
-                              ? 'border-red-300 bg-red-50'
-                              : ''
-                          }`}
-                        />
-                      )}
-                      {field.required && !field.value && (
-                        <p className="text-xs text-red-600 mt-1">This field is required by {platform}</p>
-                      )}
+            {selectedDisplayPlatforms.map((platform) => {
+              const fields = getPlatformFields(platform);
+              const hasFields = fields.length > 0;
+              
+              return (
+                <TabsContent key={platform} value={platform} className="mt-4">
+                  {!hasFields ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p className="text-sm">No additional fields needed for {platform}</p>
+                      <p className="text-xs mt-1">All required information is in the main listing form.</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                  ) : (
+                    <div className="space-y-4">
+                      {fields.map((field) => (
+                        <div key={field.name}>
+                          <Label className="text-sm flex items-center gap-2">
+                            {field.label}
+                            {field.isUnique && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                                {platform} only
+                              </span>
+                            )}
+                            {field.confidence !== undefined && field.confidence < 0.7 && (
+                              <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                                AI uncertain
+                              </span>
+                            )}
+                          </Label>
+                          <Input
+                            type={field.type}
+                            value={platformData[platform]?.[field.name] || field.value || ''}
+                            onChange={(e) => handleFieldChange(platform, field.name, e.target.value)}
+                            placeholder={field.placeholder || 'Optional'}
+                            className="mt-1"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
         </div>
       )}
 
       {selectedPlatforms.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          <p className="text-sm">Select at least one platform to see required fields</p>
+          <p className="text-sm">Select at least one platform to see preview</p>
         </div>
       )}
     </div>

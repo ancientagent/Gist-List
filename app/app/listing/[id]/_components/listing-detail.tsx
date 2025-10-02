@@ -5,24 +5,33 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { 
-  ChevronDown, 
-  ChevronUp, 
   Loader2, 
-  AlertCircle,
-  HelpCircle,
-  Camera,
   Check,
-  X
+  Truck,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import PhotoGallery from './photo-gallery';
 import PlatformPreview from './platform-preview';
 import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
+
+const CONDITION_OPTIONS = [
+  'New',
+  'Like New',
+  'Very Good',
+  'Good',
+  'Fair',
+  'Poor',
+  'For Parts'
+];
 
 interface Listing {
   id: string;
@@ -50,10 +59,14 @@ interface Listing {
   marketInsights: string | null;
   recommendedPlatforms: string[];
   qualifiedPlatforms: string[];
+  fulfillmentType: string | null;
   willingToShip: boolean;
+  okForLocals: boolean;
   weight: number | null;
   dimensions: string | null;
   shippingCostEst: number | null;
+  location: string | null;
+  meetupPreference: string | null;
   photos: any[];
   notifications: any[];
 }
@@ -64,6 +77,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [customCondition, setCustomCondition] = useState('');
 
   useEffect(() => {
     fetchListing();
@@ -133,6 +147,68 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     }
   };
 
+  // Price calculation based on condition
+  const calculatePriceForCondition = (condition: string): number | null => {
+    if (!listing?.avgMarketPrice) return null;
+    
+    const basePrice = listing.avgMarketPrice;
+    const multipliers: Record<string, number> = {
+      'New': 1.0,
+      'Like New': 0.85,
+      'Very Good': 0.75,
+      'Good': 0.65,
+      'Fair': 0.50,
+      'Poor': 0.35,
+      'For Parts': 0.20
+    };
+    
+    return basePrice * (multipliers[condition] || 0.65);
+  };
+
+  const handleConditionChange = (value: string) => {
+    if (value === 'custom') {
+      // Don't update condition yet, wait for custom input
+      return;
+    }
+    
+    const newPrice = calculatePriceForCondition(value);
+    setListing({
+      ...listing!,
+      condition: value,
+      price: newPrice
+    });
+  };
+
+  const handleCustomConditionSubmit = () => {
+    if (!CONDITION_OPTIONS.includes(customCondition)) {
+      toast.error('Please enter a valid condition from the dropdown');
+      return;
+    }
+    
+    const newPrice = calculatePriceForCondition(customCondition);
+    setListing({
+      ...listing!,
+      condition: customCondition,
+      price: newPrice
+    });
+    setCustomCondition('');
+  };
+
+  const handleFulfillmentChange = (type: string) => {
+    const updates: Partial<Listing> = { fulfillmentType: type as any };
+    
+    if (type === 'local') {
+      // Suggest local platforms
+      updates.recommendedPlatforms = ['Facebook Marketplace', 'Craigslist', 'OfferUp'];
+      updates.qualifiedPlatforms = ['Facebook Marketplace', 'Craigslist', 'OfferUp', 'Nextdoor'];
+    } else {
+      // Keep original platform recommendations
+      // (these come from AI analysis)
+    }
+    
+    setListing({ ...listing!, ...updates });
+  };
+
   const handleSave = async () => {
     if (!listing) return;
     
@@ -180,16 +256,9 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Notifications */}
         {(alertNotifications.length > 0 || preferenceNotifications.length > 0) && (
-          <div className="mb-4 space-y-2">
+          <div className="mb-4">
             <NotificationList 
-              notifications={alertNotifications} 
-              type="alert"
-              listingId={listingId}
-              onResolve={fetchListing}
-            />
-            <NotificationList 
-              notifications={preferenceNotifications} 
-              type="preference"
+              notifications={[...alertNotifications, ...preferenceNotifications]} 
               listingId={listingId}
               onResolve={fetchListing}
             />
@@ -233,15 +302,16 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           />
         </div>
 
-        {/* Item Details */}
+        {/* Item Details - All required fields from any platform */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <Label className="text-base font-medium mb-3 block">Item Details</Label>
+          <p className="text-xs text-gray-600 mb-3">Complete all applicable fields. Use "N/A" if not applicable.</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-sm">Brand</Label>
               <Input
-                value={(listing as any).brand || ''}
-                onChange={(e) => setListing({ ...listing, brand: e.target.value } as any)}
+                value={listing.brand || ''}
+                onChange={(e) => setListing({ ...listing, brand: e.target.value })}
                 className="mt-1"
                 placeholder="e.g., Nike, Apple"
               />
@@ -249,8 +319,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <div>
               <Label className="text-sm">Model</Label>
               <Input
-                value={(listing as any).model || ''}
-                onChange={(e) => setListing({ ...listing, model: e.target.value } as any)}
+                value={listing.model || ''}
+                onChange={(e) => setListing({ ...listing, model: e.target.value })}
                 className="mt-1"
                 placeholder="e.g., Air Jordan 1"
               />
@@ -258,8 +328,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <div>
               <Label className="text-sm">Year/Version</Label>
               <Input
-                value={(listing as any).year || ''}
-                onChange={(e) => setListing({ ...listing, year: e.target.value } as any)}
+                value={listing.year || ''}
+                onChange={(e) => setListing({ ...listing, year: e.target.value })}
                 className="mt-1"
                 placeholder="e.g., 2023"
               />
@@ -267,8 +337,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <div>
               <Label className="text-sm">Size</Label>
               <Input
-                value={(listing as any).size || ''}
-                onChange={(e) => setListing({ ...listing, size: e.target.value } as any)}
+                value={listing.size || ''}
+                onChange={(e) => setListing({ ...listing, size: e.target.value })}
                 className="mt-1"
                 placeholder="e.g., 10, Medium, L"
               />
@@ -276,8 +346,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <div>
               <Label className="text-sm">Color</Label>
               <Input
-                value={(listing as any).color || ''}
-                onChange={(e) => setListing({ ...listing, color: e.target.value } as any)}
+                value={listing.color || ''}
+                onChange={(e) => setListing({ ...listing, color: e.target.value })}
                 className="mt-1"
                 placeholder="e.g., Blue, Red"
               />
@@ -285,10 +355,19 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <div>
               <Label className="text-sm">Material</Label>
               <Input
-                value={(listing as any).material || ''}
-                onChange={(e) => setListing({ ...listing, material: e.target.value } as any)}
+                value={listing.material || ''}
+                onChange={(e) => setListing({ ...listing, material: e.target.value })}
                 className="mt-1"
                 placeholder="e.g., Leather, Cotton"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-sm">Category</Label>
+              <Input
+                value={listing.category || ''}
+                onChange={(e) => setListing({ ...listing, category: e.target.value })}
+                className="mt-1"
+                placeholder="e.g., Electronics, Clothing"
               />
             </div>
           </div>
@@ -297,7 +376,47 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         {/* Price & Condition */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <Label className="text-base font-medium mb-3 block">Price & Condition</Label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm">Condition</Label>
+              <Select
+                value={listing.condition || 'undefined'}
+                onValueChange={handleConditionChange}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONDITION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom (type below)...</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Custom Condition Input */}
+              <div className="mt-2 flex gap-2">
+                <Input
+                  value={customCondition}
+                  onChange={(e) => setCustomCondition(e.target.value)}
+                  placeholder="Or type custom condition..."
+                  className="flex-1"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCustomConditionSubmit();
+                    }
+                  }}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleCustomConditionSubmit}
+                  disabled={!customCondition}
+                >
+                  Set
+                </Button>
+              </div>
+            </div>
+            
             <div>
               <Label className="text-sm">Price ($)</Label>
               <Input
@@ -305,24 +424,144 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                 value={listing.price || ''}
                 onChange={(e) => setListing({ ...listing, price: parseFloat(e.target.value) || null })}
                 className="mt-1"
-                placeholder={listing.avgMarketPrice ? `Suggested: $${listing.avgMarketPrice.toFixed(2)}` : '0.00'}
+                placeholder="0.00"
               />
-              {!listing.price && listing.avgMarketPrice && (
+              {listing.avgMarketPrice && (
                 <p className="text-xs text-emerald-600 mt-1">
-                  AI suggests: ${listing.avgMarketPrice.toFixed(2)}
+                  AI market price for {listing.condition || 'this condition'}: ${calculatePriceForCondition(listing.condition || 'Good')?.toFixed(2) || listing.avgMarketPrice.toFixed(2)}
                 </p>
               )}
             </div>
-            <div>
-              <Label className="text-sm">Condition</Label>
-              <Input
-                value={listing.condition || ''}
-                onChange={(e) => setListing({ ...listing, condition: e.target.value })}
-                className="mt-1"
-                placeholder="New, Like New, Good, etc."
-              />
-            </div>
+
+            {listing.conditionNotes && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-900">
+                  <strong>Condition Notes:</strong> {listing.conditionNotes}
+                </p>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Fulfillment Type: Local vs Shipping */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <Label className="text-base font-medium mb-3 block">Fulfillment Method</Label>
+          
+          <RadioGroup
+            value={listing.fulfillmentType || 'shipping'}
+            onValueChange={handleFulfillmentChange}
+            className="space-y-3"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="shipping" id="shipping" />
+              <Label htmlFor="shipping" className="flex items-center gap-2 cursor-pointer">
+                <Truck className="w-4 h-4" />
+                <span>Shipping</span>
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="local" id="local" />
+              <Label htmlFor="local" className="flex items-center gap-2 cursor-pointer">
+                <MapPin className="w-4 h-4" />
+                <span>Locals Only</span>
+              </Label>
+            </div>
+          </RadioGroup>
+
+          {/* Shipping Fields */}
+          {listing.fulfillmentType === 'shipping' && (
+            <div className="mt-4 space-y-4 border-t pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm">Weight (lbs)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={listing.weight || ''}
+                    onChange={(e) => setListing({ ...listing, weight: parseFloat(e.target.value) || null })}
+                    className="mt-1"
+                    placeholder="e.g., 2.5"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm">Dimensions (L×W×H)</Label>
+                  <Input
+                    value={listing.dimensions || ''}
+                    onChange={(e) => setListing({ ...listing, dimensions: e.target.value })}
+                    className="mt-1"
+                    placeholder="e.g., 12×8×4"
+                  />
+                </div>
+              </div>
+              
+              {listing.shippingCostEst && (
+                <p className="text-sm text-emerald-600">
+                  Estimated shipping cost: ${listing.shippingCostEst.toFixed(2)}
+                </p>
+              )}
+
+              {/* OK for locals to contact */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="okForLocals"
+                  checked={listing.okForLocals}
+                  onCheckedChange={(checked) => setListing({ ...listing, okForLocals: !!checked })}
+                />
+                <Label htmlFor="okForLocals" className="text-sm cursor-pointer">
+                  OK for locals to contact for pickup
+                </Label>
+              </div>
+
+              {listing.okForLocals && (
+                <div className="space-y-3 pl-6 border-l-2 border-purple-200">
+                  <div>
+                    <Label className="text-sm">Location (City, State)</Label>
+                    <Input
+                      value={listing.location || ''}
+                      onChange={(e) => setListing({ ...listing, location: e.target.value })}
+                      className="mt-1"
+                      placeholder="e.g., Los Angeles, CA"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">Meetup Preference</Label>
+                    <Input
+                      value={listing.meetupPreference || ''}
+                      onChange={(e) => setListing({ ...listing, meetupPreference: e.target.value })}
+                      className="mt-1"
+                      placeholder="e.g., Public location, your place, or delivery"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600">These preferences will be saved for future local posts.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Local Only Fields */}
+          {listing.fulfillmentType === 'local' && (
+            <div className="mt-4 space-y-3 border-t pt-4">
+              <div>
+                <Label className="text-sm">Location (City, State)</Label>
+                <Input
+                  value={listing.location || ''}
+                  onChange={(e) => setListing({ ...listing, location: e.target.value })}
+                  className="mt-1"
+                  placeholder="e.g., Los Angeles, CA"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">Delivery/Meetup Preference</Label>
+                <Input
+                  value={listing.meetupPreference || ''}
+                  onChange={(e) => setListing({ ...listing, meetupPreference: e.target.value })}
+                  className="mt-1"
+                  placeholder="e.g., Public location, your place, or delivery"
+                />
+              </div>
+              <p className="text-xs text-gray-600">These preferences will be saved for future local posts.</p>
+            </div>
+          )}
         </div>
 
         {/* Platform Preview */}
@@ -330,13 +569,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           recommendedPlatforms={listing.recommendedPlatforms || []}
           qualifiedPlatforms={listing.qualifiedPlatforms || []}
           listingId={listingId}
+          listing={listing}
         />
 
         {/* Insights */}
         <InsightsSection listing={listing} />
 
         {/* Save Button */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">
           <div className="max-w-2xl mx-auto flex gap-3">
             <Button
               onClick={() => router.push('/listings')}
@@ -348,7 +588,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-1"
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
             >
               {isSaving ? (
                 <>
