@@ -31,6 +31,7 @@ export default function PhotoGallery({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [cameraMode, setCameraMode] = useState<'retake' | 'add'>('retake');
 
   // Fetch signed URLs for photos
   useEffect(() => {
@@ -60,6 +61,7 @@ export default function PhotoGallery({
   const closeGallery = () => {
     setIsGalleryOpen(false);
     setSelectedPhotoIndex(null);
+    setCameraMode('retake');
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
@@ -81,8 +83,9 @@ export default function PhotoGallery({
   const handleRetakePhoto = async () => {
     if (isCapturing) return;
 
-    // Initialize camera
+    // Initialize camera for retake mode
     if (!stream) {
+      setCameraMode('retake');
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -98,9 +101,6 @@ export default function PhotoGallery({
         console.error('Camera access error:', error);
         toast.error('Unable to access camera');
       }
-    } else {
-      // Capture photo
-      await captureNewPhoto(true);
     }
   };
 
@@ -110,7 +110,9 @@ export default function PhotoGallery({
       return;
     }
 
+    // Initialize camera for add mode
     if (!stream) {
+      setCameraMode('add');
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -126,8 +128,6 @@ export default function PhotoGallery({
         console.error('Camera access error:', error);
         toast.error('Unable to access camera');
       }
-    } else {
-      await captureNewPhoto(false);
     }
   };
 
@@ -279,7 +279,7 @@ export default function PhotoGallery({
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleRetakePhoto}
+                    onClick={() => captureNewPhoto(cameraMode === 'retake')}
                     disabled={isCapturing}
                     className="bg-emerald-600 hover:bg-emerald-700"
                   >

@@ -497,7 +497,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                       target.style.height = target.scrollHeight + 'px';
                     }}
                     className="mt-1 resize-none overflow-hidden"
-                    style={{ minHeight: '80px' }}
+                    style={{ minHeight: '140px' }}
                     placeholder="Describe the item's condition in detail (scratches, wear, damage, etc.)"
                   />
                 </div>

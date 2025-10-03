@@ -184,20 +184,6 @@ export default function PlatformPreview({
         )}
       </div>
 
-      {!isUnlocked && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-3">
-            <Crown className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
-              <p className="text-xs text-gray-600 mt-1">
-                Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Use a premium post or upgrade!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Platform Selection */}
       <div className="mb-6">
         <Label className="mb-3 block text-sm font-medium">Select Platforms to Post</Label>
@@ -259,14 +245,27 @@ export default function PlatformPreview({
           <div className="mb-3 flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-gray-900">Platform-Specific Fields</p>
+              <p className="text-sm font-medium text-gray-900">Fine Details</p>
               <p className="text-xs text-gray-600">
                 These are unique fields or values the AI is uncertain about. Review and complete as needed.
               </p>
             </div>
           </div>
 
-          <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
+          {!isUnlocked ? (
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-6 mt-4">
+              <div className="flex items-start gap-3">
+                <Crown className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Use a premium post or upgrade!
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
             <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${selectedDisplayPlatforms.length}, 1fr)` }}>
               {selectedDisplayPlatforms.map((platform) => (
                 <TabsTrigger key={platform} value={platform} className="text-xs">
@@ -318,6 +317,7 @@ export default function PlatformPreview({
               );
             })}
           </Tabs>
+          )}
         </div>
       )}
 

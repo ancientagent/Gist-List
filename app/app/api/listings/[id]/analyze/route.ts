@@ -195,14 +195,19 @@ CRITICAL REQUIREMENTS:
    
    Examples of QUESTIONS:
    - Electronics without power supply visible: { "actionType": "question", "message": "No power supply detected in photo. Should I assume it's missing? (will adjust price and note in description)" }
-   - Electronics with damage + not powered on: { "actionType": "inoperable_check", "message": "Damage detected and item not shown powered on. Is it inoperable? (will set condition to Spare Parts)" }
+   - Electronics with damage + not powered on: { "actionType": "inoperable_check", "message": "Damage detected and item not shown powered on. Is it inoperable/does it not work? (will set condition to For Parts and adjust pricing)" }
    - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
    - Missing details: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
    - Cleaning needed: { "actionType": "question", "message": "Item shows visible dirt/dust. Clean before photographing for better presentation?" }
    - Price concern: { "actionType": "insight", "message": "Your price seems high for 'Poor' condition. Market suggests $X-Y. Adjust?" }
    
-   CRITICAL: Questions should NOT be triggered if the condition is already reflected in the image.
-   For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
+   CRITICAL FOR DAMAGE QUESTIONS:
+   - Since users can only answer "Yes" to questions, ALWAYS phrase damage/functionality questions in the NEGATIVE
+   - Ask "Is it inoperable?" or "Does it NOT work?" NOT "Is it operable?" or "Does it work?"
+   - If user doesn't answer or ignores the question, assume the item DOES work (default assumption)
+   - Only ask if there's visible damage AND item is not shown powered on/working
+   - Questions should NOT be triggered if the condition is already clearly shown in the image.
+   - For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
 
 Provide a JSON response:
 {
@@ -318,8 +323,22 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         marketInsights: finalResult.marketInsights ?? null,
                         imageQualityIssue: finalResult.imageQualityIssue ?? null,
                         isPremiumItem: finalResult.isPremiumItem ?? false,
-                        // Auto-set price from AI if not already set
-                        price: listing.price ?? finalResult.avgMarketPrice ?? null,
+                        // Auto-set price from AI based on condition if not already set
+                        price: listing.price ?? (() => {
+                          if (!finalResult.avgMarketPrice) return null;
+                          const basePrice = finalResult.avgMarketPrice;
+                          const condition = finalResult.condition;
+                          const multipliers: Record<string, number> = {
+                            'New': 1.0,
+                            'Like New': 0.85,
+                            'Very Good': 0.75,
+                            'Good': 0.65,
+                            'Fair': 0.50,
+                            'Poor': 0.35,
+                            'For Parts': 0.20
+                          };
+                          return basePrice * (multipliers[condition] || 0.65);
+                        })(),
                       },
                     });
 
