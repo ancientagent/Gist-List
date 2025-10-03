@@ -3,10 +3,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import { deleteFile } from '@/lib/s3';
 
-const prisma = new PrismaClient();
+
 
 export const dynamic = 'force-dynamic';
 
