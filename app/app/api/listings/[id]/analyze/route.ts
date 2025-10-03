@@ -22,10 +22,18 @@ export async function POST(
   const listingId = params.id;
 
   try {
-    // Get listing with photos
+    // Get listing with photos and user info
     const listing = await prisma.listing.findUnique({
       where: { id: listingId, userId },
-      include: { photos: { orderBy: { order: 'asc' } } },
+      include: { 
+        photos: { orderBy: { order: 'asc' } },
+        user: {
+          select: {
+            premiumPostsUsed: true,
+            premiumPostsTotal: true,
+          }
+        }
+      },
     });
 
     if (!listing) {
@@ -35,6 +43,11 @@ export async function POST(
     if (!listing.photos?.[0]) {
       return NextResponse.json({ error: 'No photo found' }, { status: 400 });
     }
+
+    // Check if premium is requested and available
+    const wantsPremium = listing.usePremium;
+    const premiumAvailable = (listing.user?.premiumPostsUsed || 0) < (listing.user?.premiumPostsTotal || 4);
+    const shouldUsePremium = wantsPremium && premiumAvailable;
 
     // Get signed URL for the photo
     const photoUrl = await downloadFile(listing.photos[0].cloudStoragePath);
@@ -215,7 +228,7 @@ CRITICAL REQUIREMENTS:
    - Questions should NOT be triggered if the condition is already clearly shown in the image.
    - For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
 
-10. PREMIUM FACTS & USEFUL LINKS:
+${shouldUsePremium ? `10. PREMIUM FACTS & USEFUL LINKS:
     Go the extra mile to provide valuable information that helps the seller and buyer:
     
     Premium Facts (Random/useful/valuable information):
@@ -235,7 +248,9 @@ CRITICAL REQUIREMENTS:
     - User guides or tutorials
     - Community forums or resources
     - Similar items for comparison
-    Format: [{ "title": "Link description", "url": "https://..." }, ...]
+    Format: [{ "title": "Link description", "url": "https://..." }, ...]` : `10. PREMIUM FEATURES:
+    SKIP - User did not request premium analysis.
+    Set premiumFacts and usefulLinks to null.`}
 
 Provide a JSON response:
 {
@@ -265,9 +280,8 @@ Provide a JSON response:
   "suggestedPriceMin": number or null,
   "suggestedPriceMax": number or null,
   "marketInsights": "detailed market analysis with condition impact",
-  "isPremiumItem": true or false (expensive/technical/collectible/rare items),
-  "premiumFacts": "Premium/special facts and valuable information about the item",
-  "usefulLinks": [{ "title": "Link description", "url": "https://..." }],
+  "premiumFacts": "Premium/special facts and valuable information about the item" or null,
+  "usefulLinks": [{ "title": "Link description", "url": "https://..." }] or null,
   "alerts": [{ "field": "field_name", "message": "Required field message" }],
   "questions": [{ "actionType": "retake_photo|add_photo|inoperable_check|question|insight|unknown_fields", "message": "Question message (state insight and ask)", "data": {} }]
 }
@@ -403,9 +417,8 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         suggestedPriceMax: finalResult.suggestedPriceMax ?? null,
                         marketInsights: finalResult.marketInsights ?? null,
                         imageQualityIssue: finalResult.imageQualityIssue ?? null,
-                        isPremiumItem: finalResult.isPremiumItem ?? false,
-                        premiumFacts: finalResult.premiumFacts ?? null,
-                        usefulLinks: finalResult.usefulLinks ? JSON.stringify(finalResult.usefulLinks) : null,
+                        premiumFacts: shouldUsePremium ? (finalResult.premiumFacts ?? null) : null,
+                        usefulLinks: shouldUsePremium && finalResult.usefulLinks ? JSON.stringify(finalResult.usefulLinks) : null,
                         // Auto-set price from AI based on condition if not already set
                         price: listing.price ?? (() => {
                           if (!finalResult.avgMarketPrice) return null;
@@ -425,6 +438,18 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         })(),
                       },
                     });
+
+                    // Increment premium usage counter if premium was used
+                    if (shouldUsePremium) {
+                      await prisma.user.update({
+                        where: { id: userId },
+                        data: {
+                          premiumPostsUsed: {
+                            increment: 1
+                          }
+                        }
+                      });
+                    }
 
                     // Create ALERTS (required fields only - red)
                     if (finalResult.alerts?.length > 0) {

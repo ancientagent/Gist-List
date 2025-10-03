@@ -62,6 +62,7 @@ interface Listing {
   marketInsights: string | null;
   premiumFacts: string | null;
   usefulLinks: string | null;
+  usePremium: boolean;
   recommendedPlatforms: string[];
   qualifiedPlatforms: string[];
   fulfillmentType: string | null;
@@ -72,8 +73,6 @@ interface Listing {
   shippingCostEst: number | null;
   location: string | null;
   meetupPreference: string | null;
-  isPremiumItem: boolean;
-  usedPremiumPost: boolean;
   editedFields: string[];
   photos: any[];
   notifications: any[];
@@ -128,21 +127,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     }
   };
 
-  // Handle premium post activation
-  const handleUsePremiumPost = async () => {
-    try {
-      const response = await fetch(`/api/listings/${listingId}/use-premium`, {
-        method: 'POST',
-      });
-      
-      if (!response.ok) throw new Error('Failed to activate premium');
-      
-      toast.success('Premium features activated!');
-      await fetchListing();
-    } catch (error) {
-      toast.error('Failed to activate premium post');
-    }
-  };
+
 
   const fetchListing = async () => {
     try {
@@ -352,9 +337,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               listingId={listingId}
               onResolve={fetchListing}
               onScrollToField={scrollToField}
-              premiumPostsRemaining={listing.user ? (listing.user.premiumPostsTotal - listing.user.premiumPostsUsed) : 0}
-              onUsePremiumPost={handleUsePremiumPost}
-              isPremiumItem={listing.isPremiumItem && !listing.usedPremiumPost}
             />
           </div>
         )}
@@ -406,6 +388,31 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             rows={6}
             placeholder="Detailed description..."
           />
+          
+          {/* Premium Checkbox */}
+          <div className="flex items-center gap-3 mt-4 p-3 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
+            <Checkbox
+              id="use-premium"
+              checked={listing.usePremium}
+              onCheckedChange={(checked) => {
+                const premiumRemaining = (listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0);
+                if (checked && premiumRemaining <= 0) {
+                  toast.error('No premium analyses remaining!');
+                  return;
+                }
+                setListing({ ...listing, usePremium: checked as boolean });
+              }}
+              className="border-purple-400"
+            />
+            <div className="flex-1">
+              <Label htmlFor="use-premium" className="cursor-pointer font-medium text-sm">
+                Use Premium Analysis ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
+              </Label>
+              <p className="text-xs text-gray-600 mt-1">
+                Get premium insights, valuable facts, and useful links for your item
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Item Details - All required fields from any platform */}

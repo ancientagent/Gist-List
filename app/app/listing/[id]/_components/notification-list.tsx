@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, X, Check, Star } from 'lucide-react';
+import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -21,21 +21,15 @@ export default function NotificationList({
   listingId,
   onResolve,
   onScrollToField,
-  premiumPostsRemaining,
-  onUsePremiumPost,
-  isPremiumItem,
 }: {
   notifications: Notification[];
   listingId: string;
   onResolve: () => void;
   onScrollToField?: (field: string) => void;
-  premiumPostsRemaining?: number;
-  onUsePremiumPost?: () => void;
-  isPremiumItem?: boolean;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  if (notifications.length === 0 && !isPremiumItem) return null;
+  if (notifications.length === 0) return null;
 
   const resolveNotification = async (notificationId: string) => {
     try {
@@ -100,49 +94,7 @@ export default function NotificationList({
 
   return (
     <div className="space-y-3">
-      {/* Premium Item Notification (Star/Gold) */}
-      {isPremiumItem && premiumPostsRemaining !== undefined && premiumPostsRemaining > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-lg overflow-hidden">
-          <div className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
-                <Star className="w-5 h-5 text-white fill-white" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-amber-900 mb-1">
-                  Premium Item Detected!
-                </h4>
-                <p className="text-sm text-amber-800 mb-3">
-                  This item qualifies for our Premium Post features - get better visibility, optimized tags, and platform-specific field assistance. You have <strong>{premiumPostsRemaining} free premium posts</strong> remaining!
-                </p>
-                <p className="text-xs text-amber-700 mb-3">
-                  Premium features include: SEO-optimized search tags, platform-specific fields, enhanced descriptions, and access to all qualified platforms.
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={onUsePremiumPost}
-                    className="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white shadow-md"
-                    size="sm"
-                  >
-                    <Star className="w-4 h-4 mr-2" />
-                    Use Premium Post ({premiumPostsRemaining} left)
-                  </Button>
-                  <Button
-                    onClick={() => toast.info('Proceeding with standard post')}
-                    variant="outline"
-                    size="sm"
-                    className="border-amber-300 text-amber-900"
-                  >
-                    No Thanks
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Regular Notifications */}
+      {/* Notifications */}
       {(alerts.length > 0 || questions.length > 0) && (
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {/* Header - Always visible */}
