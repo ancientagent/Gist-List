@@ -19,9 +19,10 @@ export default function CameraScreen() {
   const [isListening, setIsListening] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [showStartButton, setShowStartButton] = useState(true);
+  const [showStartButton, setShowStartButton] = useState(false); // Changed to false - auto-start
   const recognitionRef = useRef<any>(null);
   const isRecognitionActive = useRef(false);
+  const hasAttemptedInit = useRef(false);
 
   // Initialize camera function
   const initCamera = async () => {
@@ -39,9 +40,18 @@ export default function CameraScreen() {
     } catch (error: any) {
       console.error('Camera access error:', error);
       setCameraError(error?.message || 'Unable to access camera. Please grant camera permissions in your browser settings.');
+      setShowStartButton(true); // Show button on error
       toast.error('Unable to access camera. Please grant camera permissions.');
     }
   };
+
+  // Auto-initialize camera on mount
+  useEffect(() => {
+    if (!hasAttemptedInit.current) {
+      hasAttemptedInit.current = true;
+      initCamera();
+    }
+  }, []);
 
   // Cleanup camera on unmount
   useEffect(() => {

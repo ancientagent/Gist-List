@@ -247,7 +247,7 @@ export default function PlatformPreview({
             <div>
               <p className="text-sm font-medium text-gray-900">Fine Details</p>
               <p className="text-xs text-gray-600">
-                These are unique fields or values the AI is uncertain about. Review and complete as needed.
+                Platform-specific fields and conditional information for each selected marketplace. Premium feature includes enhanced SEO search tags.
               </p>
             </div>
           </div>

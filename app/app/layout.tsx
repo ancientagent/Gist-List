@@ -8,8 +8,8 @@ import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Gist List - AI-Powered Reselling',
-  description: 'List and sell items with AI image recognition and market research',
+  title: 'Gist/List - Speak-Snap-Sell',
+  description: 'Speak-Snap-Sell: AI-Powered reselling with voice, camera, and smart market research',
   manifest: '/manifest.json',
 };
 

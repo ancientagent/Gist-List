@@ -45,9 +45,11 @@ export async function POST(
     }
 
     // Check if premium is requested and available
+    // Only use premium if checkbox is checked AND not already used for this listing
     const wantsPremium = listing.usePremium;
     const premiumAvailable = (listing.user?.premiumPostsUsed || 0) < (listing.user?.premiumPostsTotal || 4);
-    const shouldUsePremium = wantsPremium && premiumAvailable;
+    const alreadyUsedPremium = !!(listing.premiumFacts || listing.usefulLinks); // Check if premium data already exists
+    const shouldUsePremium = wantsPremium && premiumAvailable && !alreadyUsedPremium;
 
     // Get signed URL for the photo
     const photoUrl = await downloadFile(listing.photos[0].cloudStoragePath);

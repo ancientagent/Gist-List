@@ -58,7 +58,7 @@ Respond with raw JSON only. No markdown, no code blocks.`,
         Authorization: `Bearer ${process.env.ABACUSAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gemini-2.5-flash',
         messages,
         max_tokens: 200,
         response_format: { type: 'json_object' },

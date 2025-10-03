@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import PhotoGallery from './photo-gallery';
 import PlatformPreview from './platform-preview';
@@ -533,17 +534,17 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                   />
                 </div>
 
-                {/* Grid Layout: Left side - Condition and Price, Right side - Premium Facts */}
+                {/* Grid Layout: Left side - Condition and Price (smaller), Right side - Premium Box */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Left Column - Condition and Price */}
-                  <div className="lg:col-span-1 space-y-4">
+                  {/* Left Column - Condition and Price (Compact) */}
+                  <div className="lg:col-span-1 space-y-3">
                     <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
                       <Label className="text-sm">Condition</Label>
                       <Select
                         value={listing.condition || 'undefined'}
                         onValueChange={handleConditionChange}
                       >
-                        <SelectTrigger className="mt-1 w-full">
+                        <SelectTrigger className="mt-1 w-full max-w-[180px]">
                           <SelectValue placeholder="Select condition" />
                         </SelectTrigger>
                         <SelectContent>
@@ -558,9 +559,10 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                       <Label className="text-sm">Price ($)</Label>
                       <Input
                         type="number"
-                        value={listing.price || ''}
+                        step="0.01"
+                        value={listing.price ?? ''}
                         onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
-                        className="mt-1 w-full"
+                        className="mt-1 w-full max-w-[180px]"
                         placeholder="0.00"
                       />
                       {/* Show suggested price only when user price differs significantly */}
@@ -574,18 +576,22 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                     </div>
                   </div>
 
-                  {/* Right Column - Premium Facts */}
-                  {(listing.premiumFacts || listing.usefulLinks) && (
-                    <div className="lg:col-span-2">
-                      <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-400 rounded-lg p-4">
+                  {/* Right Column - Premium Box */}
+                  <div className="lg:col-span-2">
+                    {listing.usePremium && (listing.premiumFacts || listing.usefulLinks) ? (
+                      // PREMIUM TIER - Show all content
+                      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                          <Label className="text-sm font-bold text-yellow-900">Premium Insights</Label>
+                          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                          <Label className="text-sm font-bold text-amber-900">Premium</Label>
+                          <Badge className="bg-green-600 text-white text-xs">Active</Badge>
                         </div>
+                        
+                        <p className="text-xs text-amber-800 mb-3 font-medium">This information will be added to your post:</p>
                         
                         {listing.premiumFacts && (
                           <div className="mb-3">
-                            <p className="text-sm text-yellow-900 leading-relaxed whitespace-pre-wrap">
+                            <p className="text-sm text-amber-900 leading-relaxed whitespace-pre-wrap">
                               {listing.premiumFacts}
                             </p>
                           </div>
@@ -597,7 +603,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                             if (Array.isArray(links) && links.length > 0) {
                               return (
                                 <div className="space-y-2">
-                                  <p className="text-xs font-semibold text-yellow-800">Useful Links:</p>
+                                  <p className="text-xs font-semibold text-amber-800">Pro Seller Links:</p>
                                   {links.map((link: any, idx: number) => (
                                     <a
                                       key={idx}
@@ -606,7 +612,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                                       rel="noopener noreferrer"
                                       className="block text-xs text-blue-700 hover:text-blue-900 underline hover:no-underline"
                                     >
-                                      {link.title}
+                                      • {link.title}
                                     </a>
                                   ))}
                                 </div>
@@ -618,8 +624,51 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                           return null;
                         })()}
                       </div>
-                    </div>
-                  )}
+                    ) : listing.usePremium && !listing.premiumFacts && !listing.usefulLinks ? (
+                      // Premium requested but AI hasn't analyzed yet
+                      <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                          <Label className="text-sm font-bold text-purple-900">Premium Analysis Pending</Label>
+                        </div>
+                        <p className="text-xs text-purple-800">
+                          Your premium features will appear here after AI analysis completes.
+                        </p>
+                      </div>
+                    ) : (
+                      // FREE TIER - Show teaser
+                      <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-300 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 rounded-full bg-gray-400" />
+                          <Label className="text-sm font-bold text-gray-900">Premium</Label>
+                          <Badge variant="outline" className="text-xs">Locked</Badge>
+                        </div>
+                        
+                        <p className="text-xs text-gray-700 mb-3">
+                          Enable the Premium checkbox above to unlock:
+                        </p>
+                        
+                        <ul className="space-y-2 text-xs text-gray-600">
+                          <li className="flex items-start gap-2">
+                            <span className="text-green-600">✓</span>
+                            <span>Special facts & features that drive buyer interest</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-green-600">✓</span>
+                            <span>Pro seller package: manuals, repair shops, parts dealers</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-green-600">✓</span>
+                            <span>Community resources and expert forums</span>
+                          </li>
+                        </ul>
+                        
+                        <p className="text-xs text-gray-500 mt-3 italic">
+                          ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 premium analyses remaining)
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
