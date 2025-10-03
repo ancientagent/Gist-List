@@ -60,6 +60,8 @@ interface Listing {
   suggestedPriceMin: number | null;
   suggestedPriceMax: number | null;
   marketInsights: string | null;
+  premiumFacts: string | null;
+  usefulLinks: string | null;
   recommendedPlatforms: string[];
   qualifiedPlatforms: string[];
   fulfillmentType: string | null;
@@ -502,39 +504,92 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                   />
                 </div>
 
-                <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
-                  <Label className="text-sm">Condition</Label>
-                  <Select
-                    value={listing.condition || 'undefined'}
-                    onValueChange={handleConditionChange}
-                  >
-                    <SelectTrigger className="mt-1 w-fit min-w-[180px]">
-                      <SelectValue placeholder="Select condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONDITION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div id="field-price" className={highlightedField === 'price' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
-                  <Label className="text-sm">Price ($)</Label>
-                  <Input
-                    type="number"
-                    value={listing.price || ''}
-                    onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
-                    className="mt-1"
-                    placeholder="0.00"
-                  />
-                  {/* Show suggested price only when user price differs significantly */}
-                  {listing.price && getConditionAwarePriceInsight() && (
-                    <p className={`text-xs mt-1 font-medium ${
-                      getPriceSuggestionColor() === 'green' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {getConditionAwarePriceInsight()}
-                    </p>
+                {/* Grid Layout: Left side - Condition and Price, Right side - Premium Facts */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Left Column - Condition and Price */}
+                  <div className="lg:col-span-1 space-y-4">
+                    <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
+                      <Label className="text-sm">Condition</Label>
+                      <Select
+                        value={listing.condition || 'undefined'}
+                        onValueChange={handleConditionChange}
+                      >
+                        <SelectTrigger className="mt-1 w-full">
+                          <SelectValue placeholder="Select condition" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CONDITION_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div id="field-price" className={highlightedField === 'price' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
+                      <Label className="text-sm">Price ($)</Label>
+                      <Input
+                        type="number"
+                        value={listing.price || ''}
+                        onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
+                        className="mt-1 w-full"
+                        placeholder="0.00"
+                      />
+                      {/* Show suggested price only when user price differs significantly */}
+                      {listing.price && getConditionAwarePriceInsight() && (
+                        <p className={`text-xs mt-1 font-medium ${
+                          getPriceSuggestionColor() === 'green' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {getConditionAwarePriceInsight()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column - Premium Facts */}
+                  {(listing.premiumFacts || listing.usefulLinks) && (
+                    <div className="lg:col-span-2">
+                      <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-400 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                          <Label className="text-sm font-bold text-yellow-900">Premium Insights</Label>
+                        </div>
+                        
+                        {listing.premiumFacts && (
+                          <div className="mb-3">
+                            <p className="text-sm text-yellow-900 leading-relaxed whitespace-pre-wrap">
+                              {listing.premiumFacts}
+                            </p>
+                          </div>
+                        )}
+
+                        {listing.usefulLinks && (() => {
+                          try {
+                            const links = JSON.parse(listing.usefulLinks);
+                            if (Array.isArray(links) && links.length > 0) {
+                              return (
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-yellow-800">Useful Links:</p>
+                                  {links.map((link: any, idx: number) => (
+                                    <a
+                                      key={idx}
+                                      href={link.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block text-xs text-blue-700 hover:text-blue-900 underline hover:no-underline"
+                                    >
+                                      {link.title}
+                                    </a>
+                                  ))}
+                                </div>
+                              );
+                            }
+                          } catch (e) {
+                            return null;
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

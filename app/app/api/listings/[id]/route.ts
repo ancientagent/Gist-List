@@ -32,6 +32,8 @@ export async function GET(
         user: {
           select: {
             subscriptionTier: true,
+            premiumPostsUsed: true,
+            premiumPostsTotal: true,
           }
         }
       },

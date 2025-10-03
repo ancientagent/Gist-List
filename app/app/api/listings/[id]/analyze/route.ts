@@ -186,7 +186,7 @@ CRITICAL REQUIREMENTS:
    - ONLY for fields that MUST be filled to continue
    - Examples: brand, model (if applicable), category
    - Format: { "field": "brand", "message": "Brand is required for this item" }
-   - If AI cannot determine a field but it's not critical, auto-fill with "N/A" (no alert)
+   - If AI cannot determine a field but it's not critical, auto-fill with "N/A" or "Unknown" (no alert)
    
    QUESTIONS (?) - BLUE - Actionable insights (always optional):
    - All other notifications go here
@@ -194,12 +194,18 @@ CRITICAL REQUIREMENTS:
    - Always optional - user can tap Yes or ignore/close
    
    Examples of QUESTIONS:
+   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, year, size) were set to N/A. Would you like to change that?", "data": { "fields": ["brand", "model", "year", "size"] } }
    - Electronics without power supply visible: { "actionType": "question", "message": "No power supply detected in photo. Should I assume it's missing? (will adjust price and note in description)" }
    - Electronics with damage + not powered on: { "actionType": "inoperable_check", "message": "Damage detected and item not shown powered on. Is it inoperable/does it not work? (will set condition to For Parts and adjust pricing)" }
    - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
    - Missing details: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
    - Cleaning needed: { "actionType": "question", "message": "Item shows visible dirt/dust. Clean before photographing for better presentation?" }
    - Price concern: { "actionType": "insight", "message": "Your price seems high for 'Poor' condition. Market suggests $X-Y. Adjust?" }
+   
+   CRITICAL FOR UNKNOWN FIELDS:
+   - If AI correctly identifies the item BUT cannot determine brand, model, year, or size, auto-set them to "N/A" or "Unknown"
+   - Create a question notification listing all unknown fields that were auto-set
+   - This notification should always be optional and user can ignore it if the N/A values are correct
    
    CRITICAL FOR DAMAGE QUESTIONS:
    - Since users can only answer "Yes" to questions, ALWAYS phrase damage/functionality questions in the NEGATIVE
@@ -209,18 +215,40 @@ CRITICAL REQUIREMENTS:
    - Questions should NOT be triggered if the condition is already clearly shown in the image.
    - For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
 
+10. PREMIUM FACTS & USEFUL LINKS:
+    Go the extra mile to provide valuable information that helps the seller and buyer:
+    
+    Premium Facts (Random/useful/valuable information):
+    - Interesting history or trivia about the item
+    - What makes this item special or valuable
+    - Common issues or things buyers should know
+    - Maintenance tips or care instructions
+    - What accessories or parts typically come with it
+    - Collector information (if applicable)
+    - Limited editions or rare features
+    - Performance specs or capabilities
+    
+    Useful Links (JSON array of objects):
+    - Official product manuals or documentation
+    - Local repair shops or service centers
+    - Parts suppliers or accessories dealers
+    - User guides or tutorials
+    - Community forums or resources
+    - Similar items for comparison
+    Format: [{ "title": "Link description", "url": "https://..." }, ...]
+
 Provide a JSON response:
 {
   "imageQualityIssue": null or "Specific issue: blurry/poor lighting/unrecognizable/need more angles",
   "itemIdentified": true or false,
   "confidence": 0.0 to 1.0,
   "category": "specific category",
-  "brand": "exact brand name or null",
-  "model": "exact model number/name or null",
-  "year": "year or version or null",
+  "brand": "exact brand name or null or 'N/A' if unknown",
+  "model": "exact model number/name or null or 'N/A' if unknown",
+  "year": "year or version or null or 'Unknown' if unknown",
   "color": "color/finish or null",
   "material": "material(s) or null",
-  "size": "size/dimensions or null",
+  "size": "size/dimensions or null or 'N/A' if unknown",
   "specs": "key specifications or null",
   "estimatedWeight": number (in lbs) or null,
   "estimatedDimensions": "LxWxH" or null,
@@ -238,8 +266,10 @@ Provide a JSON response:
   "suggestedPriceMax": number or null,
   "marketInsights": "detailed market analysis with condition impact",
   "isPremiumItem": true or false (expensive/technical/collectible/rare items),
+  "premiumFacts": "Premium/special facts and valuable information about the item",
+  "usefulLinks": [{ "title": "Link description", "url": "https://..." }],
   "alerts": [{ "field": "field_name", "message": "Required field message" }],
-  "questions": [{ "actionType": "retake_photo|add_photo|inoperable_check|question|insight", "message": "Question message (state insight and ask)", "data": {} }]
+  "questions": [{ "actionType": "retake_photo|add_photo|inoperable_check|question|insight|unknown_fields", "message": "Question message (state insight and ask)", "data": {} }]
 }
 
 Respond with raw JSON only. No markdown, no code blocks.`,
@@ -323,6 +353,8 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         marketInsights: finalResult.marketInsights ?? null,
                         imageQualityIssue: finalResult.imageQualityIssue ?? null,
                         isPremiumItem: finalResult.isPremiumItem ?? false,
+                        premiumFacts: finalResult.premiumFacts ?? null,
+                        usefulLinks: finalResult.usefulLinks ? JSON.stringify(finalResult.usefulLinks) : null,
                         // Auto-set price from AI based on condition if not already set
                         price: listing.price ?? (() => {
                           if (!finalResult.avgMarketPrice) return null;

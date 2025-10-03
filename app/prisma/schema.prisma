@@ -134,6 +134,8 @@ model Listing {
   isPremiumItem     Boolean  @default(false) // Expensive, technical, collectible, rare
   usedPremiumPost   Boolean  @default(false) // Did user use a premium post for this?
   buyerInfoPackage  String?  @db.Text // JSON string with manuals, specs, dealers, etc.
+  premiumFacts      String?  @db.Text // Premium/special facts AI went extra mile to provide
+  usefulLinks       String?  @db.Text // JSON array of useful links (manuals, businesses, parts, services)
   
   // Platform recommendations
   recommendedPlatforms String[] // top 2-3 platforms
