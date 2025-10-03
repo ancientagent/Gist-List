@@ -179,19 +179,30 @@ CRITICAL REQUIREMENTS:
    - Platform-specific popular search terms
    Example: ["nike air jordan", "jordan 1 retro", "high top sneakers", "red white shoes", "size 10 mens", "basketball shoes", "collectible sneakers"]
 
-9. ALERTS & ACTIONS:
-   Generate smart notifications:
+9. ALERTS & QUESTIONS:
+   Generate smart notifications with clear distinction:
    
-   ALERTS (required fields only):
-   - Only for fields that MUST be filled for posting (brand, model, category, size if applicable)
-   - Format: { type: "ALERT", field: "brand", message: "Brand is required for posting" }
+   ALERTS (!) - RED - Required fields only:
+   - ONLY for fields that MUST be filled to continue
+   - Examples: brand, model (if applicable), category
+   - Format: { "field": "brand", "message": "Brand is required for this item" }
+   - If AI cannot determine a field but it's not critical, auto-fill with "N/A" (no alert)
    
-   ACTIONS (actionable insights):
-   - Damage detection + inoperable check for electronics: If damage found and item NOT shown powered on → { type: "ACTION", actionType: "inoperable_check", message: "Damage detected. Is the item still functional?" }
-   - Photo quality: If blurry/poor → { type: "ACTION", actionType: "retake_photo", message: "Image is blurry. Retake for better results?" }
-   - Additional photos needed: { type: "ACTION", actionType: "add_photo", message: "Add photos of the damage/serial number for transparency" }
-   - Price insight: If user price doesn't match condition → { type: "ACTION", actionType: "insight", message: "Price seems high for current condition. Consider adjusting." }
-   - Cleaning recommendations: { type: "ACTION", actionType: "question", message: "Item shows dirt. Clean before photographing?" }
+   QUESTIONS (?) - BLUE - Actionable insights (always optional):
+   - All other notifications go here
+   - Always state the insight/observation and ask if user wants to address it
+   - Always optional - user can tap Yes or ignore/close
+   
+   Examples of QUESTIONS:
+   - Electronics without power supply visible: { "actionType": "question", "message": "No power supply detected in photo. Should I assume it's missing? (will adjust price and note in description)" }
+   - Electronics with damage + not powered on: { "actionType": "inoperable_check", "message": "Damage detected and item not shown powered on. Is it inoperable? (will set condition to Spare Parts)" }
+   - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
+   - Missing details: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
+   - Cleaning needed: { "actionType": "question", "message": "Item shows visible dirt/dust. Clean before photographing for better presentation?" }
+   - Price concern: { "actionType": "insight", "message": "Your price seems high for 'Poor' condition. Market suggests $X-Y. Adjust?" }
+   
+   CRITICAL: Questions should NOT be triggered if the condition is already reflected in the image.
+   For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
 
 Provide a JSON response:
 {
@@ -221,8 +232,9 @@ Provide a JSON response:
   "suggestedPriceMin": number or null,
   "suggestedPriceMax": number or null,
   "marketInsights": "detailed market analysis with condition impact",
+  "isPremiumItem": true or false (expensive/technical/collectible/rare items),
   "alerts": [{ "field": "field_name", "message": "Required field message" }],
-  "actions": [{ "actionType": "retake_photo|add_photo|inoperable_check|question|insight", "message": "Action message", "data": {} }]
+  "questions": [{ "actionType": "retake_photo|add_photo|inoperable_check|question|insight", "message": "Question message (state insight and ask)", "data": {} }]
 }
 
 Respond with raw JSON only. No markdown, no code blocks.`,
@@ -305,10 +317,13 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         suggestedPriceMax: finalResult.suggestedPriceMax ?? null,
                         marketInsights: finalResult.marketInsights ?? null,
                         imageQualityIssue: finalResult.imageQualityIssue ?? null,
+                        isPremiumItem: finalResult.isPremiumItem ?? false,
+                        // Auto-set price from AI if not already set
+                        price: listing.price ?? finalResult.avgMarketPrice ?? null,
                       },
                     });
 
-                    // Create ALERTS (required fields only)
+                    // Create ALERTS (required fields only - red)
                     if (finalResult.alerts?.length > 0) {
                       for (const alert of finalResult.alerts) {
                         await prisma.aINotification.create({
@@ -324,17 +339,17 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                       }
                     }
 
-                    // Create ACTIONS (actionable insights)
-                    if (finalResult.actions?.length > 0) {
-                      for (const action of finalResult.actions) {
+                    // Create QUESTIONS (actionable insights - blue)
+                    if (finalResult.questions?.length > 0) {
+                      for (const question of finalResult.questions) {
                         await prisma.aINotification.create({
                           data: {
                             listingId,
-                            type: 'ACTION',
-                            message: action.message,
+                            type: 'QUESTION',
+                            message: question.message,
                             field: null,
-                            actionType: action.actionType,
-                            actionData: action.data ? JSON.stringify(action.data) : null,
+                            actionType: question.actionType,
+                            actionData: question.data ? JSON.stringify(question.data) : null,
                           },
                         });
                       }

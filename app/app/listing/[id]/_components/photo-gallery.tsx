@@ -16,7 +16,15 @@ interface Photo {
   isPrimary: boolean;
 }
 
-export default function PhotoGallery({ photos, listingId }: { photos: Photo[]; listingId: string }) {
+export default function PhotoGallery({ 
+  photos, 
+  listingId, 
+  onPhotoUpdate 
+}: { 
+  photos: Photo[]; 
+  listingId: string;
+  onPhotoUpdate?: () => void;
+}) {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -161,8 +169,13 @@ export default function PhotoGallery({ photos, listingId }: { photos: Photo[]; l
 
         toast.success(isRetake ? 'Photo updated!' : 'Photo added!');
         
-        // Refresh page to show new photo
-        window.location.reload();
+        // Refresh listing data without full page reload
+        if (onPhotoUpdate) {
+          onPhotoUpdate();
+        }
+        
+        // Close the gallery
+        closeGallery();
       }
     } catch (error: any) {
       console.error('Capture error:', error);
@@ -192,7 +205,10 @@ export default function PhotoGallery({ photos, listingId }: { photos: Photo[]; l
       }
 
       toast.success('Photo deleted');
-      window.location.reload();
+      if (onPhotoUpdate) {
+        onPhotoUpdate();
+      }
+      closeGallery();
     } catch (error) {
       console.error('Delete error:', error);
       toast.error('Failed to delete photo');

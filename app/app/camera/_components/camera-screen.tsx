@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Camera, Mic, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
+import { Camera, Mic, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -19,7 +19,7 @@ export default function CameraScreen() {
   const [isListening, setIsListening] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const pressTimerRef = useRef<any>(null);
+  const isRecognitionActive = useRef(false);
 
   // Initialize camera
   useEffect(() => {
@@ -56,32 +56,38 @@ export default function CameraScreen() {
       
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
+        recognitionRef.current.continuous = false; // Changed to false to prevent doubling
+        recognitionRef.current.interimResults = false; // Changed to false for final results only
         recognitionRef.current.lang = 'en-US';
+        recognitionRef.current.maxAlternatives = 1;
 
         recognitionRef.current.onresult = (event: any) => {
-          let transcript = '';
-          for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-          }
-          setTheGist(transcript);
+          // Get only the final result to avoid doubling
+          const last = event.results.length - 1;
+          const transcript = event.results[last][0].transcript;
+          
+          setTheGist(prev => {
+            // If previous gist exists, add space before new text
+            return prev ? `${prev} ${transcript}`.trim() : transcript;
+          });
         };
 
         recognitionRef.current.onerror = (event: any) => {
           console.error('Speech recognition error:', event.error);
           setIsListening(false);
+          isRecognitionActive.current = false;
         };
 
         recognitionRef.current.onend = () => {
           setIsListening(false);
+          isRecognitionActive.current = false;
         };
       }
     }
   }, []);
 
   const handlePressStart = () => {
-    if (isCapturing) return;
+    if (isCapturing || isRecognitionActive.current) return;
     
     setIsPressHolding(true);
     
@@ -89,10 +95,12 @@ export default function CameraScreen() {
     if (recognitionRef.current) {
       try {
         setIsListening(true);
+        isRecognitionActive.current = true;
         recognitionRef.current.start();
       } catch (error) {
         console.error('Failed to start speech recognition:', error);
         setIsListening(false);
+        isRecognitionActive.current = false;
       }
     }
   };
@@ -101,12 +109,13 @@ export default function CameraScreen() {
     setIsPressHolding(false);
     
     // Stop voice recording
-    if (recognitionRef.current && isListening) {
+    if (recognitionRef.current && isRecognitionActive.current) {
       try {
         recognitionRef.current.stop();
       } catch (error) {
         console.error('Failed to stop speech recognition:', error);
       }
+      // Don't reset isRecognitionActive here - let onend handle it
     }
     
     // Capture photo
@@ -224,7 +233,7 @@ export default function CameraScreen() {
             </div>
           )}
           {isAnalyzing && (
-            <div className="bg-purple-500 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
+            <div className="bg-green-600 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Analyzing</span>
               <span className="animate-listening-dots">...</span>
@@ -276,7 +285,7 @@ export default function CameraScreen() {
                 ? 'bg-gray-400 cursor-not-allowed'
                 : isPressHolding
                 ? 'bg-emerald-600 text-white scale-95'
-                : 'bg-purple-600 hover:bg-purple-700 text-white active:scale-95'
+                : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
             }`}
           >
             {isCapturing ? (

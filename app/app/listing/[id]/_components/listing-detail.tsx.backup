@@ -8,9 +8,7 @@ import {
   Loader2, 
   Check,
   Truck,
-  MapPin,
-  ChevronDown,
-  ChevronUp
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,15 +68,10 @@ interface Listing {
   shippingCostEst: number | null;
   location: string | null;
   meetupPreference: string | null;
-  isPremiumItem: boolean;
-  usedPremiumPost: boolean;
-  editedFields: string[];
   photos: any[];
   notifications: any[];
   user?: {
     subscriptionTier: string;
-    premiumPostsUsed: number;
-    premiumPostsTotal: number;
   };
 }
 
@@ -89,16 +82,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
-  
-  // Collapsible sections state
-  const [sectionsCollapsed, setSectionsCollapsed] = useState({
-    gist: false,
-    itemDetails: false,
-    priceCondition: false,
-    fulfillment: false,
-    fineDetails: false,
-    insights: false,
-  });
 
   useEffect(() => {
     fetchListing();
@@ -107,38 +90,12 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
   const scrollToField = (field: string) => {
     setHighlightedField(field);
+    // Scroll to element with id matching field name
     const element = document.getElementById(`field-${field}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Remove highlight after 3 seconds
       setTimeout(() => setHighlightedField(null), 3000);
-    }
-  };
-
-  // Track field edits for AI learning
-  const handleFieldEdit = (fieldName: string, value: any) => {
-    if (listing) {
-      const newEditedFields = [...new Set([...(listing.editedFields || []), fieldName])];
-      setListing({
-        ...listing,
-        [fieldName]: value,
-        editedFields: newEditedFields,
-      });
-    }
-  };
-
-  // Handle premium post activation
-  const handleUsePremiumPost = async () => {
-    try {
-      const response = await fetch(`/api/listings/${listingId}/use-premium`, {
-        method: 'POST',
-      });
-      
-      if (!response.ok) throw new Error('Failed to activate premium');
-      
-      toast.success('Premium features activated!');
-      await fetchListing();
-    } catch (error) {
-      toast.error('Failed to activate premium post');
     }
   };
 
@@ -224,19 +181,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   };
 
   const handleConditionChange = (value: string) => {
-    const conditionPrice = calculatePriceForCondition(value);
-    
-    // Don't auto-update price if user has already edited it
-    if (listing && !listing.editedFields?.includes('price') && conditionPrice) {
-      setListing({
-        ...listing,
-        condition: value,
-        price: conditionPrice,
-        editedFields: [...(listing.editedFields || []), 'condition'],
-      });
-    } else {
-      handleFieldEdit('condition', value);
-    }
+    const newPrice = calculatePriceForCondition(value);
+    setListing({
+      ...listing!,
+      condition: value,
+      // Only update price if user hasn't set their own price yet
+      price: listing?.price ? listing.price : newPrice
+    });
   };
 
   // Determine if user's price is reasonable for the condition
@@ -298,10 +249,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       const response = await fetch(`/api/listings/${listingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...listing,
-          editedFields: listing.editedFields || [], // Send edited fields for AI learning
-        }),
+        body: JSON.stringify(listing),
       });
 
       if (!response.ok) throw new Error('Failed to save');
@@ -346,37 +294,24 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               listingId={listingId}
               onResolve={fetchListing}
               onScrollToField={scrollToField}
-              premiumPostsRemaining={listing.user ? (listing.user.premiumPostsTotal - listing.user.premiumPostsUsed) : 0}
-              onUsePremiumPost={handleUsePremiumPost}
-              isPremiumItem={listing.isPremiumItem && !listing.usedPremiumPost}
             />
           </div>
         )}
 
         {/* The Gist */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-4">
-          <button
-            onClick={() => setSectionsCollapsed(prev => ({ ...prev, gist: !prev.gist }))}
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <Label className="font-medium cursor-pointer">The Gist</Label>
-            {sectionsCollapsed.gist ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronUp className="w-5 h-5 text-gray-500" />}
-          </button>
-          {!sectionsCollapsed.gist && (
-            <div className="px-4 pb-4 border-t">
-              <Textarea
-                value={listing.theGist || ''}
-                onChange={(e) => handleFieldEdit('theGist', e.target.value)}
-                className="mt-2"
-                rows={3}
-              />
-            </div>
-          )}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <Label>The Gist</Label>
+          <Textarea
+            value={listing.theGist || ''}
+            onChange={(e) => setListing({ ...listing, theGist: e.target.value })}
+            className="mt-2"
+            rows={3}
+          />
         </div>
 
         {/* Photo Gallery */}
         <div id="photo-gallery">
-          <PhotoGallery photos={listing.photos || []} listingId={listingId} onPhotoUpdate={fetchListing} />
+          <PhotoGallery photos={listing.photos || []} listingId={listingId} />
         </div>
 
         {/* Title */}
@@ -474,72 +409,66 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         </div>
 
         {/* Price & Condition */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-4">
-          <button
-            onClick={() => setSectionsCollapsed(prev => ({ ...prev, priceCondition: !prev.priceCondition }))}
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <Label className="text-base font-medium cursor-pointer">Price & Condition</Label>
-            {sectionsCollapsed.priceCondition ? <ChevronDown className="w-5 h-5 text-gray-500" /> : <ChevronUp className="w-5 h-5 text-gray-500" />}
-          </button>
-          {!sectionsCollapsed.priceCondition && (
-            <div className="px-4 pb-4 border-t">
-              <div className="space-y-4 mt-4">
-                <div id="field-conditionNotes" className={highlightedField === 'conditionNotes' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
-                  <Label className="text-sm">Condition Description</Label>
-                  <Textarea
-                    value={listing.conditionNotes || ''}
-                    onChange={(e) => {
-                      handleFieldEdit('conditionNotes', e.target.value);
-                      // Auto-resize
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = target.scrollHeight + 'px';
-                    }}
-                    className="mt-1 resize-none overflow-hidden"
-                    style={{ minHeight: '80px' }}
-                    placeholder="Describe the item's condition in detail (scratches, wear, damage, etc.)"
-                  />
-                </div>
-
-                <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
-                  <Label className="text-sm">Condition</Label>
-                  <Select
-                    value={listing.condition || 'undefined'}
-                    onValueChange={handleConditionChange}
-                  >
-                    <SelectTrigger className="mt-1 w-fit min-w-[180px]">
-                      <SelectValue placeholder="Select condition" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CONDITION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div id="field-price" className={highlightedField === 'price' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
-                  <Label className="text-sm">Price ($)</Label>
-                  <Input
-                    type="number"
-                    value={listing.price || ''}
-                    onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
-                    className="mt-1"
-                    placeholder="0.00"
-                  />
-                  {/* Show suggested price only when user price differs significantly */}
-                  {listing.price && getConditionAwarePriceInsight() && (
-                    <p className={`text-xs mt-1 font-medium ${
-                      getPriceSuggestionColor() === 'green' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {getConditionAwarePriceInsight()}
-                    </p>
-                  )}
-                </div>
-              </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <Label className="text-base font-medium mb-3 block">Price & Condition</Label>
+          <div className="space-y-4">
+            <div id="field-conditionNotes" className={highlightedField === 'conditionNotes' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
+              <Label className="text-sm">Condition Description</Label>
+              <Textarea
+                value={listing.conditionNotes || ''}
+                onChange={(e) => setListing({ ...listing, conditionNotes: e.target.value })}
+                className="mt-1 min-h-[60px] resize-none overflow-hidden"
+                style={{ height: 'auto' }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = target.scrollHeight + 'px';
+                }}
+                placeholder="Describe the item's condition in detail (scratches, wear, damage, etc.)"
+              />
             </div>
-          )}
+
+            <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
+              <Label className="text-sm">Condition</Label>
+              <Select
+                value={listing.condition || 'undefined'}
+                onValueChange={handleConditionChange}
+              >
+                <SelectTrigger className="mt-1 w-fit min-w-[180px]">
+                  <SelectValue placeholder="Select condition" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONDITION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div id="field-price" className={highlightedField === 'price' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
+              <Label className="text-sm">Price ($)</Label>
+              <Input
+                type="number"
+                value={listing.price || ''}
+                onChange={(e) => setListing({ ...listing, price: parseFloat(e.target.value) || null })}
+                className="mt-1"
+                placeholder="0.00"
+              />
+              {/* Show suggested price only when field is empty OR when user price differs significantly */}
+              {!listing.price && listing.avgMarketPrice && listing.condition && (
+                <p className="text-xs text-gray-600 mt-1">
+                  AI suggested: ${calculatePriceForCondition(listing.condition)?.toFixed(2) || listing.avgMarketPrice.toFixed(2)}
+                </p>
+              )}
+              {listing.price && getConditionAwarePriceInsight() && (
+                <p className={`text-xs mt-1 font-medium ${
+                  getPriceSuggestionColor() === 'green' ? 'text-emerald-600' : 'text-red-600'
+                }`}>
+                  {getConditionAwarePriceInsight()}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Fulfillment Type: Local vs Shipping */}
@@ -688,7 +617,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 bg-purple-600 hover:bg-purple-700"
             >
               {isSaving ? (
                 <>

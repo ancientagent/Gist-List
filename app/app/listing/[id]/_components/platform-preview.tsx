@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface PlatformField {
   name: string;
@@ -169,26 +170,28 @@ export default function PlatformPreview({
   const displayPlatforms = qualifiedPlatforms.length > 0 ? qualifiedPlatforms : Object.keys(PLATFORM_UNCERTAIN_FIELDS);
   const selectedDisplayPlatforms = displayPlatforms.filter(p => selectedPlatforms.includes(p));
 
+  const isUnlocked = isPremium || listing.usedPremiumPost;
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <div className="flex items-center gap-2 mb-4">
         <h3 className="font-medium">Fine Details</h3>
-        {isPremium && (
-          <Badge className="bg-purple-600 text-white">
+        {isUnlocked && (
+          <Badge className="bg-green-600 text-white">
             <Crown className="w-3 h-3 mr-1" />
             Premium
           </Badge>
         )}
       </div>
 
-      {!isPremium && (
-        <div className="bg-gradient-to-r from-purple-50 to-emerald-50 border-2 border-purple-200 rounded-lg p-4 mb-4">
+      {!isUnlocked && (
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
-            <Crown className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <Crown className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
               <p className="text-xs text-gray-600 mt-1">
-                Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Upgrade to Basic or Pro!
+                Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Use a premium post or upgrade!
               </p>
             </div>
           </div>
@@ -202,26 +205,45 @@ export default function PlatformPreview({
           {displayPlatforms.map((platform) => {
             const isRecommended = recommendedPlatforms.includes(platform);
             const isSelected = selectedPlatforms.includes(platform);
+            const canSelect = isUnlocked || isRecommended;
             
             return (
               <div
                 key={platform}
-                className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                  canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                } ${
                   isSelected
-                    ? 'border-purple-500 bg-purple-50'
+                    ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => handlePlatformToggle(platform)}
+                onClick={() => {
+                  if (!canSelect) {
+                    toast.info('This platform requires Premium features. Use a premium post to unlock!', {
+                      icon: '⭐',
+                    });
+                  } else {
+                    handlePlatformToggle(platform);
+                  }
+                }}
               >
                 <Checkbox
                   checked={isSelected}
-                  onCheckedChange={() => handlePlatformToggle(platform)}
+                  disabled={!canSelect}
+                  onCheckedChange={() => {
+                    if (canSelect) {
+                      handlePlatformToggle(platform);
+                    }
+                  }}
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{platform}</span>
                     {isRecommended && (
-                      <Star className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                      <Star className="w-3 h-3 fill-green-500 text-green-500" />
+                    )}
+                    {!canSelect && (
+                      <Crown className="w-3 h-3 text-amber-500" />
                     )}
                   </div>
                 </div>
@@ -306,10 +328,10 @@ export default function PlatformPreview({
       )}
 
       {/* Search Tags (Premium Feature) */}
-      {isPremium && listing.searchTags && listing.searchTags.length > 0 && (
+      {isUnlocked && listing.searchTags && listing.searchTags.length > 0 && (
         <div className="border-t pt-4 mt-4">
           <div className="flex items-center gap-2 mb-3">
-            <Tag className="w-4 h-4 text-emerald-600" />
+            <Tag className="w-4 h-4 text-green-600" />
             <Label className="text-sm font-medium">SEO Search Tags</Label>
             <Badge variant="outline" className="text-xs">
               Ordered by effectiveness
@@ -322,10 +344,10 @@ export default function PlatformPreview({
                 variant="secondary"
                 className={`${
                   index < 5
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    ? 'bg-green-100 text-green-800 border-green-300'
                     : index < 10
-                    ? 'bg-purple-100 text-purple-800 border-purple-300'
-                    : 'bg-gray-100 text-gray-800 border-gray-300'
+                    ? 'bg-gray-100 text-gray-800 border-gray-300'
+                    : 'bg-gray-50 text-gray-700 border-gray-200'
                 }`}
               >
                 #{index + 1} {tag}

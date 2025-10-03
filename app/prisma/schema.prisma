@@ -53,6 +53,8 @@ model User {
   fullName      String?
   subscriptionTier String @default("FREE") // FREE, BASIC, PRO
   listingCount  Int       @default(0)
+  premiumPostsUsed Int    @default(0)
+  premiumPostsTotal Int   @default(4) // Free users get 4 premium posts
   stripeCustomerId String?
   emailVerified DateTime?
   image         String?
@@ -128,12 +130,17 @@ model Listing {
   location          String?  // for local sales
   meetupPreference  String?  // delivery/meetup preference
   
-  // Pro Features
+  // Premium Features
+  isPremiumItem     Boolean  @default(false) // Expensive, technical, collectible, rare
+  usedPremiumPost   Boolean  @default(false) // Did user use a premium post for this?
   buyerInfoPackage  String?  @db.Text // JSON string with manuals, specs, dealers, etc.
   
   // Platform recommendations
   recommendedPlatforms String[] // top 2-3 platforms
   qualifiedPlatforms   String[] // all qualifying platforms
+  
+  // AI Learning
+  editedFields      String[] // Track which fields user edited for AI learning
   
   // Metadata
   createdAt         DateTime @default(now())
@@ -184,9 +191,9 @@ model PlatformData {
 model AINotification {
   id          String   @id @default(cuid())
   listingId   String
-  type        String   // "ALERT" (required fields) or "ACTION" (actionable insights)
+  type        String   // "ALERT" (required fields - red) or "QUESTION" (actionable insights - blue)
   message     String   @db.Text
-  field       String?  // which field this relates to (for ALERTs)
+  field       String?  // which field this relates to (for ALERTs - jumps to that field)
   actionType  String?  // "retake_photo", "add_photo", "inoperable_check", "question", "insight"
   actionData  String?  @db.Text // JSON data for action (e.g., photo index for retake)
   resolved    Boolean  @default(false)
