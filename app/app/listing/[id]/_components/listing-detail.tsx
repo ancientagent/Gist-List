@@ -308,11 +308,15 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
       if (!response.ok) throw new Error('Failed to save');
       
-      toast.success('Listing saved!');
+      toast.success('Listing saved! Redirecting to storage...');
+      
+      // Redirect to storage page after save
+      setTimeout(() => {
+        router.push('/listings');
+      }, 500);
     } catch (error: any) {
       console.error('Save error:', error);
       toast.error('Failed to save listing');
-    } finally {
       setIsSaving(false);
     }
   };

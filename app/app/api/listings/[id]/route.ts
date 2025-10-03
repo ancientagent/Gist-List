@@ -107,6 +107,23 @@ export async function PATCH(
       },
     });
 
+    // Auto-save shipping/location preferences for future listings
+    if (data.fulfillmentType || data.willingToShip !== undefined || data.okForLocals !== undefined ||
+        data.weight || data.dimensions || data.location || data.meetupPreference) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(data.fulfillmentType && { defaultFulfillmentType: data.fulfillmentType }),
+          ...(data.willingToShip !== undefined && { defaultWillingToShip: data.willingToShip }),
+          ...(data.okForLocals !== undefined && { defaultOkForLocals: data.okForLocals }),
+          ...(data.weight && { defaultWeight: data.weight }),
+          ...(data.dimensions && { defaultDimensions: data.dimensions }),
+          ...(data.location && { defaultLocation: data.location }),
+          ...(data.meetupPreference && { defaultMeetupPreference: data.meetupPreference }),
+        },
+      });
+    }
+
     return NextResponse.json(listing);
   } catch (error: any) {
     console.error('Update listing error:', error);

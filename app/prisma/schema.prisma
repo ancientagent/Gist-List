@@ -58,6 +58,16 @@ model User {
   stripeCustomerId String?
   emailVerified DateTime?
   image         String?
+  
+  // Saved Preferences (auto-fill for new listings)
+  defaultFulfillmentType String? @default("shipping") // "shipping" or "local"
+  defaultWillingToShip   Boolean @default(true)
+  defaultOkForLocals     Boolean @default(false)
+  defaultLocation        String? // for local sales
+  defaultMeetupPreference String? // delivery/meetup preference
+  defaultWeight          Float?  // typical shipping weight
+  defaultDimensions      String? // typical dimensions
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

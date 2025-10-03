@@ -136,9 +136,9 @@ export default function ListingsManager() {
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No listings yet</h3>
             <p className="text-gray-500 mb-4">Start by capturing your first item</p>
-            <Button onClick={() => router.push('/camera')} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={() => router.push('/camera')} className="bg-green-600 hover:bg-green-700">
               <Camera className="mr-2 h-4 w-4" />
-              Create Listing
+              New Post
             </Button>
           </div>
         ) : (
@@ -194,10 +194,11 @@ export default function ListingsManager() {
         )}
       </div>
 
-      {/* FAB - Create New Listing */}
+      {/* FAB - New Post */}
       <Link
         href="/camera"
-        className="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all"
+        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+        title="New Post"
       >
         <Camera className="w-6 h-6" />
       </Link>

@@ -18,6 +18,13 @@ export async function GET() {
         id: true,
         email: true,
         fullName: true,
+        defaultFulfillmentType: true,
+        defaultWillingToShip: true,
+        defaultOkForLocals: true,
+        defaultLocation: true,
+        defaultMeetupPreference: true,
+        defaultWeight: true,
+        defaultDimensions: true,
       }
     });
 
@@ -44,17 +51,40 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { fullName } = body;
+    const { 
+      fullName,
+      defaultFulfillmentType,
+      defaultWillingToShip,
+      defaultOkForLocals,
+      defaultLocation,
+      defaultMeetupPreference,
+      defaultWeight,
+      defaultDimensions,
+    } = body;
 
     const user = await prisma.user.update({
       where: { email: session.user.email },
       data: { 
         ...(fullName !== undefined && { fullName }),
+        ...(defaultFulfillmentType !== undefined && { defaultFulfillmentType }),
+        ...(defaultWillingToShip !== undefined && { defaultWillingToShip }),
+        ...(defaultOkForLocals !== undefined && { defaultOkForLocals }),
+        ...(defaultLocation !== undefined && { defaultLocation }),
+        ...(defaultMeetupPreference !== undefined && { defaultMeetupPreference }),
+        ...(defaultWeight !== undefined && { defaultWeight }),
+        ...(defaultDimensions !== undefined && { defaultDimensions }),
       },
       select: {
         id: true,
         email: true,
         fullName: true,
+        defaultFulfillmentType: true,
+        defaultWillingToShip: true,
+        defaultOkForLocals: true,
+        defaultLocation: true,
+        defaultMeetupPreference: true,
+        defaultWeight: true,
+        defaultDimensions: true,
       }
     });
 

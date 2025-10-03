@@ -285,7 +285,7 @@ Respond with raw JSON only. No markdown, no code blocks.`,
         Authorization: `Bearer ${process.env.ABACUSAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gemini-2.0-flash-exp',
         messages,
         stream: true,
         max_tokens: 2500,
@@ -322,6 +322,57 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                   try {
                     const finalResult = JSON.parse(buffer);
                     
+                    // Smart Condition Logic: Only update condition if NEW damage found
+                    // Check if existing condition notes mention damage
+                    const existingConditionNotes = listing.conditionNotes || '';
+                    const existingHasDamage = existingConditionNotes.toLowerCase().includes('damage') || 
+                                             existingConditionNotes.toLowerCase().includes('scratch') ||
+                                             existingConditionNotes.toLowerCase().includes('dent') ||
+                                             existingConditionNotes.toLowerCase().includes('crack') ||
+                                             existingConditionNotes.toLowerCase().includes('chip') ||
+                                             existingConditionNotes.toLowerCase().includes('tear') ||
+                                             existingConditionNotes.toLowerCase().includes('worn') ||
+                                             existingConditionNotes.toLowerCase().includes('stain');
+                    
+                    const newConditionNotes = finalResult.conditionNotes || '';
+                    const newHasDamage = newConditionNotes.toLowerCase().includes('damage') || 
+                                        newConditionNotes.toLowerCase().includes('scratch') ||
+                                        newConditionNotes.toLowerCase().includes('dent') ||
+                                        newConditionNotes.toLowerCase().includes('crack') ||
+                                        newConditionNotes.toLowerCase().includes('chip') ||
+                                        newConditionNotes.toLowerCase().includes('tear') ||
+                                        newConditionNotes.toLowerCase().includes('worn') ||
+                                        newConditionNotes.toLowerCase().includes('stain');
+                    
+                    // Only update condition if: 
+                    // 1. No existing condition notes, OR
+                    // 2. New damage discovered when there wasn't any before
+                    let finalConditionNotes = existingConditionNotes;
+                    let finalCondition = listing.condition;
+                    
+                    if (!existingConditionNotes) {
+                      // First analysis - use all new condition info
+                      finalConditionNotes = newConditionNotes;
+                      finalCondition = finalResult.condition;
+                    } else if (!existingHasDamage && newHasDamage) {
+                      // NEW damage discovered - append to existing notes
+                      finalConditionNotes = `${existingConditionNotes}\n\nADDITIONAL FINDINGS: ${newConditionNotes}`;
+                      finalCondition = finalResult.condition; // Degrade condition
+                      
+                      // Create notification for new damage
+                      await prisma.aINotification.create({
+                        data: {
+                          listingId,
+                          type: 'QUESTION',
+                          message: `New damage detected in additional photo: ${newConditionNotes.split('\n')[0]}. Would you like to update the condition description?`,
+                          field: null,
+                          actionType: 'new_damage_detected',
+                          actionData: JSON.stringify({ newDamage: newConditionNotes }),
+                        },
+                      });
+                    }
+                    // Otherwise: keep existing condition notes (don't overwrite if new photo shows cleaner angle)
+
                     // Update listing in database
                     await prisma.listing.update({
                       where: { id: listingId },
@@ -341,8 +392,8 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         shippingCostEst: finalResult.shippingCostEst ?? null,
                         title: finalResult.title ?? null,
                         description: finalResult.description ?? null,
-                        condition: finalResult.condition ?? null,
-                        conditionNotes: finalResult.conditionNotes ?? null,
+                        condition: finalCondition,
+                        conditionNotes: finalConditionNotes,
                         tags: finalResult.tags ?? [],
                         searchTags: finalResult.searchTags ?? [],
                         recommendedPlatforms: finalResult.recommendedPlatforms ?? [],
@@ -359,7 +410,8 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         price: listing.price ?? (() => {
                           if (!finalResult.avgMarketPrice) return null;
                           const basePrice = finalResult.avgMarketPrice;
-                          const condition = finalResult.condition;
+                          const condition = finalCondition;
+                          if (!condition) return basePrice * 0.65; // Default to "Good" multiplier
                           const multipliers: Record<string, number> = {
                             'New': 1.0,
                             'Like New': 0.85,
