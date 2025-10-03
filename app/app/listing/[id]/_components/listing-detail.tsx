@@ -576,22 +576,22 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                     </div>
                   </div>
 
-                  {/* Right Column - Premium Box */}
-                  <div className="lg:col-span-2">
+                  {/* Right Column - Pro Seller Box (Gold) and Premium Unlock */}
+                  <div className="lg:col-span-2 space-y-4">
                     {listing.usePremium && (listing.premiumFacts || listing.usefulLinks) ? (
-                      // PREMIUM TIER - Show all content
-                      <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-lg p-4">
+                      // PREMIUM TIER - Show all content with GOLD background
+                      <div className="bg-gradient-to-br from-yellow-100 via-amber-100 to-yellow-200 border-2 border-amber-500 rounded-lg p-4 shadow-md">
                         <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                          <Label className="text-sm font-bold text-amber-900">Premium</Label>
+                          <div className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                          <Label className="text-sm font-bold text-amber-900">Pro Seller's Box</Label>
                           <Badge className="bg-green-600 text-white text-xs">Active</Badge>
                         </div>
                         
-                        <p className="text-xs text-amber-800 mb-3 font-medium">This information will be added to your post:</p>
+                        <p className="text-xs text-amber-900 mb-3 font-medium">This information will be added to your post:</p>
                         
                         {listing.premiumFacts && (
                           <div className="mb-3">
-                            <p className="text-sm text-amber-900 leading-relaxed whitespace-pre-wrap">
+                            <p className="text-sm text-amber-950 leading-relaxed whitespace-pre-wrap">
                               {listing.premiumFacts}
                             </p>
                           </div>
@@ -603,7 +603,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                             if (Array.isArray(links) && links.length > 0) {
                               return (
                                 <div className="space-y-2">
-                                  <p className="text-xs font-semibold text-amber-800">Pro Seller Links:</p>
+                                  <p className="text-xs font-semibold text-amber-900">Pro Seller Links:</p>
                                   {links.map((link: any, idx: number) => (
                                     <a
                                       key={idx}
@@ -635,12 +635,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                           Your premium features will appear here after AI analysis completes.
                         </p>
                       </div>
-                    ) : (
-                      // FREE TIER - Show teaser
+                    ) : null}
+                    
+                    {/* Premium Unlock Box - Shows when premium is NOT active */}
+                    {!listing.usePremium && (
                       <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-300 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-2 h-2 rounded-full bg-gray-400" />
-                          <Label className="text-sm font-bold text-gray-900">Premium</Label>
+                          <Label className="text-sm font-bold text-gray-900">Premium Unlock</Label>
                           <Badge variant="outline" className="text-xs">Locked</Badge>
                         </div>
                         
@@ -674,6 +676,15 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             </div>
           )}
         </div>
+
+        {/* Platforms to Post (Platform Preview + Search Tags) */}
+        <PlatformPreview 
+          recommendedPlatforms={listing.recommendedPlatforms || []}
+          qualifiedPlatforms={listing.qualifiedPlatforms || []}
+          listingId={listingId}
+          listing={listing}
+          userTier={listing.user?.subscriptionTier}
+        />
 
         {/* Fulfillment Type: Local vs Shipping */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -795,15 +806,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             </div>
           )}
         </div>
-
-        {/* Fine Details (Platform Preview + Search Tags) */}
-        <PlatformPreview 
-          recommendedPlatforms={listing.recommendedPlatforms || []}
-          qualifiedPlatforms={listing.qualifiedPlatforms || []}
-          listingId={listingId}
-          listing={listing}
-          userTier={listing.user?.subscriptionTier}
-        />
 
         {/* Insights */}
         <InsightsSection listing={listing} />

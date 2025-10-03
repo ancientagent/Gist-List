@@ -175,7 +175,7 @@ export default function PlatformPreview({
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <div className="flex items-center gap-2 mb-4">
-        <h3 className="font-medium">Fine Details</h3>
+        <h3 className="font-medium text-base">Platforms to Post</h3>
         {isUnlocked && (
           <Badge className="bg-green-600 text-white">
             <Crown className="w-3 h-3 mr-1" />
@@ -186,8 +186,7 @@ export default function PlatformPreview({
 
       {/* Platform Selection */}
       <div className="mb-6">
-        <Label className="mb-3 block text-sm font-medium">Select Platforms to Post</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {displayPlatforms.map((platform) => {
             const isRecommended = recommendedPlatforms.includes(platform);
             const isSelected = selectedPlatforms.includes(platform);
@@ -196,7 +195,7 @@ export default function PlatformPreview({
             return (
               <div
                 key={platform}
-                className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all ${
                   canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
                 } ${
                   isSelected
@@ -222,14 +221,14 @@ export default function PlatformPreview({
                     }
                   }}
                 />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{platform}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="font-medium text-xs truncate">{platform}</span>
                     {isRecommended && (
-                      <Star className="w-3 h-3 fill-green-500 text-green-500" />
+                      <Star className="w-3 h-3 fill-green-500 text-green-500 flex-shrink-0" />
                     )}
                     {!canSelect && (
-                      <Crown className="w-3 h-3 text-amber-500" />
+                      <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
                     )}
                   </div>
                 </div>
@@ -245,7 +244,6 @@ export default function PlatformPreview({
           <div className="mb-3 flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-gray-900">Fine Details</p>
               <p className="text-xs text-gray-600">
                 Platform-specific fields and conditional information for each selected marketplace. Premium feature includes enhanced SEO search tags.
               </p>

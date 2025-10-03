@@ -136,12 +136,11 @@ export default function NotificationList({
                 {alerts.map((notification) => (
                   <div
                     key={notification.id}
-                    className="border-2 border-red-400 bg-red-50 rounded-lg p-3 cursor-pointer hover:bg-red-100 transition-colors"
-                    onClick={() => handleAlertClick(notification)}
+                    className="border-2 border-red-400 bg-red-50 rounded-lg p-3"
                   >
                     <div className="flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
-                      <div className="flex-1">
+                      <div className="flex-1 cursor-pointer" onClick={() => handleAlertClick(notification)}>
                         <p className="text-sm font-medium text-red-900">
                           {notification.message}
                         </p>
@@ -150,6 +149,24 @@ export default function NotificationList({
                             ⚠️ Tap to jump to: {notification.field}
                           </p>
                         )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAlertClick(notification)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          <Check className="w-3 h-3 mr-1" />
+                          Yes
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => resolveNotification(notification.id)}
+                          className="flex-shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
