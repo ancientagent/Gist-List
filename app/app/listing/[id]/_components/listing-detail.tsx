@@ -148,7 +148,19 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         method: 'POST',
       });
 
-      if (!response.ok) throw new Error('Analysis failed');
+      if (!response.ok) {
+        // Try to get error details from response
+        try {
+          const errorData = await response.json();
+          const errorMsg = errorData.error || 'Analysis failed';
+          console.error('Analysis API error:', errorMsg, errorData.details);
+          toast.error(errorMsg.length > 100 ? 'Analysis failed - check console for details' : errorMsg);
+        } catch (e) {
+          toast.error('Analysis failed');
+        }
+        setIsAnalyzing(false);
+        return;
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -176,7 +188,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               if (parsed.status === 'completed') {
                 setIsAnalyzing(false);
                 await fetchListing();
-                toast.success('Analysis complete!');
+                
+                // Check if item was identified
+                if (parsed.result?.itemIdentified) {
+                  toast.success('Analysis complete! Item identified.');
+                } else {
+                  toast.success('Analysis complete.');
+                }
                 return;
               }
             } catch (e) {
@@ -187,7 +205,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       }
     } catch (error: any) {
       console.error('Analysis error:', error);
-      toast.error('Analysis failed');
+      toast.error('Analysis failed - ' + (error?.message || 'unknown error'));
       setIsAnalyzing(false);
     }
   };

@@ -308,7 +308,9 @@ Respond with raw JSON only. No markdown, no code blocks.`,
     });
 
     if (!response.ok) {
-      throw new Error('AI analysis failed');
+      const errorText = await response.text();
+      console.error('LLM API error:', response.status, errorText);
+      throw new Error(`AI analysis failed: ${response.status} - ${errorText.substring(0, 200)}`);
     }
 
     const stream = new ReadableStream({
@@ -526,8 +528,15 @@ Respond with raw JSON only. No markdown, no code blocks.`,
     });
   } catch (error: any) {
     console.error('Analysis error:', error);
+    console.error('Error stack:', error?.stack);
+    
+    // Return a more detailed error message
+    const errorMessage = error?.message || 'Analysis failed - unknown error';
     return NextResponse.json(
-      { error: error?.message || 'Analysis failed' },
+      { 
+        error: errorMessage,
+        details: error?.stack?.substring(0, 500) 
+      },
       { status: 500 }
     );
   }
