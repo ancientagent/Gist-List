@@ -10,7 +10,8 @@ import {
   Truck,
   MapPin,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -407,31 +408,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             rows={6}
             placeholder="Detailed description..."
           />
-          
-          {/* Premium Checkbox */}
-          <div className="flex items-center gap-3 mt-4 p-3 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
-            <Checkbox
-              id="use-premium"
-              checked={listing.usePremium}
-              onCheckedChange={(checked) => {
-                const premiumRemaining = (listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0);
-                if (checked && premiumRemaining <= 0) {
-                  toast.error('No premium analyses remaining!');
-                  return;
-                }
-                setListing({ ...listing, usePremium: checked as boolean });
-              }}
-              className="border-purple-400"
-            />
-            <div className="flex-1">
-              <Label htmlFor="use-premium" className="cursor-pointer font-medium text-sm">
-                Use Premium Analysis ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
-              </Label>
-              <p className="text-xs text-gray-600 mt-1">
-                Get premium insights, valuable facts, and useful links for your item
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Item Details - All required fields from any platform */}
@@ -534,17 +510,17 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                   />
                 </div>
 
-                {/* Grid Layout: Left side - Condition and Price (smaller), Right side - Premium Box */}
+                {/* Grid Layout: Left side - Condition, Price, and Premium Box (3 columns), Right side - Pro Seller Box */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Left Column - Condition and Price (Compact) */}
-                  <div className="lg:col-span-1 space-y-3">
+                  {/* Left Column - Condition, Price, and Premium Unlock (side by side) */}
+                  <div className="lg:col-span-1 flex gap-3">
                     <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
                       <Label className="text-sm">Condition</Label>
                       <Select
                         value={listing.condition || 'undefined'}
                         onValueChange={handleConditionChange}
                       >
-                        <SelectTrigger className="mt-1 w-full max-w-[180px]">
+                        <SelectTrigger className="mt-1 w-[120px]">
                           <SelectValue placeholder="Select condition" />
                         </SelectTrigger>
                         <SelectContent>
@@ -562,7 +538,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         step="0.01"
                         value={listing.price ?? ''}
                         onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
-                        className="mt-1 w-full max-w-[180px]"
+                        className="mt-1 w-[120px]"
                         placeholder="0.00"
                       />
                       {/* Show suggested price only when user price differs significantly */}
@@ -574,9 +550,39 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         </p>
                       )}
                     </div>
+
+                    {/* Premium Unlock Box - Shows when premium is NOT active */}
+                    {!listing.usePremium && (
+                      <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-amber-400 rounded-lg p-3 flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Crown className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                          <Label className="text-xs font-bold text-gray-900">Pro Lister Pack.</Label>
+                          <Badge variant="outline" className="text-xs">Locked</Badge>
+                        </div>
+                        
+                        <ul className="space-y-1.5 text-xs text-gray-600">
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-green-600">✓</span>
+                            <span>Special facts & features</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-green-600">✓</span>
+                            <span>Pro seller package</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-green-600">✓</span>
+                            <span>Community resources</span>
+                          </li>
+                        </ul>
+                        
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                          ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right Column - Pro Seller Box (Gold) and Premium Unlock */}
+                  {/* Right Column - Pro Seller Box (Gold) */}
                   <div className="lg:col-span-2 space-y-4">
                     {listing.usePremium && (listing.premiumFacts || listing.usefulLinks) ? (
                       // PREMIUM TIER - Show all content with GOLD background
@@ -636,40 +642,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         </p>
                       </div>
                     ) : null}
-                    
-                    {/* Premium Unlock Box - Shows when premium is NOT active */}
-                    {!listing.usePremium && (
-                      <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-300 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-gray-400" />
-                          <Label className="text-sm font-bold text-gray-900">Premium Unlock</Label>
-                          <Badge variant="outline" className="text-xs">Locked</Badge>
-                        </div>
-                        
-                        <p className="text-xs text-gray-700 mb-3">
-                          Enable the Premium checkbox above to unlock:
-                        </p>
-                        
-                        <ul className="space-y-2 text-xs text-gray-600">
-                          <li className="flex items-start gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Special facts & features that drive buyer interest</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Pro seller package: manuals, repair shops, parts dealers</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-green-600">✓</span>
-                            <span>Community resources and expert forums</span>
-                          </li>
-                        </ul>
-                        
-                        <p className="text-xs text-gray-500 mt-3 italic">
-                          ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 premium analyses remaining)
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

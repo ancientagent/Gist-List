@@ -241,27 +241,51 @@ export default function PlatformPreview({
       {/* Platform-Specific Fields with Tabs */}
       {selectedDisplayPlatforms.length > 0 && (
         <div className="border-t pt-4">
-          <div className="mb-3 flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-xs text-gray-600">
-                Platform-specific fields and conditional information for each selected marketplace. Premium feature includes enhanced SEO search tags.
-              </p>
-            </div>
-          </div>
-
           {!isUnlocked ? (
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-6 mt-4">
-              <div className="flex items-start gap-3">
-                <Crown className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
+            <>
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-6 mt-4">
+                <div className="flex items-start gap-3">
+                  <Crown className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Use a premium post or upgrade!
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Use Premium Analysis Checkbox */}
+              <div className="flex items-center gap-3 mt-4 p-3 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
+                <input
+                  type="checkbox"
+                  id="use-premium"
+                  checked={listing.usePremium}
+                  onChange={(e) => {
+                    const premiumRemaining = (userTier === 'FREE' ? 4 : 100) - (listing.user?.premiumPostsUsed || 0);
+                    if (e.target.checked && premiumRemaining <= 0) {
+                      alert('No premium analyses remaining!');
+                      return;
+                    }
+                    // Call API to update listing
+                    fetch(`/api/listings/${listingId}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ usePremium: e.target.checked })
+                    }).then(() => window.location.reload());
+                  }}
+                  className="w-4 h-4 border-purple-400 rounded"
+                />
+                <div className="flex-1">
+                  <label htmlFor="use-premium" className="cursor-pointer font-medium text-sm">
+                    Use Premium Analysis ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
+                  </label>
                   <p className="text-xs text-gray-600 mt-1">
-                    Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Use a premium post or upgrade!
+                    Get premium insights, valuable facts, and useful links for your item
                   </p>
                 </div>
               </div>
-            </div>
+            </>
           ) : (
             <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
             <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${selectedDisplayPlatforms.length}, 1fr)` }}>
