@@ -18,35 +18,39 @@ export default function CameraScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showStartButton, setShowStartButton] = useState(true);
   const recognitionRef = useRef<any>(null);
   const isRecognitionActive = useRef(false);
 
-  // Initialize camera
-  useEffect(() => {
-    const initCamera = async () => {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      } catch (error) {
-        console.error('Camera access error:', error);
-        toast.error('Unable to access camera. Please grant camera permissions.');
+  // Initialize camera function
+  const initCamera = async () => {
+    try {
+      setCameraError(null);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      });
+      setStream(mediaStream);
+      setShowStartButton(false);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
       }
-    };
+    } catch (error: any) {
+      console.error('Camera access error:', error);
+      setCameraError(error?.message || 'Unable to access camera. Please grant camera permissions in your browser settings.');
+      toast.error('Unable to access camera. Please grant camera permissions.');
+    }
+  };
 
-    initCamera();
-
+  // Cleanup camera on unmount
+  useEffect(() => {
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, []);
+  }, [stream]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -209,6 +213,25 @@ export default function CameraScreen() {
             alt="Captured" 
             className="w-full h-full object-cover"
           />
+        ) : showStartButton ? (
+          // Show start camera button
+          <div className="w-full h-full flex items-center justify-center bg-gray-900">
+            <div className="text-center p-8">
+              <Camera className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-white mb-2">Camera Access Required</h2>
+              <p className="text-gray-400 mb-6 max-w-sm">
+                {cameraError || 'Click the button below to start the camera and begin capturing items.'}
+              </p>
+              <Button 
+                onClick={initCamera}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Camera className="mr-2 h-5 w-5" />
+                Start Camera
+              </Button>
+            </div>
+          </div>
         ) : (
           // Show live camera feed
           <video
