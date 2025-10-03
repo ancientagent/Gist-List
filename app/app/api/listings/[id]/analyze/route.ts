@@ -57,6 +57,11 @@ export async function POST(
     const imageBuffer = await imageResponse.arrayBuffer();
     const base64Image = Buffer.from(imageBuffer).toString('base64');
 
+    console.log('🔍 Starting AI analysis for listing:', listingId);
+    console.log('📸 Photo URL generated successfully');
+    console.log('🎯 Premium requested:', wantsPremium, 'Available:', premiumAvailable, 'Using:', shouldUsePremium);
+    console.log('🔑 API Key present:', !!process.env.ABACUSAI_API_KEY);
+    
     // Call LLM API with streaming
     const messages = [
       {
@@ -292,6 +297,7 @@ Respond with raw JSON only. No markdown, no code blocks.`,
       },
     ];
 
+    console.log('🚀 Calling Abacus LLM API...');
     const response = await fetch('https://apps.abacus.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -307,11 +313,15 @@ Respond with raw JSON only. No markdown, no code blocks.`,
       }),
     });
 
+    console.log('📡 LLM API Response Status:', response.status, response.statusText);
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('LLM API error:', response.status, errorText);
+      console.error('❌ LLM API error:', response.status, errorText);
       throw new Error(`AI analysis failed: ${response.status} - ${errorText.substring(0, 200)}`);
     }
+    
+    console.log('✅ LLM API call successful, starting stream...');
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -490,8 +500,10 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                       result: finalResult,
                     });
                     controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
+                    console.log('✅ Analysis completed successfully!');
                   } catch (e) {
-                    console.error('Error parsing final result:', e);
+                    console.error('❌ Error parsing final result:', e);
+                    throw e;
                   }
                   controller.close();
                   return;
