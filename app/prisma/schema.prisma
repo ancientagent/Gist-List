@@ -124,9 +124,14 @@ model Listing {
   searchTags        String[] // SEO-optimized search tags (up to 20)
   
   // Market Research
-  avgMarketPrice    Float?
-  suggestedPriceMin Float?
-  suggestedPriceMax Float?
+  avgMarketPrice    Float?   // DEPRECATED - kept for backwards compatibility
+  suggestedPriceMin Float?   // DEPRECATED
+  suggestedPriceMax Float?   // DEPRECATED
+  brandNewPrice     Float?   // Resale price for brand new sealed items
+  priceRangeHigh    Float?   // High average for Very Good condition
+  priceRangeMid     Float?   // Median average for Good condition
+  priceRangeLow     Float?   // Low average for Fair/Poor condition
+  priceForParts     Float?   // Fixed average for For Parts condition
   bestPostTime      String?
   marketInsights    String?  @db.Text
   

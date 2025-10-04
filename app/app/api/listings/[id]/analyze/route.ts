@@ -90,7 +90,16 @@ CRITICAL REQUIREMENTS:
    - Only proceed with analysis if image quality is acceptable
 
 2. INTENSIVE CONDITION INSPECTION (CRITICAL - BE THOROUGH):
-   INSPECT THE ITEM LIKE A PROFESSIONAL APPRAISER:
+   INSPECT THE ITEM LIKE A PROFESSIONAL APPRAISER.
+   
+   CONDITION DEFINITIONS:
+   - New / Brand New: Sealed in original package or box, never opened
+   - Like New / Open Box: Box has been opened but all parts accounted for, perfect condition
+   - Very Good: Used and clean, no visible flaws
+   - Good: Used with minor wear (dust, smudges, light scratches)
+   - Fair: Used with noticeable wear (dirty, light damage, visible wear)
+   - Poor: Used and damaged or heavily worn with missing parts but still works
+   - For Parts: Any condition but inoperable/broken
    
    Physical Damage:
    - Scratches (surface, deep, hairline)
@@ -161,15 +170,43 @@ CRITICAL REQUIREMENTS:
    - Serial numbers or identifying marks (if visible)
    - Original packaging status
 
-5. PRICE INTELLIGENCE:
-   - Research current market prices for this exact item in this condition
-   - Provide avgMarketPrice for GOOD condition as baseline
-   - Include marketInsights with:
-     * How many similar items are currently listed
-     * What prices they're actually SELLING for (not just listed)
-     * Demand level (high/medium/low)
-     * Best time to list (if known)
-     * Condition impact on price
+5. PRICE INTELLIGENCE (CRITICAL - COMPREHENSIVE PRICING):
+   Fetch comprehensive market pricing data:
+   
+   A. Brand New/Sealed Price (brandNewPrice):
+      - Average resale price for BRAND NEW SEALED items on eBay
+      - For electronics, distinguish between:
+        * Current/recent models: 5-10% below retail
+        * Dated/older electronics (non-collectible): ~20% of retail
+      - If item is 100% confirmed brand new/sealed OR user notes "Brand New", use this price
+   
+   B. Resale Average Range (for used items):
+      - priceRangeHigh: High average for "Very Good" condition (clean, no visible flaws)
+      - priceRangeMid: Median average for "Good" condition (used with minor wear)
+      - priceRangeLow: Low average for "Fair/Poor" condition (visible damage/wear)
+      - priceForParts: Fixed average for "For Parts" (inoperable)
+   
+   C. Market Insights:
+      - How many similar items are currently listed
+      - What prices they're actually SELLING for (not just listed)
+      - Demand level (high/medium/low)
+      - Best time to list (if known)
+      - Condition impact breakdown
+   
+   D. Price Assignment Logic:
+      1. IF 100% confident item is brand new/sealed OR user gist says "Brand New":
+         → Set price to brandNewPrice
+         → Set condition to "New"
+      
+      2. ELSE (used items), set price based on detected condition:
+         - "Like New" → priceRangeHigh * 0.80 (20% less than brand new tier)
+         - "Very Good" → priceRangeHigh
+         - "Good" → priceRangeMid
+         - "Fair" → priceRangeLow
+         - "Poor" → priceRangeLow
+         - "For Parts" → priceForParts
+      
+      3. Return ALL price points in response for frontend to use when condition changes
    
 6. SHIPPING ESTIMATION:
    - Estimate weight based on item type and size
@@ -214,7 +251,7 @@ CRITICAL REQUIREMENTS:
    - Always optional - user can tap Yes or ignore/close
    
    Examples of QUESTIONS:
-   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, year, size) were set to N/A. Would you like to change that?", "data": { "fields": ["brand", "model", "year", "size"] } }
+   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, year, size) were set to N/A.", "data": { "fields": ["brand", "model", "year", "size"] } }
    - Electronics without power supply visible: { "actionType": "question", "message": "No power supply detected in photo. Should I assume it's missing? (will adjust price and note in description)" }
    - Electronics with damage + not powered on: { "actionType": "inoperable_check", "message": "Damage detected and item not shown powered on. Is it inoperable/does it not work? (will set condition to For Parts and adjust pricing)" }
    - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
@@ -283,9 +320,14 @@ Provide a JSON response:
   "searchTags": ["up to 20 SEO-optimized search tags ordered by effectiveness"],
   "recommendedPlatforms": ["top 2-3 platforms"],
   "qualifiedPlatforms": ["all qualifying platforms"],
-  "avgMarketPrice": number or null (baseline for GOOD condition),
-  "suggestedPriceMin": number or null,
-  "suggestedPriceMax": number or null,
+  "brandNewPrice": number or null (resale price for brand new sealed items),
+  "priceRangeHigh": number or null (high average for Very Good condition),
+  "priceRangeMid": number or null (median average for Good condition),
+  "priceRangeLow": number or null (low average for Fair/Poor condition),
+  "priceForParts": number or null (fixed average for For Parts),
+  "avgMarketPrice": number or null (DEPRECATED - for backwards compatibility, use priceRangeMid),
+  "suggestedPriceMin": number or null (DEPRECATED),
+  "suggestedPriceMax": number or null (DEPRECATED),
   "marketInsights": "detailed market analysis with condition impact",
   "premiumFacts": "Premium/special facts and valuable information about the item" or null,
   "usefulLinks": [{ "title": "Link description", "url": "https://..." }] or null,
@@ -426,7 +468,12 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         searchTags: finalResult.searchTags ?? [],
                         recommendedPlatforms: finalResult.recommendedPlatforms ?? [],
                         qualifiedPlatforms: finalResult.qualifiedPlatforms ?? [],
-                        avgMarketPrice: finalResult.avgMarketPrice ?? null,
+                        brandNewPrice: finalResult.brandNewPrice ?? null,
+                        priceRangeHigh: finalResult.priceRangeHigh ?? null,
+                        priceRangeMid: finalResult.priceRangeMid ?? null,
+                        priceRangeLow: finalResult.priceRangeLow ?? null,
+                        priceForParts: finalResult.priceForParts ?? null,
+                        avgMarketPrice: finalResult.avgMarketPrice ?? finalResult.priceRangeMid ?? null, // Backwards compatibility
                         suggestedPriceMin: finalResult.suggestedPriceMin ?? null,
                         suggestedPriceMax: finalResult.suggestedPriceMax ?? null,
                         marketInsights: finalResult.marketInsights ?? null,
@@ -435,10 +482,33 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         usefulLinks: shouldUsePremium && finalResult.usefulLinks ? JSON.stringify(finalResult.usefulLinks) : null,
                         // Auto-set price from AI based on condition if not already set
                         price: listing.price ?? (() => {
+                          const condition = finalCondition;
+                          
+                          // Use comprehensive pricing if available
+                          if (finalResult.brandNewPrice || finalResult.priceRangeHigh) {
+                            switch (condition) {
+                              case 'New':
+                                return finalResult.brandNewPrice ?? finalResult.priceRangeHigh ?? null;
+                              case 'Like New':
+                                return finalResult.priceRangeHigh ? finalResult.priceRangeHigh * 0.80 : null;
+                              case 'Very Good':
+                                return finalResult.priceRangeHigh ?? null;
+                              case 'Good':
+                                return finalResult.priceRangeMid ?? finalResult.priceRangeHigh ?? null;
+                              case 'Fair':
+                              case 'Poor':
+                                return finalResult.priceRangeLow ?? finalResult.priceRangeMid ?? null;
+                              case 'For Parts':
+                                return finalResult.priceForParts ?? finalResult.priceRangeLow ?? null;
+                              default:
+                                return finalResult.priceRangeMid ?? null;
+                            }
+                          }
+                          
+                          // Fallback to old logic for backwards compatibility
                           if (!finalResult.avgMarketPrice) return null;
                           const basePrice = finalResult.avgMarketPrice;
-                          const condition = finalCondition;
-                          if (!condition) return basePrice * 0.65; // Default to "Good" multiplier
+                          if (!condition) return basePrice * 0.65;
                           const multipliers: Record<string, number> = {
                             'New': 1.0,
                             'Like New': 0.85,

@@ -58,9 +58,14 @@ interface Listing {
   category: string | null;
   tags: string[];
   searchTags: string[];
-  avgMarketPrice: number | null;
-  suggestedPriceMin: number | null;
-  suggestedPriceMax: number | null;
+  brandNewPrice: number | null;
+  priceRangeHigh: number | null;
+  priceRangeMid: number | null;
+  priceRangeLow: number | null;
+  priceForParts: number | null;
+  avgMarketPrice: number | null; // DEPRECATED
+  suggestedPriceMin: number | null; // DEPRECATED
+  suggestedPriceMax: number | null; // DEPRECATED
   marketInsights: string | null;
   premiumFacts: string | null;
   usefulLinks: string | null;
@@ -212,10 +217,40 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     }
   };
 
-  // Price calculation based on condition
-  const calculatePriceForCondition = (condition: string): number | null => {
-    if (!listing?.avgMarketPrice) return null;
+  // Price calculation based on condition using comprehensive pricing
+  const calculatePriceForCondition = (condition: string, currentPrice: number | null = null): number | null => {
+    if (!listing) return null;
     
+    // Special case: If user changes to Poor or Like New, adjust current AI price by ±20%
+    if (currentPrice && (condition === 'Poor' || condition === 'Like New')) {
+      return condition === 'Poor' 
+        ? currentPrice * 0.80  // -20% for Poor
+        : currentPrice * 1.20; // +20% for Like New
+    }
+    
+    // Use comprehensive pricing if available
+    if (listing.brandNewPrice || listing.priceRangeHigh) {
+      switch (condition) {
+        case 'New':
+          return listing.brandNewPrice ?? listing.priceRangeHigh ?? null;
+        case 'Like New':
+          return listing.priceRangeHigh ? listing.priceRangeHigh * 0.80 : null;
+        case 'Very Good':
+          return listing.priceRangeHigh ?? null;
+        case 'Good':
+          return listing.priceRangeMid ?? listing.priceRangeHigh ?? null;
+        case 'Fair':
+        case 'Poor':
+          return listing.priceRangeLow ?? listing.priceRangeMid ?? null;
+        case 'For Parts':
+          return listing.priceForParts ?? listing.priceRangeLow ?? null;
+        default:
+          return listing.priceRangeMid ?? null;
+      }
+    }
+    
+    // Fallback to old logic for backwards compatibility
+    if (!listing.avgMarketPrice) return null;
     const basePrice = listing.avgMarketPrice;
     const multipliers: Record<string, number> = {
       'New': 1.0,
@@ -226,20 +261,23 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       'Poor': 0.35,
       'For Parts': 0.20
     };
-    
     return basePrice * (multipliers[condition] || 0.65);
   };
 
   const handleConditionChange = (value: string) => {
-    const conditionPrice = calculatePriceForCondition(value);
+    // For Poor and Like New, adjust current AI price by ±20%
+    const shouldAdjustCurrentPrice = (value === 'Poor' || value === 'Like New') && listing?.price;
+    const conditionPrice = shouldAdjustCurrentPrice 
+      ? calculatePriceForCondition(value, listing!.price)
+      : calculatePriceForCondition(value);
     
-    // Don't auto-update price if user has already edited it
-    if (listing && !listing.editedFields?.includes('price') && conditionPrice) {
+    // Update both condition and price
+    if (listing && conditionPrice) {
       setListing({
         ...listing,
         condition: value,
         price: conditionPrice,
-        editedFields: [...(listing.editedFields || []), 'condition'],
+        editedFields: [...new Set([...(listing.editedFields || []), 'condition'])],
       });
     } else {
       handleFieldEdit('condition', value);
