@@ -52,7 +52,13 @@ export default function NotificationList({
     }
   };
 
-  const handleAddDetailsClick = (notification: Notification) => {
+  const handleQuestionClick = (notification: Notification) => {
+    // Scroll to the field if it exists
+    if (notification.field && onScrollToField) {
+      onScrollToField(notification.field);
+    }
+    
+    // Show chip bin for filling the field
     setActiveNotification(notification);
     setShowChipBin(true);
   };
@@ -67,47 +73,9 @@ export default function NotificationList({
       resolveNotification(activeNotification.id);
     }
     
-    toast.success('Detail added to description');
+    toast.success('Detail added');
     setShowChipBin(false);
     setActiveNotification(null);
-  };
-
-  const handleActionClick = async (notification: Notification) => {
-    if (!notification.actionType) return;
-
-    // Handle special actions
-    switch (notification.actionType) {
-      case 'retake_photo':
-      case 'add_photo':
-        // Navigate to gallery section (scroll to photo gallery)
-        document.getElementById('photo-gallery')?.scrollIntoView({ behavior: 'smooth' });
-        await resolveNotification(notification.id);
-        break;
-
-      case 'inoperable_check':
-        // Show confirmation dialog and update condition to "For Parts"
-        if (confirm('Is the item inoperable/broken?')) {
-          try {
-            await fetch(`/api/listings/${listingId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ condition: 'For Parts' }),
-            });
-            toast.success('Condition updated to "For Parts"');
-            await resolveNotification(notification.id);
-            onResolve();
-          } catch (error) {
-            toast.error('Failed to update condition');
-          }
-        } else {
-          await resolveNotification(notification.id);
-        }
-        break;
-
-      default:
-        // For other actions, just resolve when clicked (user acknowledges)
-        await resolveNotification(notification.id);
-    }
   };
 
   const handleAlertClick = (notification: Notification) => {
@@ -200,62 +168,36 @@ export default function NotificationList({
                 ))}
 
                 {/* Questions (blue - actionable insights) */}
-                {questions.map((notification) => {
-                  const isClickable = notification.actionType && ['retake_photo', 'add_photo', 'inoperable_check'].includes(notification.actionType);
-                  const allowAddDetails = notification.message?.toLowerCase().includes('buyer should know') || 
-                                         notification.message?.toLowerCase().includes('details') ||
-                                         notification.message?.toLowerCase().includes('anything else');
-                  
-                  return (
-                    <div
-                      key={notification.id}
-                      className="border-2 border-blue-300 bg-blue-50 rounded-lg p-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
-                        <div className="flex-1">
-                          <p className="text-sm text-blue-900">
-                            {notification.message}
-                          </p>
-                          {allowAddDetails && (
-                            <p className="text-xs text-blue-700 mt-1 font-medium">
-                              💡 Use smart chips to quickly add details
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {allowAddDetails && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleAddDetailsClick(notification)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white"
-                            >
-                              Add Details
-                            </Button>
-                          )}
-                          {isClickable && !allowAddDetails && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleActionClick(notification)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Check className="w-3 h-3 mr-1" />
-                              Yes
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => resolveNotification(notification.id)}
-                            className="flex-shrink-0"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
+                {questions.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleQuestionClick(notification)}
+                    className="border-2 border-blue-300 bg-blue-50 rounded-lg p-3 cursor-pointer hover:bg-blue-100 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
+                      <div className="flex-1">
+                        <p className="text-sm text-blue-900">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-blue-700 mt-1 font-medium">
+                          💡 Tap to add details with smart chips
+                        </p>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resolveNotification(notification.id);
+                        }}
+                        className="flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           )}
