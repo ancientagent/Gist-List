@@ -243,19 +243,19 @@ export default function PlatformPreview({
         <div className="border-t pt-4">
           {!isUnlocked ? (
             <>
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-300 rounded-lg p-6 mt-4">
+              <div className="bg-gradient-to-r from-purple-50 via-green-50 to-purple-50 border-2 border-purple-400 rounded-lg p-6 mt-4">
                 <div className="flex items-start gap-3">
-                  <Crown className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <Tag className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Unlock Platform Fine Details</p>
+                    <p className="text-sm font-medium text-gray-900">Fine Details Pack</p>
                     <p className="text-xs text-gray-600 mt-1">
-                      Get platform-specific field pre-filling and up to 20 SEO-optimized search tags for better visibility. Use a premium post or upgrade!
+                      Includes all the fine details that help your item sell including 20 SEO-optimized search tags for better visibility. Upgrade to Premium Post to unlock!
                     </p>
                   </div>
                 </div>
               </div>
               
-              {/* Use Premium Analysis Checkbox */}
+              {/* Upgrade to Premium Post Checkbox */}
               <div className="flex items-center gap-3 mt-4 p-3 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
                 <input
                   type="checkbox"
@@ -278,10 +278,10 @@ export default function PlatformPreview({
                 />
                 <div className="flex-1">
                   <label htmlFor="use-premium" className="cursor-pointer font-medium text-sm">
-                    Use Premium Analysis ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
+                    Upgrade to Premium Post ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
                   </label>
                   <p className="text-xs text-gray-600 mt-1">
-                    Get premium insights, valuable facts, and useful links for your item
+                    Check to unlock Pro Lister and Fine Details pack, and enable smart auto-posting for up to 6 sites at once!
                   </p>
                 </div>
               </div>

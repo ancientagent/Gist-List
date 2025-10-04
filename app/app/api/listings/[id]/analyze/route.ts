@@ -490,14 +490,17 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                               case 'New':
                                 return finalResult.brandNewPrice ?? finalResult.priceRangeHigh ?? null;
                               case 'Like New':
-                                return finalResult.priceRangeHigh ? finalResult.priceRangeHigh * 0.80 : null;
+                                // Like New = +20% of Very Good (priceRangeHigh)
+                                return finalResult.priceRangeHigh ? finalResult.priceRangeHigh * 1.20 : null;
                               case 'Very Good':
                                 return finalResult.priceRangeHigh ?? null;
                               case 'Good':
                                 return finalResult.priceRangeMid ?? finalResult.priceRangeHigh ?? null;
                               case 'Fair':
-                              case 'Poor':
                                 return finalResult.priceRangeLow ?? finalResult.priceRangeMid ?? null;
+                              case 'Poor':
+                                // Poor = -25% of Fair (priceRangeLow)
+                                return finalResult.priceRangeLow ? finalResult.priceRangeLow * 0.75 : null;
                               case 'For Parts':
                                 return finalResult.priceForParts ?? finalResult.priceRangeLow ?? null;
                               default:
@@ -511,11 +514,11 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                           if (!condition) return basePrice * 0.65;
                           const multipliers: Record<string, number> = {
                             'New': 1.0,
-                            'Like New': 0.85,
+                            'Like New': 0.90,  // Updated from 0.85
                             'Very Good': 0.75,
                             'Good': 0.65,
                             'Fair': 0.50,
-                            'Poor': 0.35,
+                            'Poor': 0.375,  // Updated: 0.50 * 0.75 = 0.375
                             'For Parts': 0.20
                           };
                           return basePrice * (multipliers[condition] || 0.65);
