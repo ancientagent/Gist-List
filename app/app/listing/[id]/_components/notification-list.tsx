@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import SmartChipBin from './smart-chip-bin';
 
 interface Notification {
   id: string;
@@ -21,13 +22,19 @@ export default function NotificationList({
   listingId,
   onResolve,
   onScrollToField,
+  itemCategory,
+  onAddDetail,
 }: {
   notifications: Notification[];
   listingId: string;
   onResolve: () => void;
   onScrollToField?: (field: string) => void;
+  itemCategory?: string | null;
+  onAddDetail?: (text: string) => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showChipBin, setShowChipBin] = useState(false);
+  const [activeNotification, setActiveNotification] = useState<Notification | null>(null);
 
   if (notifications.length === 0) return null;
 
@@ -43,6 +50,26 @@ export default function NotificationList({
     } catch (error) {
       toast.error('Failed to resolve notification');
     }
+  };
+
+  const handleAddDetailsClick = (notification: Notification) => {
+    setActiveNotification(notification);
+    setShowChipBin(true);
+  };
+
+  const handleChipSelect = (text: string) => {
+    if (onAddDetail) {
+      onAddDetail(text);
+    }
+    
+    // Resolve the notification after chip selection
+    if (activeNotification) {
+      resolveNotification(activeNotification.id);
+    }
+    
+    toast.success('Detail added to description');
+    setShowChipBin(false);
+    setActiveNotification(null);
   };
 
   const handleActionClick = async (notification: Notification) => {
@@ -175,6 +202,9 @@ export default function NotificationList({
                 {/* Questions (blue - actionable insights) */}
                 {questions.map((notification) => {
                   const isClickable = notification.actionType && ['retake_photo', 'add_photo', 'inoperable_check'].includes(notification.actionType);
+                  const allowAddDetails = notification.message?.toLowerCase().includes('buyer should know') || 
+                                         notification.message?.toLowerCase().includes('details') ||
+                                         notification.message?.toLowerCase().includes('anything else');
                   
                   return (
                     <div
@@ -187,9 +217,23 @@ export default function NotificationList({
                           <p className="text-sm text-blue-900">
                             {notification.message}
                           </p>
+                          {allowAddDetails && (
+                            <p className="text-xs text-blue-700 mt-1 font-medium">
+                              💡 Use smart chips to quickly add details
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {isClickable && (
+                          {allowAddDetails && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddDetailsClick(notification)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              Add Details
+                            </Button>
+                          )}
+                          {isClickable && !allowAddDetails && (
                             <Button
                               size="sm"
                               onClick={() => handleActionClick(notification)}
@@ -217,6 +261,19 @@ export default function NotificationList({
           )}
         </div>
       )}
+      
+      {/* Smart Chip Bin */}
+      <SmartChipBin
+        isOpen={showChipBin}
+        onClose={() => {
+          setShowChipBin(false);
+          setActiveNotification(null);
+        }}
+        onChipSelect={handleChipSelect}
+        notificationMessage={activeNotification?.message}
+        itemCategory={itemCategory}
+        listingId={listingId}
+      />
     </div>
   );
 }

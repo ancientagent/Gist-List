@@ -387,6 +387,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               listingId={listingId}
               onResolve={fetchListing}
               onScrollToField={scrollToField}
+              itemCategory={listing.category}
+              onAddDetail={(text) => {
+                // Append chip text to description
+                const currentDesc = listing.description || '';
+                const newDesc = currentDesc ? `${currentDesc}\n${text}` : text;
+                setListing({ ...listing, description: newDesc });
+              }}
             />
           </div>
         )}
@@ -529,13 +536,16 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                     value={listing.conditionNotes || ''}
                     onChange={(e) => {
                       handleFieldEdit('conditionNotes', e.target.value);
-                      // Auto-resize
+                      // Auto-resize for desktop, keep scrollable for mobile
                       const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = target.scrollHeight + 'px';
+                      if (window.innerWidth >= 768) {
+                        target.style.height = 'auto';
+                        target.style.height = Math.max(140, target.scrollHeight) + 'px';
+                      }
                     }}
-                    className="mt-1 resize-none overflow-hidden"
+                    className="mt-1 resize-none overflow-y-auto max-h-[300px] md:overflow-hidden"
                     style={{ minHeight: '140px' }}
+                    rows={6}
                     placeholder="Describe the item's condition in detail (scratches, wear, damage, etc.)"
                   />
                 </div>

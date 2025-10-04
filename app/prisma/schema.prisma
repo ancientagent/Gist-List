@@ -75,6 +75,7 @@ model User {
   sessions      Session[]
   subscriptions Subscription[]
   listings      Listing[]
+  chips         UserChip[]
 }
 
 model Subscription {
@@ -215,4 +216,20 @@ model AINotification {
   createdAt   DateTime @default(now())
   
   listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model UserChip {
+  id          String   @id @default(cuid())
+  userId      String
+  category    String   // "missing", "comes_with", "condition_details", "functional", etc.
+  text        String   // The chip text (e.g., "Power Supply", "Manual", "Minor Scratches")
+  itemCategory String? // Item category this chip is relevant to (e.g., "electronics", "clothing", null for all)
+  useCount    Int      @default(1) // Track how often user uses this chip
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, category, text, itemCategory])
+  @@index([userId, category, itemCategory])
 }
