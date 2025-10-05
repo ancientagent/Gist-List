@@ -241,40 +241,7 @@ export default function PlatformPreview({
       {/* Platform-Specific Fields with Tabs */}
       {selectedDisplayPlatforms.length > 0 && (
         <div className="border-t pt-4">
-          {!isUnlocked ? (
-            <>
-              {/* Upgrade to Premium Post Checkbox */}
-              <div className="flex items-center gap-3 mt-4 p-3 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
-                <input
-                  type="checkbox"
-                  id="use-premium"
-                  checked={listing.usePremium}
-                  onChange={(e) => {
-                    const premiumRemaining = (userTier === 'FREE' ? 4 : 100) - (listing.user?.premiumPostsUsed || 0);
-                    if (e.target.checked && premiumRemaining <= 0) {
-                      alert('No premium analyses remaining!');
-                      return;
-                    }
-                    // Call API to update listing
-                    fetch(`/api/listings/${listingId}`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ usePremium: e.target.checked })
-                    }).then(() => window.location.reload());
-                  }}
-                  className="w-4 h-4 border-purple-400 rounded"
-                />
-                <div className="flex-1">
-                  <label htmlFor="use-premium" className="cursor-pointer font-medium text-sm">
-                    Upgrade to Premium Post ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
-                  </label>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Check to unlock all Premium Packs and enable smart auto-posting for up to 6 sites at once!
-                  </p>
-                </div>
-              </div>
-            </>
-          ) : (
+          {isUnlocked ? (
             <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
             <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${selectedDisplayPlatforms.length}, 1fr)` }}>
               {selectedDisplayPlatforms.map((platform) => (
@@ -327,7 +294,7 @@ export default function PlatformPreview({
               );
             })}
           </Tabs>
-          )}
+          ) : null}
         </div>
       )}
 
