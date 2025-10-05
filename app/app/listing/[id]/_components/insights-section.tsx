@@ -14,9 +14,18 @@ interface Listing {
   category: string | null;
   marketInsights: string | null;
   conditionNotes: string | null;
+  user?: {
+    subscriptionTier: string;
+  };
 }
 
 export default function InsightsSection({ listing }: { listing: Listing }) {
+  // Only show insights for premium users
+  const isPremiumUser = listing.user?.subscriptionTier === 'premium';
+  
+  if (!isPremiumUser) {
+    return null;
+  }
   const [showBestTimePrompt, setShowBestTimePrompt] = useState(false);
 
   const hasPriceInsights =

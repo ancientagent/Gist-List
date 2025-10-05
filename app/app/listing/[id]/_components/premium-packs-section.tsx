@@ -25,7 +25,7 @@ export default function PremiumPacksSection({
   premiumPostsUsed = 0,
   premiumPostsTotal = 0,
 }: PremiumPacksSectionProps) {
-  const [activeTab, setActiveTab] = useState<'lister' | 'details' | 'automation'>('lister');
+  const [activeTab, setActiveTab] = useState<'lister' | 'automation'>('automation');
 
   const isPremiumTier = userTier === 'premium';
   const canUsePremium = isPremiumTier && premiumPostsUsed < premiumPostsTotal;
@@ -77,28 +77,6 @@ export default function PremiumPacksSection({
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 flex">
         <button
-          onClick={() => setActiveTab('lister')}
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-            activeTab === 'lister'
-              ? 'border-b-2 border-purple-600 text-purple-600'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
-        >
-          <Crown className="w-4 h-4 inline mr-1" />
-          Pro Lister Pack
-        </button>
-        <button
-          onClick={() => setActiveTab('details')}
-          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-            activeTab === 'details'
-              ? 'border-b-2 border-purple-600 text-purple-600'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 inline mr-1" />
-          Fine Details Pack
-        </button>
-        <button
           onClick={() => setActiveTab('automation')}
           className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
             activeTab === 'automation'
@@ -108,6 +86,17 @@ export default function PremiumPacksSection({
         >
           <Zap className="w-4 h-4 inline mr-1" />
           Insights & Automation
+        </button>
+        <button
+          onClick={() => setActiveTab('lister')}
+          className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+            activeTab === 'lister'
+              ? 'border-b-2 border-purple-600 text-purple-600'
+              : 'text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          <Crown className="w-4 h-4 inline mr-1" />
+          Pro Lister Pack
         </button>
       </div>
 
@@ -151,15 +140,6 @@ export default function PremiumPacksSection({
                     </p>
                   )}
                 </div>
-
-                <Button
-                  onClick={onUpgradePremium}
-                  disabled={!canUsePremium}
-                  className="w-full bg-gradient-to-r from-purple-600 to-green-600 hover:from-purple-700 hover:to-green-700 text-white"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  {canUsePremium ? 'Upgrade to Premium Post' : 'Premium Posts Exhausted'}
-                </Button>
               </div>
             ) : usefulLinks && usefulLinks.length > 0 ? (
               // PREMIUM ACTIVE - Show actual data
@@ -196,77 +176,6 @@ export default function PremiumPacksSection({
                 <div className="text-center">
                   <Loader2 className="w-6 h-6 animate-spin text-purple-600 mx-auto mb-2" />
                   <p className="text-xs text-gray-600">Loading pack features...</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'details' && (
-          <div>
-            {!usePremium ? (
-              // FREE TIER
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <Lock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <Label className="text-sm font-bold text-gray-900">Fine Details Pack</Label>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Maximize your visibility and conversion with platform-specific custom fields 
-                      and SEO-optimized tags tailored to your item.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <p className="text-xs font-semibold text-gray-800 mb-2">This pack includes:</p>
-                  
-                  <ul className="space-y-1.5 text-xs text-gray-700">
-                    <li className="flex items-start gap-2">
-                      <span className="text-purple-600 text-sm">✓</span>
-                      <span>{additionalFieldsCount} more custom descriptive fields for {platformsWithFields}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-purple-600 text-sm">✓</span>
-                      <span>{seoTagsCount} SEO-optimized search tags so people can find it in an instant</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <Button
-                  onClick={onUpgradePremium}
-                  disabled={!canUsePremium}
-                  className="w-full bg-gradient-to-r from-purple-600 to-green-600 hover:from-purple-700 hover:to-green-700 text-white"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  {canUsePremium ? 'Upgrade to Premium Post' : 'Premium Posts Exhausted'}
-                </Button>
-              </div>
-            ) : premiumFacts ? (
-              // PREMIUM ACTIVE
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-5 h-5 text-green-600" />
-                  <Label className="text-sm font-bold text-gray-900">Fine Details Pack</Label>
-                  <Badge className="bg-green-600 text-white text-xs">Active</Badge>
-                </div>
-
-                <p className="text-xs text-gray-600 mb-2">
-                  Enhanced fields and SEO tags active for your listing:
-                </p>
-
-                <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                  <p className="text-sm text-green-900 leading-relaxed whitespace-pre-wrap">
-                    {premiumFacts}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              // PREMIUM ACTIVE but loading
-              <div className="flex items-center justify-center py-6">
-                <div className="text-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-600 mx-auto mb-2" />
-                  <p className="text-xs text-gray-600">Loading fine details...</p>
                 </div>
               </div>
             )}
@@ -311,15 +220,6 @@ export default function PremiumPacksSection({
                     </li>
                   </ul>
                 </div>
-
-                <Button
-                  onClick={onUpgradePremium}
-                  disabled={!canUsePremium}
-                  className="w-full bg-gradient-to-r from-purple-600 to-green-600 hover:from-purple-700 hover:to-green-700 text-white"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  {canUsePremium ? 'Upgrade to Premium Post' : 'Premium Posts Exhausted'}
-                </Button>
               </div>
             ) : (
               // PREMIUM ACTIVE

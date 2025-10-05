@@ -149,7 +149,6 @@ CRITICAL REQUIREMENTS:
    
    Structure:
    "Item shows: [specific observed issues - be factual]
-    Functional status: [if assessable from image]
     Recommended before listing: [specific actions: 'Clean with microfiber cloth', 'Repair torn seam', 'Replace missing button']"
    
    BE FACTUAL - No "appears to be", "seems like", "might have". State what IS visible.

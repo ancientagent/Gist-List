@@ -615,8 +615,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         className="mt-1"
                         placeholder="0.00"
                       />
-                      {/* Show suggested price only when user price differs significantly */}
-                      {listing.price && getConditionAwarePriceInsight() && (
+                      {/* Show suggested price only when user manually edits the price */}
+                      {listing.price && listing.editedFields?.includes('price') && getConditionAwarePriceInsight() && (
                         <p className={`text-xs mt-1 font-medium ${
                           getPriceSuggestionColor() === 'green' ? 'text-green-600' : 'text-red-600'
                         }`}>
