@@ -206,10 +206,12 @@ export default function CameraScreen() {
     }
   };
 
-  const handleRetake = () => {
+  const handleRetake = async () => {
     setCapturedImage(null);
     setRetakeMessage(null);
     setIsAnalyzing(false);
+    // Re-initialize camera to fix black screen issue
+    await initCamera();
   };
 
   return (

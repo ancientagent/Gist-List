@@ -89,7 +89,15 @@ CRITICAL REQUIREMENTS:
    - If quality is poor, set "imageQualityIssue" with specific feedback
    - Only proceed with analysis if image quality is acceptable
 
-2. INTENSIVE CONDITION INSPECTION (CRITICAL - BE THOROUGH):
+2. ITEM IDENTIFICATION & ALTERNATIVES (CRITICAL):
+   - Identify the item with as much confidence as possible
+   - ALWAYS generate 2-3 alternative identifications, even if you're confident
+   - Alternatives should be plausible misidentifications or similar items
+   - Include confidence scores (0.0-1.0) for each alternative
+   - This allows users to correct misidentifications easily
+   - Example: If you see "Nike Air Max 90", alternatives might be "Nike Air Max 95", "Nike Air Max 1", etc.
+
+3. INTENSIVE CONDITION INSPECTION (CRITICAL - BE THOROUGH):
    INSPECT THE ITEM LIKE A PROFESSIONAL APPRAISER.
    
    CONDITION DEFINITIONS:
@@ -146,7 +154,7 @@ CRITICAL REQUIREMENTS:
    
    BE FACTUAL - No "appears to be", "seems like", "might have". State what IS visible.
 
-3. TITLE GENERATION (CRITICAL):
+4. TITLE GENERATION (CRITICAL):
    Use proven, classic title formats based on market research:
    - Format: [Brand] [Model] [Key Feature/Specs] - [Condition] [Size/Year]
    - Examples:
@@ -157,7 +165,7 @@ CRITICAL REQUIREMENTS:
    - Include specific model numbers, years, sizes, colors, materials
    - Front-load important keywords (brand, model, condition)
 
-4. COMPREHENSIVE FIELD EXTRACTION:
+5. COMPREHENSIVE FIELD EXTRACTION:
    Extract ALL relevant details:
    - Brand (exact name)
    - Model (exact model number/name)
@@ -170,36 +178,42 @@ CRITICAL REQUIREMENTS:
    - Serial numbers or identifying marks (if visible)
    - Original packaging status
 
-5. PRICE INTELLIGENCE (CRITICAL - COMPREHENSIVE PRICING):
-   Fetch comprehensive market pricing data:
+6. PRICE INTELLIGENCE (CRITICAL - RESALE/SECONDHAND PRICES ONLY):
+   IMPORTANT: Fetch ACTUAL RESALE MARKET PRICES from secondhand markets (eBay SOLD listings, Mercari, Facebook Marketplace, etc.)
+   DO NOT use retail prices or MSRP. These are USED/RESALE items being sold by individuals.
    
    A. Brand New/Sealed Price (brandNewPrice):
-      - Average resale price for BRAND NEW SEALED items on eBay
+      - RESALE price for BRAND NEW SEALED items on secondhand markets (eBay, Mercari, etc.)
+      - Look at what NEW sealed items are ACTUALLY SELLING FOR on resale platforms
+      - NOT retail price, NOT MSRP - this is the resale market price for new items
       - For electronics, distinguish between:
-        * Current/recent models: 5-10% below retail
-        * Dated/older electronics (non-collectible): ~20% of retail
+        * Current/recent models: Typically 5-15% below retail on resale markets
+        * Dated/older electronics (non-collectible): ~20-30% of retail on resale markets
       - If item is 100% confirmed brand new/sealed OR user notes "Brand New", use this price
    
-   B. Resale Average Range (for used items):
-      - priceRangeHigh: High average for "Very Good" condition (clean, no visible flaws)
-      - priceRangeMid: Median average for "Good" condition (used with minor wear)
-      - priceRangeLow: Low average for "Fair/Poor" condition (visible damage/wear)
-      - priceForParts: Fixed average for "For Parts" (inoperable)
+   B. Resale Average Range (for USED items on SECONDHAND markets):
+      CRITICAL: These are ACTUAL SECONDHAND/USED item prices from resale platforms
+      - priceRangeHigh: What "Very Good" used items ACTUALLY SELL FOR on eBay, Mercari, etc.
+      - priceRangeMid: What "Good" used items ACTUALLY SELL FOR on resale platforms
+      - priceRangeLow: What "Fair/Poor" used items ACTUALLY SELL FOR on resale platforms
+      - priceForParts: What broken/parts-only items ACTUALLY SELL FOR on resale platforms
+      
+      LOOK AT COMPLETED/SOLD LISTINGS, NOT ACTIVE LISTINGS
    
    C. Market Insights:
-      - How many similar items are currently listed
-      - What prices they're actually SELLING for (not just listed)
-      - Demand level (high/medium/low)
+      - How many similar items are currently listed on resale platforms
+      - What prices they're ACTUALLY SELLING FOR (completed sales, not just listed)
+      - Demand level on secondhand markets (high/medium/low)
       - Best time to list (if known)
-      - Condition impact breakdown
+      - Condition impact breakdown in resale market
    
    D. Price Assignment Logic:
       1. IF 100% confident item is brand new/sealed OR user gist says "Brand New":
-         → Set price to brandNewPrice
+         → Set price to brandNewPrice (resale market price for new)
          → Set condition to "New"
       
       2. ELSE (used items), set price based on detected condition:
-         - "Like New" → priceRangeHigh * 0.80 (20% less than brand new tier)
+         - "Like New" → priceRangeHigh * 0.80 (20% less than brand new resale tier)
          - "Very Good" → priceRangeHigh
          - "Good" → priceRangeMid
          - "Fair" → priceRangeLow
@@ -208,13 +222,21 @@ CRITICAL REQUIREMENTS:
       
       3. Return ALL price points in response for frontend to use when condition changes
    
-6. SHIPPING ESTIMATION:
+   REMEMBER: All prices should reflect ACTUAL RESALE/SECONDHAND market values from platforms like:
+   - eBay (SOLD/COMPLETED listings)
+   - Mercari sold items
+   - Facebook Marketplace
+   - OfferUp
+   - Poshmark (for fashion)
+   - Other secondhand marketplaces
+   
+7. SHIPPING ESTIMATION:
    - Estimate weight based on item type and size
    - Estimate dimensions (L×W×H in inches)
    - Calculate rough shipping cost using standard carrier rates
    - Format: estimatedWeight (lbs), estimatedDimensions (string), shippingCostEst (number)
 
-7. PLATFORM RECOMMENDATIONS:
+8. PLATFORM RECOMMENDATIONS:
    Based on item category, condition, and shipping needs:
    - eBay: Electronics, collectibles, vintage items, anything shippable
    - Mercari: Fashion, home goods, general items
@@ -227,7 +249,7 @@ CRITICAL REQUIREMENTS:
    - Vinted: Fashion and accessories
    Recommend top 2-3 platforms, list all qualified platforms
 
-8. SEARCH TAGS (SEO OPTIMIZATION):
+9. SEARCH TAGS (SEO OPTIMIZATION):
    Generate up to 20 search tags ordered by effectiveness:
    - Primary keywords (brand, model, category)
    - Secondary keywords (color, material, size, condition)
@@ -236,7 +258,7 @@ CRITICAL REQUIREMENTS:
    - Platform-specific popular search terms
    Example: ["nike air jordan", "jordan 1 retro", "high top sneakers", "red white shoes", "size 10 mens", "basketball shoes", "collectible sneakers"]
 
-9. ALERTS & QUESTIONS:
+10. ALERTS & QUESTIONS:
    Generate smart notifications with clear distinction:
    
    ALERTS (!) - RED - Required fields only:
@@ -272,7 +294,7 @@ CRITICAL REQUIREMENTS:
    - Questions should NOT be triggered if the condition is already clearly shown in the image.
    - For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
 
-${shouldUsePremium ? `10. PREMIUM FACTS & USEFUL LINKS:
+${shouldUsePremium ? `11. PREMIUM FACTS & USEFUL LINKS:
     Go the extra mile to provide valuable information that helps the seller and buyer:
     
     Premium Facts (Random/useful/valuable information):
@@ -292,7 +314,7 @@ ${shouldUsePremium ? `10. PREMIUM FACTS & USEFUL LINKS:
     - User guides or tutorials
     - Community forums or resources
     - Similar items for comparison
-    Format: [{ "title": "Link description", "url": "https://..." }, ...]` : `10. PREMIUM FEATURES:
+    Format: [{ "title": "Link description", "url": "https://..." }, ...]` : `11. PREMIUM FEATURES:
     SKIP - User did not request premium analysis.
     Set premiumFacts and usefulLinks to null.`}
 
@@ -301,7 +323,7 @@ Provide a JSON response:
   "imageQualityIssue": null or "Specific issue: blurry/poor lighting/unrecognizable/need more angles",
   "itemIdentified": true or false,
   "confidence": 0.0 to 1.0,
-  "alternativeItems": [{"item": "Alternative item name 1", "confidence": 0.8}, {"item": "Alternative item name 2", "confidence": 0.6}] or null (list 2-3 alternatives if uncertain),
+  "alternativeItems": [{"item": "Alternative item name 1", "confidence": 0.8}, {"item": "Alternative item name 2", "confidence": 0.6}] (ALWAYS provide 2-3 alternative identifications, even if confident about main identification),
   "category": "specific category",
   "brand": "exact brand name or null or 'N/A' if unknown",
   "model": "exact model number/name or null or 'N/A' if unknown",
