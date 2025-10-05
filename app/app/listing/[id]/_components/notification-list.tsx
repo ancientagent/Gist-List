@@ -53,6 +53,17 @@ export default function NotificationList({
   };
 
   const handleQuestionClick = (notification: Notification) => {
+    // For buyer_disclosure notifications, scroll to description field
+    if (notification.actionType === 'buyer_disclosure') {
+      if (onScrollToField) {
+        onScrollToField('description');
+      }
+      // Show chip bin for filling disclosure details
+      setActiveNotification(notification);
+      setShowChipBin(true);
+      return;
+    }
+    
     // Scroll to the field if it exists
     if (notification.field && onScrollToField) {
       onScrollToField(notification.field);
@@ -175,7 +186,9 @@ export default function NotificationList({
                           {notification.message}
                         </p>
                         <p className="text-xs text-blue-700 mt-1 font-medium">
-                          💡 Tap to add details with smart chips
+                          {notification.actionType === 'buyer_disclosure' 
+                            ? '👆 Press to address.' 
+                            : '💡 Tap to add details with smart chips'}
                         </p>
                       </div>
                       <Button

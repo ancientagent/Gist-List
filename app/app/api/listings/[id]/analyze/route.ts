@@ -272,12 +272,40 @@ CRITICAL REQUIREMENTS:
    - Always state the insight/observation and ask if user wants to address it
    - Always optional - user can tap Yes or ignore/close
    
-   Examples of QUESTIONS:
+   CONSOLIDATED BUYER DISCLOSURE NOTIFICATION (CRITICAL - REPLACES MULTIPLE NOTIFICATIONS):
+   For ANY potential issue that could affect value/condition that you've detected but can't fully confirm from the photo, create ONE consolidated notification:
+   
+   Detection triggers (use same logic as before, but consolidate into ONE notification):
+   - Electronics without power supply visible
+   - Electronics with damage and not shown powered on (potential inoperability)
+   - Missing accessories that typically come with the item
+   - Functionality concerns (can't confirm if it works)
+   - Visible damage that may affect performance
+   - Signs of wear that may indicate hidden issues
+   - Any other concerns about completeness, functionality, or condition
+   
+   When ANY of these are detected, create ONE notification:
+   { 
+     "actionType": "buyer_disclosure", 
+     "message": "Is there anything else about this item that the buyer should know about?",
+     "data": { 
+       "detectedIssues": ["list of issues you detected, e.g., 'no power supply visible', 'damage without power-on test'"],
+       "field": "description"
+     }
+   }
+   
+   This notification will:
+   - Take user to the main description field
+   - Open the smart chip bin to help them add details
+   - Allow them to specify: missing items, functionality status, condition details
+   - Item condition and value will be adjusted based on their input
+   
+   DO NOT create separate notifications for missing power supply, inoperability checks, etc. - consolidate into this ONE notification.
+   
+   Other QUESTIONS (non-consolidated):
    - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, year, size) were set to N/A.", "data": { "fields": ["brand", "model", "year", "size"] } }
-   - Electronics without power supply visible: { "actionType": "question", "message": "No power supply detected in photo. Should I assume it's missing? (will adjust price and note in description)" }
-   - Electronics with damage + not powered on: { "actionType": "inoperable_check", "message": "Damage detected and item not shown powered on. Is it inoperable/does it not work? (will set condition to For Parts and adjust pricing)" }
    - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
-   - Missing details: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
+   - Missing details for transparency: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
    - Cleaning needed: { "actionType": "question", "message": "Item shows visible dirt/dust. Clean before photographing for better presentation?" }
    - Price concern: { "actionType": "insight", "message": "Your price seems high for 'Poor' condition. Market suggests $X-Y. Adjust?" }
    
@@ -285,14 +313,6 @@ CRITICAL REQUIREMENTS:
    - If AI correctly identifies the item BUT cannot determine brand, model, year, or size, auto-set them to "N/A" or "Unknown"
    - Create a question notification listing all unknown fields that were auto-set
    - This notification should always be optional and user can ignore it if the N/A values are correct
-   
-   CRITICAL FOR DAMAGE QUESTIONS:
-   - Since users can only answer "Yes" to questions, ALWAYS phrase damage/functionality questions in the NEGATIVE
-   - Ask "Is it inoperable?" or "Does it NOT work?" NOT "Is it operable?" or "Does it work?"
-   - If user doesn't answer or ignores the question, assume the item DOES work (default assumption)
-   - Only ask if there's visible damage AND item is not shown powered on/working
-   - Questions should NOT be triggered if the condition is already clearly shown in the image.
-   - For example: If electronics are shown powered on and working, do NOT ask if they're inoperable.
 
 ${shouldUsePremium ? `11. PREMIUM FACTS & USEFUL LINKS:
     Go the extra mile to provide valuable information that helps the seller and buyer:
