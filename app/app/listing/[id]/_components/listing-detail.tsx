@@ -26,6 +26,7 @@ import PhotoGallery from './photo-gallery';
 import PlatformPreview from './platform-preview';
 import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
+import AlternativeItemsSelector from './alternative-items-selector';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -55,6 +56,7 @@ interface Listing {
   imageQualityIssue: string | null;
   itemIdentified: boolean;
   confidence: number | null;
+  alternativeItems: string | null;
   category: string | null;
   tags: string[];
   searchTags: string[];
@@ -426,7 +428,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Title */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <Label>Title</Label>
+          <div className="flex items-center justify-between mb-2">
+            <Label>Title</Label>
+            <AlternativeItemsSelector
+              alternativeItems={listing.alternativeItems}
+              listingId={listingId}
+              onItemSelected={fetchListing}
+            />
+          </div>
           <Input
             value={listing.title || ''}
             onChange={(e) => setListing({ ...listing, title: e.target.value })}

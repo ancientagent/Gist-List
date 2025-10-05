@@ -123,6 +123,7 @@ model Listing {
   category          String?
   tags              String[] // array of tags
   searchTags        String[] // SEO-optimized search tags (up to 20)
+  alternativeItems  String?  @db.Text // JSON array of alternative item identifications AI considered
   
   // Market Research
   avgMarketPrice    Float?   // DEPRECATED - kept for backwards compatibility
