@@ -243,18 +243,6 @@ export default function PlatformPreview({
         <div className="border-t pt-4">
           {!isUnlocked ? (
             <>
-              <div className="bg-gradient-to-r from-purple-50 via-green-50 to-purple-50 border-2 border-purple-400 rounded-lg p-6 mt-4">
-                <div className="flex items-start gap-3">
-                  <Tag className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Fine Details Pack</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Includes all the fine details that help your item sell including 20 SEO-optimized search tags for better visibility. Upgrade to Premium Post to unlock!
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
               {/* Upgrade to Premium Post Checkbox */}
               <div className="flex items-center gap-3 mt-4 p-3 bg-gradient-to-r from-purple-50 to-green-50 rounded-lg border border-purple-200">
                 <input
@@ -281,7 +269,7 @@ export default function PlatformPreview({
                     Upgrade to Premium Post ({((listing.user?.premiumPostsTotal || 4) - (listing.user?.premiumPostsUsed || 0))}/4 remaining)
                   </label>
                   <p className="text-xs text-gray-600 mt-1">
-                    Check to unlock Pro Lister and Fine Details pack, and enable smart auto-posting for up to 6 sites at once!
+                    Check to unlock all Premium Packs and enable smart auto-posting for up to 6 sites at once!
                   </p>
                 </div>
               </div>
