@@ -100,6 +100,36 @@ export default function CameraScreen() {
     }
   }, []);
 
+  // Separate handlers for voice recording (mobile)
+  const handleMicPressStart = () => {
+    if (isCapturing || isRecognitionActive.current) return;
+    
+    // Start voice recording only
+    if (recognitionRef.current) {
+      try {
+        setIsListening(true);
+        isRecognitionActive.current = true;
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        setIsListening(false);
+        isRecognitionActive.current = false;
+      }
+    }
+  };
+
+  const handleMicPressEnd = () => {
+    // Stop voice recording only (no photo capture)
+    if (recognitionRef.current && isRecognitionActive.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Failed to stop speech recognition:', error);
+      }
+    }
+  };
+
+  // Desktop handler (hold to record + capture on release)
   const handlePressStart = () => {
     if (isCapturing || isRecognitionActive.current) return;
     
@@ -305,15 +335,55 @@ export default function CameraScreen() {
           disabled={isCapturing || isListening}
         />
         
-        <div className="mt-4">
+        {/* Mobile: Separate Mic and Capture buttons */}
+        <div className="mt-4 block md:hidden space-y-3">
+          <button
+            onTouchStart={handleMicPressStart}
+            onTouchEnd={handleMicPressEnd}
+            disabled={isCapturing}
+            className={`w-full h-14 text-base rounded-lg font-semibold flex items-center justify-center transition-all ${
+              isCapturing
+                ? 'bg-gray-400 cursor-not-allowed'
+                : isListening
+                ? 'bg-emerald-600 text-white scale-95 animate-pulse'
+                : 'bg-blue-600 active:bg-blue-700 text-white active:scale-95'
+            }`}
+          >
+            <Mic className="mr-2 h-5 w-5" />
+            {isListening ? 'Recording...' : 'Hold to Record Voice'}
+          </button>
+          
+          <button
+            onClick={capturePhoto}
+            disabled={isCapturing || !stream}
+            className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+              isCapturing
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-600 active:bg-green-700 text-white active:scale-95'
+            }`}
+          >
+            {isCapturing ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Capturing...
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-5 w-5" />
+                Capture Photo
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Desktop: Combined hold-to-record and capture button */}
+        <div className="mt-4 hidden md:block">
           <button
             onMouseDown={handlePressStart}
             onMouseUp={handlePressEnd}
             onMouseLeave={() => {
               if (isPressHolding) handlePressEnd();
             }}
-            onTouchStart={handlePressStart}
-            onTouchEnd={handlePressEnd}
             disabled={isCapturing || !stream}
             className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
               isCapturing
@@ -336,14 +406,18 @@ export default function CameraScreen() {
             ) : (
               <>
                 <Camera className="mr-2 h-5 w-5" />
-                Hold to Record, Tap to Snap
+                Hold to Record, Release to Snap
               </>
             )}
           </button>
+          
+          <p className="text-xs text-gray-500 text-center mt-3">
+            Press & hold to record voice, release to capture photo
+          </p>
         </div>
 
-        <p className="text-xs text-gray-500 text-center mt-3">
-          Press & hold to record voice, release to capture photo
+        <p className="text-xs text-gray-500 text-center mt-3 block md:hidden">
+          Hold mic button to record voice • Tap capture to take photo
         </p>
       </div>
 

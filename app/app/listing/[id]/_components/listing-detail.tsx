@@ -27,6 +27,7 @@ import PlatformPreview from './platform-preview';
 import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
 import AlternativeItemsSelector from './alternative-items-selector';
+import PremiumPacksSection from './premium-packs-section';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -275,6 +276,31 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       });
     } else {
       handleFieldEdit('condition', value);
+    }
+  };
+
+  const handleUpgradePremium = async () => {
+    if (!listing) return;
+
+    const isPremiumTier = listing.user?.subscriptionTier === 'premium';
+    const canUsePremium = isPremiumTier && 
+      (listing.user?.premiumPostsUsed || 0) < (listing.user?.premiumPostsTotal || 0);
+
+    if (!canUsePremium) {
+      toast.error('Premium posts exhausted or unavailable');
+      return;
+    }
+
+    // Toggle usePremium
+    const newUsePremium = !listing.usePremium;
+    setListing({ ...listing, usePremium: newUsePremium });
+
+    // If enabling premium, trigger re-analysis
+    if (newUsePremium) {
+      toast.success('Upgrading to premium post...');
+      await startAnalysis();
+    } else {
+      toast.success('Premium features disabled');
     }
   };
 
@@ -559,10 +585,9 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                   />
                 </div>
 
-                {/* Grid Layout: Left side - Condition & Price stack, Middle - Pro Lister Pack, Right - Pro Seller Box */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Left Column - Condition and Price (stacked vertically) */}
-                  <div className="lg:col-span-1 space-y-4">
+                {/* Condition and Price fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div id="field-condition" className={highlightedField === 'condition' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
                       <Label className="text-sm">Condition</Label>
                       <Select
@@ -600,116 +625,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                       )}
                     </div>
                   </div>
-
-                  {/* Middle Column - Pro Lister Pack (Shows when premium is NOT active OR shows features when active) */}
-                  <div className="lg:col-span-1">
-                    {!listing.usePremium ? (
-                      <div className="bg-gradient-to-br from-purple-50 via-green-50 to-purple-50 border-2 border-purple-400 rounded-lg p-4 h-full">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Crown className="w-5 h-5 text-purple-600 flex-shrink-0" />
-                          <Label className="text-sm font-bold text-gray-900">Pro Lister Pack</Label>
-                        </div>
-                        
-                        <p className="text-xs text-gray-700 mb-3">
-                          Check Upgrade to Premium Post to unlock
-                        </p>
-                        
-                        <p className="text-xs font-semibold text-gray-800 mb-2">Pack for this item includes:</p>
-                        
-                        <ul className="space-y-2 text-xs text-gray-600">
-                          <li className="flex items-start gap-2">
-                            <span className="text-green-600 text-sm">✓</span>
-                            <span>Link to manual</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-green-600 text-sm">✓</span>
-                            <span>Contact info for local parts dealer</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <span className="text-green-600 text-sm">✓</span>
-                            <span>Links to item tutorial</span>
-                          </li>
-                        </ul>
-                      </div>
-                    ) : listing.premiumFacts || listing.usefulLinks ? (
-                      // Show actual features when premium is active
-                      <div className="bg-gradient-to-br from-purple-50 via-green-50 to-purple-50 border-2 border-green-500 rounded-lg p-4 h-full">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Crown className="w-5 h-5 text-green-600 flex-shrink-0" />
-                          <Label className="text-sm font-bold text-gray-900">Pro Lister Pack</Label>
-                          <Badge className="bg-green-600 text-white text-xs">Active</Badge>
-                        </div>
-                        
-                        <p className="text-xs font-semibold text-gray-800 mb-2">Pack for this item includes:</p>
-                        
-                        {listing.usefulLinks && (() => {
-                          try {
-                            const links = JSON.parse(listing.usefulLinks);
-                            if (Array.isArray(links) && links.length > 0) {
-                              return (
-                                <ul className="space-y-2 text-xs">
-                                  {links.map((link: any, idx: number) => (
-                                    <li key={idx} className="flex items-start gap-2">
-                                      <span className="text-green-600 text-sm">✓</span>
-                                      <a
-                                        href={link.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-700 hover:text-blue-900 underline hover:no-underline flex-1"
-                                      >
-                                        {link.title}
-                                      </a>
-                                    </li>
-                                  ))}
-                                </ul>
-                              );
-                            }
-                          } catch (e) {
-                            return null;
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    ) : (
-                      // Premium active but no data yet
-                      <div className="bg-gradient-to-br from-purple-50 via-green-50 to-purple-50 border-2 border-purple-400 rounded-lg p-4 h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <Loader2 className="w-6 h-6 animate-spin text-purple-600 mx-auto mb-2" />
-                          <p className="text-xs text-gray-600">Loading pack features...</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Column - Pro Seller Box (Premium Facts) */}
-                  <div className="lg:col-span-1">
-                    {listing.usePremium && listing.premiumFacts ? (
-                      // PREMIUM TIER - Show premium facts
-                      <div className="bg-gradient-to-br from-yellow-100 via-amber-100 to-yellow-200 border-2 border-amber-500 rounded-lg p-4 shadow-md h-full">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
-                          <Label className="text-sm font-bold text-amber-900">Pro Seller's Box</Label>
-                          <Badge className="bg-green-600 text-white text-xs">Active</Badge>
-                        </div>
-                        
-                        <p className="text-xs text-amber-900 mb-3 font-medium">This information will be added to your post:</p>
-                        
-                        <div className="mb-3">
-                          <p className="text-sm text-amber-950 leading-relaxed whitespace-pre-wrap">
-                            {listing.premiumFacts}
-                          </p>
-                        </div>
-                      </div>
-                    ) : listing.usePremium ? (
-                      // Premium requested but AI hasn't analyzed yet
-                      <div className="bg-gradient-to-br from-yellow-50 via-amber-50 to-yellow-100 border-2 border-amber-300 rounded-lg p-4 h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <Loader2 className="w-6 h-6 animate-spin text-amber-600 mx-auto mb-2" />
-                          <p className="text-xs text-gray-600">Loading premium facts...</p>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
                 </div>
               </div>
             </div>
@@ -723,6 +638,16 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           listingId={listingId}
           listing={listing}
           userTier={listing.user?.subscriptionTier}
+        />
+
+        {/* Premium Packs Section - Combined tabs for Pro Lister Pack, Fine Details Pack, and Insights & Automation */}
+        <PremiumPacksSection
+          listing={listing}
+          usePremium={listing.usePremium}
+          onUpgradePremium={handleUpgradePremium}
+          userTier={listing.user?.subscriptionTier}
+          premiumPostsUsed={listing.user?.premiumPostsUsed}
+          premiumPostsTotal={listing.user?.premiumPostsTotal}
         />
 
         {/* Fulfillment Type: Local vs Shipping */}
