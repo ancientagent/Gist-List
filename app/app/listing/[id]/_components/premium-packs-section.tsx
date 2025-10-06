@@ -113,7 +113,7 @@ export default function PremiumPacksSection({
           }`}
         >
           <Sparkles className="w-4 h-4 inline mr-1" />
-          Fine Details Pack
+          Full Coverage Pack
         </button>
       </div>
 
@@ -124,17 +124,6 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER - Show what AI found without revealing data
               <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <Lock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <Label className="text-sm font-bold text-gray-900">Pro Lister Pack</Label>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Build your reputation and stand out as a true professional with the Pro Lister Pack: 
-                      a complimentary package for the buyer complete with helpful resources and information.
-                    </p>
-                  </div>
-                </div>
-
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs font-semibold text-gray-800 mb-2">This pack includes:</p>
                   
@@ -227,13 +216,6 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER
               <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <Lock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <Label className="text-sm font-bold text-gray-900">Insights & Automation Pack</Label>
-                  </div>
-                </div>
-
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs text-gray-800 mb-3 font-medium">
                     Maximize your resale game with GISTer's market research insights to provide and incorporate 
@@ -318,23 +300,16 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER
               <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <Lock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <Label className="text-sm font-bold text-gray-900">Fine Details Pack</Label>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Includes all the fine details that help your item sell, including 20 SEO-optimized search tags and platform-specific fields.
-                    </p>
-                  </div>
-                </div>
-
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs font-semibold text-gray-800 mb-2">This pack includes:</p>
+                  <p className="text-xs text-gray-800 mb-3 font-semibold italic text-center">
+                    Everything every where all at once
+                  </p>
+                  <p className="text-xs font-semibold text-gray-800 mb-2">This Pack Includes:</p>
                   
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>20 SEO-optimized search tags ordered by effectiveness</span>
+                      <span><strong>SEO Optimization:</strong> 20 premium search tags for prime visibility</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -375,7 +350,7 @@ export default function PremiumPacksSection({
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-5 h-5 text-green-600" />
-                  <Label className="text-sm font-bold text-gray-900">Fine Details Pack</Label>
+                  <Label className="text-sm font-bold text-gray-900">Full Coverage Pack</Label>
                   <Badge className="bg-green-600 text-white text-xs">Active</Badge>
                 </div>
 
