@@ -135,21 +135,21 @@ export default function PremiumPacksSection({
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs font-semibold text-gray-800 mb-2">This pack includes:</p>
                   
                   {listerPackFindings.length > 0 ? (
-                    <ul className="space-y-1.5 text-xs text-gray-700">
+                    <ul className="space-y-2 text-xs text-gray-700">
                       {listerPackFindings.map((finding, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <span className="text-purple-600 text-sm">✓</span>
+                          <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                           <span>{finding}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (isPremiumItem || isTechnicalItem || isCollectible) ? (
                     <p className="text-xs text-gray-600 italic">
-                      Analyzing your {listing.category || 'item'} for helpful resources...
+                      Resources for your {listing.category || 'item'} will be found with upgrade
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500 italic">
@@ -231,18 +231,13 @@ export default function PremiumPacksSection({
                   <Lock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
                     <Label className="text-sm font-bold text-gray-900">Insights & Automation Pack</Label>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Unlock to supercharge your GISTer agent with the latest market research to make the most of your post! 
-                      Apply market insights to increase the value of your items including prime time auto-posting for up to 6 sites at once!
-                    </p>
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs text-gray-800 mb-3 font-medium">
-                    Receive the latest 2nd hand market research on your items specifically to discover trends, 
-                    what's in, what's hot and what's not, and apply it to your assistant's list logic for intelligent, 
-                    automatic and hassle-free posting for up to 6 sites at 1 time.
+                    Maximize your resale game with GISTer's market research insights to provide and incorporate 
+                    the latest market research relating to your item to gain new insights and Auto Scheduling.
                   </p>
 
                   <ul className="space-y-2 text-xs text-gray-700">
@@ -333,20 +328,20 @@ export default function PremiumPacksSection({
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs font-semibold text-gray-800 mb-2">This pack includes:</p>
                   
-                  <ul className="space-y-1.5 text-xs text-gray-700">
+                  <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
-                      <span className="text-purple-600 text-sm">✓</span>
+                      <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                       <span>20 SEO-optimized search tags ordered by effectiveness</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-purple-600 text-sm">✓</span>
+                      <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                       <span>{additionalFieldsCount}+ additional platform-specific fields for {platformsWithFields}</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-purple-600 text-sm">✓</span>
+                      <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                       <span>Custom descriptions optimized for each platform</span>
                     </li>
                   </ul>

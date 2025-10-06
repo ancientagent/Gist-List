@@ -75,6 +75,11 @@ const CHIP_TEMPLATES: Record<string, ChipOption[]> = {
     { text: 'Tight Fit', category: 'fit_notes', itemCategories: ['clothing'] },
     { text: 'Loose Fit', category: 'fit_notes', itemCategories: ['clothing'] },
   ],
+  
+  year_version: [
+    { text: '20', category: 'year_version' }, // Expands to 2000-2009
+    { text: '19', category: 'year_version' }, // Expands to 1990-1999
+  ],
 };
 
 /**

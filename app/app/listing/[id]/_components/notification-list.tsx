@@ -222,6 +222,7 @@ export default function NotificationList({
         notificationMessage={activeNotification?.message}
         itemCategory={itemCategory}
         listingId={listingId}
+        notificationData={activeNotification?.actionData ? JSON.parse(activeNotification.actionData) : null}
       />
     </div>
   );

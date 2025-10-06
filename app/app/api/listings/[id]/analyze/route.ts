@@ -286,7 +286,7 @@ CRITICAL REQUIREMENTS:
    When ANY of these are detected, create ONE notification:
    { 
      "actionType": "buyer_disclosure", 
-     "message": "Is there anything else about this item that the buyer should know about?",
+     "message": "Is there anything else buyers should know about the item?",
      "data": { 
        "detectedIssues": ["list of issues you detected, e.g., 'no power supply visible', 'damage without power-on test'"],
        "field": "description"
@@ -302,10 +302,11 @@ CRITICAL REQUIREMENTS:
    DO NOT create separate notifications for missing power supply, inoperability checks, etc. - consolidate into this ONE notification.
    
    Other QUESTIONS (non-consolidated):
-   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, year, size) were set to N/A.", "data": { "fields": ["brand", "model", "year", "size"] } }
+   - Unknown year/version: { "actionType": "unknown_year", "message": "Do you know the year/version of this item? If not, no biggie, we can keep it as unknown.", "data": { "possibleYears": ["suggestion1", "suggestion2", "suggestion3"] } }
+   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, size) were set to N/A.", "data": { "fields": ["brand", "model", "size"] } }
    - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
    - Missing details for transparency: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
-   - Cleaning needed: { "actionType": "question", "message": "Item shows visible dirt/dust. Clean before photographing for better presentation?" }
+   - Cleaning needed: { "actionType": "question", "message": "Your item is showing some Dust/dirt, not the worst thing, but could be better. Wipe and Retake?" }
    - Price concern: { "actionType": "insight", "message": "Your price seems high for 'Poor' condition. Market suggests $X-Y. Adjust?" }
    
    CRITICAL FOR UNKNOWN FIELDS:
@@ -600,16 +601,42 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                     // Create QUESTIONS (actionable insights - blue)
                     if (finalResult.questions?.length > 0) {
                       for (const question of finalResult.questions) {
-                        await prisma.aINotification.create({
-                          data: {
-                            listingId,
-                            type: 'QUESTION',
-                            message: question.message,
-                            field: null,
-                            actionType: question.actionType,
-                            actionData: question.data ? JSON.stringify(question.data) : null,
-                          },
-                        });
+                        // For buyer_disclosure, ensure only ONE notification exists
+                        if (question.actionType === 'buyer_disclosure') {
+                          // Check if a buyer_disclosure notification already exists
+                          const existingBuyerDisclosure = await prisma.aINotification.findFirst({
+                            where: {
+                              listingId,
+                              actionType: 'buyer_disclosure',
+                            },
+                          });
+                          
+                          // Only create if it doesn't exist
+                          if (!existingBuyerDisclosure) {
+                            await prisma.aINotification.create({
+                              data: {
+                                listingId,
+                                type: 'QUESTION',
+                                message: question.message,
+                                field: null,
+                                actionType: question.actionType,
+                                actionData: question.data ? JSON.stringify(question.data) : null,
+                              },
+                            });
+                          }
+                        } else {
+                          // For all other notifications, create normally
+                          await prisma.aINotification.create({
+                            data: {
+                              listingId,
+                              type: 'QUESTION',
+                              message: question.message,
+                              field: null,
+                              actionType: question.actionType,
+                              actionData: question.data ? JSON.stringify(question.data) : null,
+                            },
+                          });
+                        }
                       }
                     }
 
