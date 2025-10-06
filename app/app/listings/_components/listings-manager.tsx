@@ -113,10 +113,10 @@ export default function ListingsManager() {
               <Crown className="w-5 h-5 text-indigo-600 mt-0.5" />
               <div className="flex-1">
                 <h3 className="font-semibold text-indigo-900 mb-1">
-                  Free Trial: {listings.length}/4 listings used
+                  Free Tier - Unlimited Posts
                 </h3>
                 <p className="text-sm text-indigo-700 mb-2">
-                  Upgrade to Basic or Pro for unlimited listings, cloud sync, and more!
+                  Upgrade to Basic or Pro for premium features, cloud sync, and more!
                 </p>
                 <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
                   Upgrade Now

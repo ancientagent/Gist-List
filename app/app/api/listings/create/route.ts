@@ -96,21 +96,13 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as any).id;
 
-    // Get user to check listing limit
+    // Get user
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Check free tier limit
-    if (user.subscriptionTier === 'FREE' && user.listingCount >= 4) {
-      return NextResponse.json(
-        { error: 'Free tier limit reached. Upgrade to continue listing.' },
-        { status: 403 }
-      );
     }
 
     const formData = await request.formData();

@@ -108,7 +108,7 @@ export function SignUpForm() {
           />
         </div>
         <div className="text-xs text-gray-500 bg-indigo-50 p-3 rounded-lg">
-          <strong>FREE Tier:</strong> Start with 4 listings to try all features
+          <strong>FREE Tier:</strong> Unlimited posts to try all features!
         </div>
         <Button
           type="submit"

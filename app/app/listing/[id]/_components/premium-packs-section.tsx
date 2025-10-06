@@ -27,11 +27,11 @@ export default function PremiumPacksSection({
 }: PremiumPacksSectionProps) {
   const [activeTab, setActiveTab] = useState<'lister' | 'automation' | 'details'>('automation');
 
-  const isPremiumTier = userTier === 'premium';
+  const isPremiumTier = userTier === 'BASIC' || userTier === 'PRO';
   const isFreeUser = !userTier || userTier === 'FREE';
   
-  // Free users get 4 premium posts, premium tier gets 100
-  const totalPosts = isFreeUser ? 4 : (isPremiumTier ? 100 : 4);
+  // Free users get 4 premium posts, premium tier users get more
+  const totalPosts = premiumPostsTotal || 4;
   const postsUsed = premiumPostsUsed || 0;
   const postsRemaining = totalPosts - postsUsed;
   const canUsePremium = postsRemaining > 0;
@@ -232,8 +232,8 @@ export default function PremiumPacksSection({
                   <div className="flex-1">
                     <Label className="text-sm font-bold text-gray-900">Insights & Automation Pack</Label>
                     <p className="text-xs text-gray-600 mt-1">
-                      If you think using Gist/List has already changed your resale game, take the next step 
-                      with the Insights and Automation Pack.
+                      Unlock to supercharge your GISTer agent with the latest market research to make the most of your post! 
+                      Apply market insights to increase the value of your items including prime time auto-posting for up to 6 sites at once!
                     </p>
                   </div>
                 </div>

@@ -223,7 +223,9 @@ export default function PlatformPreview({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1 flex-wrap">
-                    <span className="font-medium text-xs truncate">{platform}</span>
+                    <span className="font-medium text-xs truncate">
+                      {platform === 'Facebook Marketplace' ? 'FB Marketplace' : platform}
+                    </span>
                     {isRecommended && (
                       <Star className="w-3 h-3 fill-green-500 text-green-500 flex-shrink-0" />
                     )}

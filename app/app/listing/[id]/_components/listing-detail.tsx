@@ -116,6 +116,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     startAnalysis();
   }, [listingId]);
 
+  // Auto-collapse Gist section if empty
+  useEffect(() => {
+    if (listing && (!listing.theGist || listing.theGist.trim() === '')) {
+      setSectionsCollapsed(prev => ({ ...prev, gist: true }));
+    }
+  }, [listing]);
+
   const scrollToField = (field: string) => {
     setHighlightedField(field);
     const element = document.getElementById(`field-${field}`);
@@ -282,24 +289,55 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const handleUpgradePremium = async () => {
     if (!listing) return;
 
-    const isPremiumTier = listing.user?.subscriptionTier === 'premium';
-    const canUsePremium = isPremiumTier && 
-      (listing.user?.premiumPostsUsed || 0) < (listing.user?.premiumPostsTotal || 0);
+    const premiumPostsUsed = listing.user?.premiumPostsUsed || 0;
+    const premiumPostsTotal = listing.user?.premiumPostsTotal || 4; // Default to 4 for free users
+    const canUsePremium = premiumPostsUsed < premiumPostsTotal;
 
     if (!canUsePremium) {
-      toast.error('Premium posts exhausted or unavailable');
+      toast.error('Premium upgrades exhausted');
       return;
     }
 
     // Toggle usePremium
     const newUsePremium = !listing.usePremium;
-    setListing({ ...listing, usePremium: newUsePremium });
-
-    // If enabling premium, trigger re-analysis
+    
+    // If enabling premium, increment counter
     if (newUsePremium) {
       toast.success('Upgrading to premium post...');
-      await startAnalysis();
+      
+      // Update listing with premium flag
+      try {
+        const response = await fetch(`/api/listings/${listingId}/upgrade-premium`, {
+          method: 'POST',
+        });
+        
+        if (!response.ok) {
+          toast.error('Failed to activate premium features');
+          return;
+        }
+        
+        const data = await response.json();
+        
+        // Update listing with new counter
+        setListing({
+          ...listing,
+          usePremium: true,
+          user: listing.user ? {
+            subscriptionTier: listing.user.subscriptionTier,
+            premiumPostsUsed: data.premiumPostsUsed,
+            premiumPostsTotal: listing.user.premiumPostsTotal,
+          } : undefined,
+        });
+        
+        // Trigger re-analysis
+        await startAnalysis();
+      } catch (error) {
+        console.error('Premium upgrade error:', error);
+        toast.error('Failed to activate premium features');
+      }
     } else {
+      // Disabling premium - just toggle locally
+      setListing({ ...listing, usePremium: false });
       toast.success('Premium features disabled');
     }
   };
