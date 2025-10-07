@@ -28,6 +28,7 @@ import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
 import AlternativeItemsSelector from './alternative-items-selector';
 import PremiumPacksSection from './premium-packs-section';
+import { ProfitCalculator } from '@/components/profit-calculator';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -84,6 +85,14 @@ interface Listing {
   location: string | null;
   meetupPreference: string | null;
   editedFields: string[];
+  // Cost & Profit tracking
+  purchasePrice: number | null;
+  estimatedProfit: number | null;
+  profitMargin: number | null;
+  tokensUsed: number | null;
+  storageBytes: number | null;
+  apiCost: number | null;
+  storageCost: number | null;
   photos: any[];
   notifications: any[];
   user?: {
@@ -811,6 +820,19 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Insights */}
         <InsightsSection listing={listing} />
+
+        {/* Profit Calculator */}
+        {listing.price && listing.price > 0 && (listing.recommendedPlatforms?.length || 0) > 0 && (
+          <div className="mb-6">
+            <ProfitCalculator
+              listingId={listing.id}
+              currentPrice={listing.price}
+              currentPurchasePrice={listing.purchasePrice || 0}
+              shippingCost={listing.shippingCostEst || 0}
+              platforms={listing.recommendedPlatforms || []}
+            />
+          </div>
+        )}
 
         {/* Save Button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">

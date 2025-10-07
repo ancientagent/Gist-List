@@ -68,6 +68,12 @@ model User {
   defaultWeight          Float?  // typical shipping weight
   defaultDimensions      String? // typical dimensions
   
+  // Cost Tracking
+  totalTokensUsed     Int     @default(0)    // Total LLM tokens consumed
+  totalStorageBytes   BigInt  @default(0)    // Total S3 storage used
+  totalApiCost        Float   @default(0)    // Total API costs in USD
+  totalStorageCost    Float   @default(0)    // Total storage costs in USD
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -104,6 +110,17 @@ model Listing {
   price             Float?
   condition         String?
   conditionNotes    String?  @db.Text
+  
+  // Cost Tracking
+  tokensUsed        Int?     // LLM tokens used for this listing
+  storageBytes      Int?     // Total storage for listing photos
+  apiCost           Float?   // API cost for this listing
+  storageCost       Float?   // Storage cost for this listing
+  
+  // Profit Estimation
+  purchasePrice     Float?   // How much user paid for the item
+  estimatedProfit   Float?   // Calculated profit estimate
+  profitMargin      Float?   // Profit margin percentage
   
   // Item Details
   brand             String?
@@ -177,6 +194,8 @@ model Photo {
   cdnUrl            String?  // CDN URL for fast access
   order             Int      @default(0)
   isPrimary         Boolean  @default(false)
+  originalSizeBytes Int?     // Original file size
+  compressedSizeBytes Int?   // Compressed file size
   createdAt         DateTime @default(now())
   
   listing           Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { uploadFile } from '@/lib/s3';
+import { uploadFileWithCompression } from '@/lib/s3';
 
 
 
@@ -90,10 +90,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Upload photo to S3
+    // Upload photo to S3 with compression
     const buffer = Buffer.from(await photo.arrayBuffer());
     const fileName = `listings/${Date.now()}-${photo.name}`;
-    const cloudStoragePath = await uploadFile(buffer, fileName);
+    const uploadResult = await uploadFileWithCompression(buffer, fileName);
+    
+    console.log(`📦 Additional photo compressed: ${uploadResult.originalSize} → ${uploadResult.compressedSize} bytes (${uploadResult.savingsPercent.toFixed(1)}% savings)`);
 
     // Check condition only (don't reset description or other fields)
     const conditionCheck = await checkConditionOnly(buffer);
@@ -102,7 +104,11 @@ export async function POST(request: NextRequest) {
       // Update existing photo
       await prisma.photo.update({
         where: { id: photoId },
-        data: { cloudStoragePath },
+        data: { 
+          cloudStoragePath: uploadResult.key,
+          originalSizeBytes: uploadResult.originalSize,
+          compressedSizeBytes: uploadResult.compressedSize,
+        },
       });
     } else {
       // Create new photo
@@ -115,9 +121,11 @@ export async function POST(request: NextRequest) {
       await prisma.photo.create({
         data: {
           listingId,
-          cloudStoragePath,
+          cloudStoragePath: uploadResult.key,
           order: (maxOrder?.order ?? -1) + 1,
           isPrimary: false,
+          originalSizeBytes: uploadResult.originalSize,
+          compressedSizeBytes: uploadResult.compressedSize,
         },
       });
     }

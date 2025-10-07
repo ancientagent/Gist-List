@@ -113,15 +113,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Photo is required' }, { status: 400 });
     }
 
-    // Upload photo to S3
+    // Upload photo to S3 with compression
     const buffer = Buffer.from(await photo.arrayBuffer());
     const fileName = `listings/${Date.now()}-${photo.name}`;
-    const cloudStoragePath = await uploadFile(buffer, fileName);
+    
+    const { uploadFileWithCompression } = await import('@/lib/s3');
+    const uploadResult = await uploadFileWithCompression(buffer, fileName);
+    
+    console.log(`📦 Image compressed: ${uploadResult.originalSize} → ${uploadResult.compressedSize} bytes (${uploadResult.savingsPercent.toFixed(1)}% savings)`);
 
     // Quick AI confidence check
     const aiCheck = await quickConfidenceCheck(buffer, theGist || '');
 
-    // Create listing
+    // Create listing with storage tracking
     const listing = await prisma.listing.create({
       data: {
         userId,
@@ -130,16 +134,19 @@ export async function POST(request: NextRequest) {
         confidence: aiCheck.confidence,
         itemIdentified: aiCheck.itemIdentified,
         imageQualityIssue: aiCheck.imageQualityIssue,
+        storageBytes: uploadResult.compressedSize,
       },
     });
 
-    // Create photo record
+    // Create photo record with size tracking
     await prisma.photo.create({
       data: {
         listingId: listing.id,
-        cloudStoragePath,
+        cloudStoragePath: uploadResult.key,
         order: 0,
         isPrimary: true,
+        originalSizeBytes: uploadResult.originalSize,
+        compressedSizeBytes: uploadResult.compressedSize,
       },
     });
 

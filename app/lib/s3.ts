@@ -6,10 +6,22 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createS3Client, getBucketConfig } from './aws-config';
+import { compressImage } from './image-compression';
 
 const s3Client = createS3Client();
 
-export async function uploadFile(buffer: Buffer, fileName: string): Promise<string> {
+export interface UploadResult {
+  key: string;
+  originalSize: number;
+  compressedSize: number;
+  savingsPercent: number;
+}
+
+export async function uploadFile(
+  buffer: Buffer, 
+  fileName: string,
+  compress: boolean = true
+): Promise<string> {
   const { bucketName, folderPrefix } = getBucketConfig();
   const key = `${folderPrefix}${fileName}`;
 
@@ -21,6 +33,43 @@ export async function uploadFile(buffer: Buffer, fileName: string): Promise<stri
 
   await s3Client.send(command);
   return key;
+}
+
+/**
+ * Upload file with compression and return detailed metrics
+ */
+export async function uploadFileWithCompression(
+  buffer: Buffer,
+  fileName: string
+): Promise<UploadResult> {
+  const { bucketName, folderPrefix } = getBucketConfig();
+  const key = `${folderPrefix}${fileName}`;
+  
+  const originalSize = buffer.length;
+  
+  // Compress image
+  const compressed = await compressImage(buffer, {
+    maxWidth: 1920,
+    maxHeight: 1920,
+    quality: 85,
+    format: 'jpeg',
+  });
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    Body: compressed.buffer,
+    ContentType: 'image/jpeg',
+  });
+
+  await s3Client.send(command);
+  
+  return {
+    key,
+    originalSize,
+    compressedSize: compressed.compressedSize,
+    savingsPercent: compressed.savingsPercent,
+  };
 }
 
 export async function downloadFile(key: string): Promise<string> {
