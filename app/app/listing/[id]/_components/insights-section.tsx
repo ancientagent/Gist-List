@@ -19,11 +19,11 @@ interface Listing {
   };
 }
 
-export default function InsightsSection({ listing }: { listing: Listing }) {
-  // Only show insights for premium users
-  const isPremiumUser = listing.user?.subscriptionTier === 'premium';
+export default function InsightsSection({ listing }: { listing: Listing & { usePremium?: boolean } }) {
+  // Only show insights when premium features are unlocked for this listing
+  const isPremiumUnlocked = listing.usePremium === true;
   
-  if (!isPremiumUser) {
+  if (!isPremiumUnlocked) {
     return null;
   }
   const [showBestTimePrompt, setShowBestTimePrompt] = useState(false);

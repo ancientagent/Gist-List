@@ -25,6 +25,11 @@ export default function PremiumPacksSection({
   premiumPostsUsed = 0,
   premiumPostsTotal = 0,
 }: PremiumPacksSectionProps) {
+  // Hide this section completely when premium features are unlocked
+  if (usePremium) {
+    return null;
+  }
+
   const [activeTab, setActiveTab] = useState<'lister' | 'automation' | 'details'>('automation');
 
   const isPremiumTier = userTier === 'BASIC' || userTier === 'PRO';

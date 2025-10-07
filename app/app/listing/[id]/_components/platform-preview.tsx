@@ -134,7 +134,12 @@ export default function PlatformPreview({
 }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [platformData, setPlatformData] = useState<Record<string, Record<string, string>>>({});
-  const isPremium = userTier === 'BASIC' || userTier === 'PRO';
+  
+  // Check if premium features are unlocked for this listing
+  const isPremiumUnlocked = listing.usePremium === true;
+  
+  // Free tier: max 3 platforms, Premium: unlimited
+  const MAX_PLATFORMS_FREE = 3;
 
   useEffect(() => {
     // Pre-select top 2-3 recommended platforms
@@ -143,11 +148,23 @@ export default function PlatformPreview({
   }, [recommendedPlatforms]);
 
   const handlePlatformToggle = (platform: string) => {
-    setSelectedPlatforms(prev => 
-      prev.includes(platform)
-        ? prev.filter(p => p !== platform)
-        : [...prev, platform]
-    );
+    setSelectedPlatforms(prev => {
+      const isCurrentlySelected = prev.includes(platform);
+      
+      if (isCurrentlySelected) {
+        // Deselecting - always allowed
+        return prev.filter(p => p !== platform);
+      } else {
+        // Selecting - check limits
+        if (!isPremiumUnlocked && prev.length >= MAX_PLATFORMS_FREE) {
+          toast.info(`Free tier limited to ${MAX_PLATFORMS_FREE} platforms. Upgrade to Premium to unlock more!`, {
+            icon: '⭐',
+          });
+          return prev;
+        }
+        return [...prev, platform];
+      }
+    });
   };
 
   const handleFieldChange = (platform: string, field: string, value: string) => {
@@ -170,13 +187,11 @@ export default function PlatformPreview({
   const displayPlatforms = qualifiedPlatforms.length > 0 ? qualifiedPlatforms : Object.keys(PLATFORM_UNCERTAIN_FIELDS);
   const selectedDisplayPlatforms = displayPlatforms.filter(p => selectedPlatforms.includes(p));
 
-  const isUnlocked = isPremium || listing.usedPremiumPost;
-
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <div className="flex items-center gap-2 mb-4">
         <h3 className="font-medium text-base">Platforms to Post</h3>
-        {isUnlocked && (
+        {isPremiumUnlocked && (
           <Badge className="bg-green-600 text-white">
             <Crown className="w-3 h-3 mr-1" />
             Premium
@@ -187,10 +202,14 @@ export default function PlatformPreview({
       {/* Platform Selection */}
       <div className="mb-6">
         <div className="grid grid-cols-3 gap-2">
-          {displayPlatforms.map((platform) => {
+          {displayPlatforms.map((platform, index) => {
             const isRecommended = recommendedPlatforms.includes(platform);
             const isSelected = selectedPlatforms.includes(platform);
-            const canSelect = isUnlocked || isRecommended;
+            
+            // In free tier, only first 3 platforms (recommended) are selectable
+            // In premium, all platforms are selectable
+            const isWithinFreeLimit = index < MAX_PLATFORMS_FREE;
+            const canSelect = isPremiumUnlocked || isWithinFreeLimit;
             
             return (
               <div
@@ -240,11 +259,10 @@ export default function PlatformPreview({
         </div>
       </div>
 
-      {/* Platform-Specific Fields with Tabs */}
-      {selectedDisplayPlatforms.length > 0 && (
+      {/* Platform-Specific Fields with Tabs - PREMIUM ONLY */}
+      {isPremiumUnlocked && selectedDisplayPlatforms.length > 0 && (
         <div className="border-t pt-4">
-          {isUnlocked ? (
-            <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
+          <Tabs defaultValue={selectedDisplayPlatforms[0]} className="w-full">
             <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${selectedDisplayPlatforms.length}, 1fr)` }}>
               {selectedDisplayPlatforms.map((platform) => (
                 <TabsTrigger key={platform} value={platform} className="text-xs">
@@ -296,7 +314,6 @@ export default function PlatformPreview({
               );
             })}
           </Tabs>
-          ) : null}
         </div>
       )}
 
@@ -306,8 +323,8 @@ export default function PlatformPreview({
         </div>
       )}
 
-      {/* Search Tags (Premium Feature) */}
-      {isUnlocked && listing.searchTags && listing.searchTags.length > 0 && (
+      {/* SEO Search Tags - PREMIUM ONLY */}
+      {isPremiumUnlocked && listing.searchTags && listing.searchTags.length > 0 && (
         <div className="border-t pt-4 mt-4">
           <div className="flex items-center gap-2 mb-3">
             <Tag className="w-4 h-4 text-green-600" />
