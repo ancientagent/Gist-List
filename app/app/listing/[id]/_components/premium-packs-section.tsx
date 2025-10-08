@@ -294,7 +294,7 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER
               <div className="space-y-3">
-                <p className="text-xs text-gray-600 italic text-center mb-2">
+                <p className="text-xs text-gray-600 mb-2">
                   GISTer shows it off for all to see.. in detail..
                 </p>
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
