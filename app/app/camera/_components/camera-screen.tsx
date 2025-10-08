@@ -335,30 +335,17 @@ export default function CameraScreen() {
           disabled={isCapturing || isListening}
         />
         
-        {/* Mobile: Separate Mic and Capture buttons */}
-        <div className="mt-4 block md:hidden space-y-3">
+        {/* Mobile: Combined hold-to-record and capture button */}
+        <div className="mt-4 block md:hidden">
           <button
-            onTouchStart={handleMicPressStart}
-            onTouchEnd={handleMicPressEnd}
-            disabled={isCapturing}
-            className={`w-full h-14 text-base rounded-lg font-semibold flex items-center justify-center transition-all ${
-              isCapturing
-                ? 'bg-gray-400 cursor-not-allowed'
-                : isListening
-                ? 'bg-emerald-600 text-white scale-95 animate-pulse'
-                : 'bg-blue-600 active:bg-blue-700 text-white active:scale-95'
-            }`}
-          >
-            <Mic className="mr-2 h-5 w-5" />
-            {isListening ? 'Recording...' : 'Hold to Record Voice'}
-          </button>
-          
-          <button
-            onClick={capturePhoto}
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
             disabled={isCapturing || !stream}
             className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
               isCapturing
                 ? 'bg-gray-400 cursor-not-allowed'
+                : isPressHolding
+                ? 'bg-emerald-600 text-white scale-95 animate-pulse'
                 : 'bg-green-600 active:bg-green-700 text-white active:scale-95'
             }`}
           >
@@ -367,13 +354,22 @@ export default function CameraScreen() {
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 Capturing...
               </>
+            ) : isPressHolding ? (
+              <>
+                <Mic className="mr-2 h-5 w-5" />
+                Recording... Release to Snap
+              </>
             ) : (
               <>
                 <Camera className="mr-2 h-5 w-5" />
-                Capture Photo
+                Hold to Record, Release to Snap
               </>
             )}
           </button>
+          
+          <p className="text-xs text-gray-500 text-center mt-3">
+            Press & hold to record voice, release to capture photo
+          </p>
         </div>
 
         {/* Desktop: Combined hold-to-record and capture button */}
@@ -415,10 +411,6 @@ export default function CameraScreen() {
             Press & hold to record voice, release to capture photo
           </p>
         </div>
-
-        <p className="text-xs text-gray-500 text-center mt-3 block md:hidden">
-          Hold mic button to record voice • Tap capture to take photo
-        </p>
       </div>
 
       <style jsx>{`
