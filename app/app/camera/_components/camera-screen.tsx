@@ -368,7 +368,7 @@ export default function CameraScreen() {
           </button>
           
           <p className="text-xs text-gray-500 text-center mt-3">
-            Press & hold to record voice, release to capture photo
+            Press & hold to use voice, release to capture image
           </p>
         </div>
 
@@ -408,7 +408,7 @@ export default function CameraScreen() {
           </button>
           
           <p className="text-xs text-gray-500 text-center mt-3">
-            Press & hold to record voice, release to capture photo
+            Press & hold to use voice, release to capture image
           </p>
         </div>
       </div>

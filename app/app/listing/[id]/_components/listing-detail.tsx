@@ -28,7 +28,6 @@ import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
 import AlternativeItemsSelector from './alternative-items-selector';
 import PremiumPacksSection from './premium-packs-section';
-import { ProfitCalculator } from '@/components/profit-calculator';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -501,20 +500,20 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Title */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <Label>Title</Label>
-            <AlternativeItemsSelector
-              alternativeItems={listing.alternativeItems}
-              listingId={listingId}
-              onItemSelected={fetchListing}
-            />
-          </div>
+          <Label>Title</Label>
           <Input
             value={listing.title || ''}
             onChange={(e) => setListing({ ...listing, title: e.target.value })}
             className="mt-2"
             placeholder="Item title..."
           />
+          <div className="mt-2 flex justify-start">
+            <AlternativeItemsSelector
+              alternativeItems={listing.alternativeItems}
+              listingId={listingId}
+              onItemSelected={fetchListing}
+            />
+          </div>
         </div>
 
         {/* Description */}
@@ -613,7 +612,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             <div className="px-4 pb-4 border-t">
               <div className="space-y-4 mt-4">
                 <div id="field-conditionNotes" className={highlightedField === 'conditionNotes' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
-                  <Label className="text-sm">Condition Description</Label>
+                  <Label className="text-sm">Condition Assessment</Label>
                   <Textarea
                     value={listing.conditionNotes || ''}
                     onChange={(e) => {
@@ -821,19 +820,6 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         {/* Insights */}
         <InsightsSection listing={listing} />
 
-        {/* Profit Calculator */}
-        {listing.price && listing.price > 0 && (listing.recommendedPlatforms?.length || 0) > 0 && (
-          <div className="mb-6">
-            <ProfitCalculator
-              listingId={listing.id}
-              currentPrice={listing.price}
-              currentPurchasePrice={listing.purchasePrice || 0}
-              shippingCost={listing.shippingCostEst || 0}
-              platforms={listing.recommendedPlatforms || []}
-            />
-          </div>
-        )}
-
         {/* Save Button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">
           <div className="max-w-2xl mx-auto flex gap-3">
@@ -842,7 +828,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               variant="outline"
               className="flex-1"
             >
-              Back
+              Listings
             </Button>
             <Button
               onClick={handleSave}
