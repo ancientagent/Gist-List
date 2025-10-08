@@ -107,7 +107,7 @@ export default function PremiumPacksSection({
           }`}
         >
           <Crown className="w-4 h-4 inline mr-1" />
-          Pro Lister Pack
+          The Professional
         </button>
         <button
           onClick={() => setActiveTab('details')}
@@ -118,7 +118,7 @@ export default function PremiumPacksSection({
           }`}
         >
           <Sparkles className="w-4 h-4 inline mr-1" />
-          Full Coverage Pack
+          The Full Spread
         </button>
       </div>
 
@@ -130,26 +130,20 @@ export default function PremiumPacksSection({
               // FREE TIER - Show what AI found without revealing data
               <div className="space-y-3">
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs font-semibold text-gray-800 mb-2">This pack includes:</p>
-                  
-                  {listerPackFindings.length > 0 ? (
-                    <ul className="space-y-2 text-xs text-gray-700">
-                      {listerPackFindings.map((finding, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                          <span>{finding}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (isPremiumItem || isTechnicalItem || isCollectible) ? (
-                    <p className="text-xs text-gray-600 italic">
-                      Resources for your {listing.category || 'item'} will be found with upgrade
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500 italic">
-                      No information listed for this item
-                    </p>
-                  )}
+                  <ul className="space-y-2 text-xs text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>1 link for the operator's manual</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>1 spec sheet</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Contact information for parts dealers in the area</span>
+                    </li>
+                  </ul>
                 </div>
 
                 {/* Upgrade Button */}
@@ -222,11 +216,6 @@ export default function PremiumPacksSection({
               // FREE TIER
               <div className="space-y-3">
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs text-gray-800 mb-3 font-medium">
-                    Maximize your resale game with GISTer's market research insights to provide and incorporate 
-                    the latest market research relating to your item to gain new insights and Auto Scheduling.
-                  </p>
-
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -305,11 +294,13 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER
               <div className="space-y-3">
+                <p className="text-xs text-gray-600 italic text-center mb-2">
+                  GISTer shows it off for all to see.. in detail..
+                </p>
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs text-gray-800 mb-3 font-semibold italic text-center">
-                    Everything every where all at once
+                  <p className="text-xs text-gray-800 mb-3 font-medium italic text-center">
+                    This glorious package is a true attention getter, you'll be fighting them off with a stick!
                   </p>
-                  <p className="text-xs font-semibold text-gray-800 mb-2">This Pack Includes:</p>
                   
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
@@ -318,11 +309,11 @@ export default function PremiumPacksSection({
                     </li>
                     <li className="flex items-start gap-2">
                       <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>{additionalFieldsCount}+ additional platform-specific fields for {platformsWithFields}</span>
+                      <span><strong>Maximum Range</strong> {additionalFieldsCount}+ additional platform-specific fields for {platformsWithFields}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>Custom descriptions optimized for each platform</span>
+                      <span><strong>all conditions met</strong> autocompletion for every descriptor, on every site, for every item.</span>
                     </li>
                   </ul>
                 </div>

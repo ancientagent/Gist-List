@@ -1,7 +1,7 @@
 
 {
-  "name": "Gist List",
-  "short_name": "Gist List",
+  "name": "Gister",
+  "short_name": "Gister",
   "description": "AI-powered reselling assistant",
   "start_url": "/",
   "display": "standalone",
