@@ -1,0 +1,32 @@
+{
+  "featureFlags": {
+    "pebbles": { "enabled": true },
+    "moodAvatars": { "enabled": true }
+  },
+  "sections": ["photos", "condition", "price", "shipping", "fineDetails"],
+  "limits": { "maxPerSection": 3 },
+  "catalog": {
+    "alerts": [
+      { "message": "Add a title.", "field": "title", "section": "fineDetails" },
+      { "message": "Choose a category.", "field": "category", "section": "fineDetails" },
+      { "message": "Set a condition.", "field": "condition", "section": "price" },
+      { "message": "Enter a price.", "field": "price", "section": "price" },
+      { "message": "Add weight & size.", "field": "dimensions", "section": "shipping" }
+    ],
+    "questions": [
+      { "actionType": "retake_photo", "message": "Retake the lead photo?", "section": "photos" },
+      { "actionType": "add_photo", "message": "Add 2 more photos?", "section": "photos" },
+      { "actionType": "clean_reshoot", "message": "Clean + reshoot for clarity?", "section": "photos" },
+      { "actionType": "buyer_disclosure", "message": "Anything else buyers should know?", "section": "condition" }
+    ],
+    "insights": [
+      { "actionType": "setPrice", "message": "Set ${{suggested}} (↓)", "section": "price" },
+      { "actionType": "schedule_post", "message": "Schedule for {{time-window}}?", "section": "fineDetails" },
+      { "actionType": "serial_closeup", "message": "Add a serial/label close-up?", "section": "photos" },
+      { "actionType": "special_item", "message": "💎 Special item detected.", "section": "price" },
+      { "actionType": "facet_item", "message": "🔍 Faceted: {{facetName}}.", "section": "price" }
+    ]
+  }
+}
+
+

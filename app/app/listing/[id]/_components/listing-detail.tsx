@@ -28,6 +28,9 @@ import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
 import AlternativeItemsSelector from './alternative-items-selector';
 import PremiumPacksSection from './premium-packs-section';
+import ChipsRow from '@/src/components/ChipsRow';
+import QuickFactsPanel from '@/src/components/QuickFactsPanel';
+import { GisterNotification } from '@/src/notifications/types';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -108,6 +111,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
+  const [showQuickFacts, setShowQuickFacts] = useState(false);
   
   // Collapsible sections state
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
@@ -438,8 +442,36 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     );
   }
 
-  const alertNotifications = listing.notifications?.filter((n) => n.type === 'ALERT' && !n.resolved) ?? [];
-  const preferenceNotifications = listing.notifications?.filter((n) => n.type === 'PREFERENCE' && !n.resolved) ?? [];
+  const notifications = (listing.notifications || []) as any[];
+  const grouped: Record<string, GisterNotification[]> = {
+    photos: [],
+    condition: [],
+    price: [],
+    shipping: [],
+    fineDetails: [],
+  };
+  // Best-effort mapping for existing notifications lacking section: infer by field/actionType
+  notifications.forEach((n: any) => {
+    const data = n.actionData ? (() => { try { return JSON.parse(n.actionData); } catch { return null; } })() : null;
+    const section = n.section || data?.section ||
+      (n.field === 'price' || n.actionType === 'insight' ? 'price' :
+      n.field === 'dimensions' || n.field === 'weight' ? 'shipping' :
+      n.field === 'condition' || n.actionType === 'buyer_disclosure' ? 'condition' :
+      n.actionType === 'retake_photo' || n.actionType === 'add_photo' ? 'photos' :
+      'fineDetails');
+    grouped[section].push({
+      id: n.id,
+      type: n.type,
+      message: n.message,
+      actionType: n.actionType,
+      actionData: data,
+      field: n.field,
+      section,
+      mood: n.mood || data?.mood,
+      context: n.context || data?.context,
+      resolved: !!n.resolved,
+    } as GisterNotification);
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -496,6 +528,20 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         {/* Photo Gallery */}
         <div id="photo-gallery">
           <PhotoGallery photos={listing.photos || []} listingId={listingId} onPhotoUpdate={fetchListing} />
+          <div className="px-1 mt-2">
+            <ChipsRow
+              title="Photos"
+              section="photos"
+              notifications={grouped.photos}
+              onApply={(n) => {
+                if (n.actionType === 'serial_closeup' || n.actionType === 'retake_photo' || n.actionType === 'add_photo') {
+                  // Reuse existing flow: open camera by scrolling to gallery; actual camera open handled elsewhere
+                  document.getElementById('photo-gallery')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+              onJump={scrollToField}
+            />
+          </div>
         </div>
 
         {/* Title */}
@@ -526,6 +572,15 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
             rows={6}
             placeholder="Detailed description..."
           />
+          <div className="mt-2">
+            <ChipsRow
+              title="Fine Details"
+              section="fineDetails"
+              notifications={grouped.fineDetails}
+              onApply={() => { /* no-op */ }}
+              onJump={scrollToField}
+            />
+          </div>
         </div>
 
         {/* Item Details - All required fields from any platform */}
@@ -611,6 +666,21 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           {!sectionsCollapsed.priceCondition && (
             <div className="px-4 pb-4 border-t">
               <div className="space-y-4 mt-4">
+                <div className="-mt-2">
+                  <ChipsRow
+                    title="Condition"
+                    section="condition"
+                    notifications={grouped.condition}
+                    onApply={(n) => {
+                      if (n.actionType === 'buyer_disclosure') {
+                        setShowQuickFacts(true);
+                      } else if (n.actionType === 'inoperable_check') {
+                        handleFieldEdit('condition', 'For Parts');
+                      }
+                    }}
+                    onJump={scrollToField}
+                  />
+                </div>
                 <div id="field-conditionNotes" className={highlightedField === 'conditionNotes' ? 'ring-2 ring-red-500 rounded-lg p-2 -m-2' : ''}>
                   <Label className="text-sm">Condition Assessment</Label>
                   <Textarea
@@ -661,6 +731,19 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         className="mt-1"
                         placeholder="0.00"
                       />
+                      <div className="mt-2">
+                        <ChipsRow
+                          title="Price"
+                          section="price"
+                          notifications={grouped.price}
+                          onApply={(n) => {
+                            if (n.actionType === 'setPrice' && n.actionData?.suggested) {
+                              handleFieldEdit('price', n.actionData.suggested);
+                            }
+                          }}
+                          onJump={scrollToField}
+                        />
+                      </div>
                       {/* Show suggested price only when user manually edits the price */}
                       {listing.price && listing.editedFields?.includes('price') && getConditionAwarePriceInsight() && (
                         <p className={`text-xs mt-1 font-medium ${
@@ -724,6 +807,13 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           {/* Shipping Fields */}
           {listing.fulfillmentType === 'shipping' && (
             <div className="mt-4 space-y-4 border-t pt-4">
+              <ChipsRow
+                title="Shipping"
+                section="shipping"
+                notifications={grouped.shipping}
+                onApply={() => { /* no-op */ }}
+                onJump={scrollToField}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm">Weight (lbs)</Label>
@@ -819,6 +909,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Insights */}
         <InsightsSection listing={listing} />
+
+        <QuickFactsPanel isOpen={showQuickFacts} onClose={() => setShowQuickFacts(false)} />
 
         {/* Save Button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">

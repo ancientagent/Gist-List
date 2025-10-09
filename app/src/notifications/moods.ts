@@ -1,0 +1,118 @@
+import { GisterMood, GisterMoodProfile } from './types';
+
+export const MOOD_TOOLTIPS: Record<GisterMood, string> = {
+  tech: 'Ah, a fine piece of engineering — let’s capture the details.',
+  luxury: 'A refined piece — a touch of grace elevates value.',
+  doll: 'Professional courtesy engaged. Quick and precise, then we move on.',
+  historic: 'Let’s honor its era — careful details matter here.',
+  art: 'Texture and provenance tell the story — one thoughtful shot.',
+  fashion: 'Clean angles and tags — keep it crisp.',
+  kitsch: 'Nostalgia boost unlocked — show the logo clearly.',
+  neutral: 'Solid details help buyers decide faster.',
+};
+
+export const MOOD_PROFILES: Record<GisterMood, GisterMoodProfile> = {
+  tech: {
+    id: 'tech',
+    intro: 'Booting up the analysis matrix — let’s peek under the hood.',
+    facetFound: 'Original chipset detected — chef’s kiss engineering.',
+    facetMissing: 'Hmm — stock board. Still solid vintage tech.',
+    valueUp: 'Collectors are overclocking bids on these models.',
+    valueDown: 'A bit of corrosion here — drops output by about 15 percent.',
+    photoPrompt: 'Let’s capture those ports — AI loves ports.',
+    closeout: 'Diagnostics complete — ready to list!',
+    avatarAccessory: 'goggles',
+    themeColor: 'from-cyan-500 to-blue-700',
+  },
+  luxury: {
+    id: 'luxury',
+    intro: 'Let’s examine this with a touch of grace and good lighting.',
+    facetFound: 'Hallmarks verified; that cut alone could turn heads.',
+    facetMissing: 'Hmm, no maker’s mark — still lovely workmanship.',
+    valueUp: 'Condition and brand justify a modest premium.',
+    valueDown: 'Minute abrasions at the clasp — I’ll temper expectations.',
+    photoPrompt: 'Perhaps a macro shot of the setting?',
+    closeout: 'Splendid. A piece worthy of admiration.',
+    avatarAccessory: 'monocle',
+    themeColor: 'from-amber-300 to-yellow-600',
+  },
+  doll: {
+    id: 'doll',
+    intro: 'Okay… deep breath — let’s be brave and appraise this one.',
+    facetFound: 'Signed by the maker. Terrific… and haunting.',
+    facetMissing: 'No signature. Let’s not linger.',
+    valueUp: 'Apparently people love this. I don’t ask why.',
+    valueDown: 'Predictably low interest. Moving on.',
+    photoPrompt: 'Please take one more photo and then we’ll never speak of this again.',
+    closeout: 'Done. Let’s close the case before it blinks.',
+    avatarAccessory: 'side-eye',
+    themeColor: 'from-pink-200 to-gray-400',
+  },
+  historic: {
+    id: 'historic',
+    intro: 'Ah, early craftsmanship — let’s see if it tells a story.',
+    facetFound: 'Yes! Authentic era detail — remarkably preserved.',
+    facetMissing: 'I had hopes… alas, nothing distinguishing.',
+    valueUp: 'Splendid condition for its age — museum-ready.',
+    valueDown: 'Unremarkable. Appraisal complete.',
+    photoPrompt: 'Maybe capture that maker’s mark under daylight.',
+    closeout: 'And there we have it — a piece of history accounted for.',
+    avatarAccessory: 'bowtie',
+    themeColor: 'from-stone-300 to-amber-700',
+  },
+  art: {
+    id: 'art',
+    intro: 'Let’s step back and breathe with the composition.',
+    facetFound: 'Brushwork matches the artist’s early period — bravo.',
+    facetMissing: 'No signature visible; mystery has its own charm.',
+    valueUp: 'Similar works are finding new energy at auction.',
+    valueDown: 'The market’s cooling — art ebbs and flows.',
+    photoPrompt: 'Try a wide shot to capture texture.',
+    closeout: 'A lovely study in form and value.',
+    avatarAccessory: 'beret',
+    themeColor: 'from-violet-300 to-indigo-600',
+  },
+  fashion: {
+    id: 'fashion',
+    intro: 'Clean piece — still heat on the boards.',
+    facetFound: 'Limited drop tag confirmed — instant street cred.',
+    facetMissing: 'No drop tag, but still rockable.',
+    valueUp: 'Resale stays hot for these — let’s price accordingly.',
+    valueDown: 'Market’s flooded — we’ll keep it realistic.',
+    photoPrompt: 'Grab a flat-lay in good light.',
+    closeout: 'Fire fit listed — next!',
+    avatarAccessory: 'sunglasses',
+    themeColor: 'from-rose-400 to-orange-500',
+  },
+  kitsch: {
+    id: 'kitsch',
+    intro: 'Ah yes, a blast from the golden McPlastic era.',
+    facetFound: 'Still in original box — nostalgia power boost +100.',
+    facetMissing: 'No box, but pure vibes.',
+    valueUp: 'Cult following — someone out there will cherish this.',
+    valueDown: 'Mostly sentimental — but sentiment sells.',
+    photoPrompt: 'Show the logo clearly — nostalgia needs proof.',
+    closeout: 'Adorable. Truly.',
+    avatarAccessory: 'party-hat',
+    themeColor: 'from-emerald-200 to-lime-400',
+  },
+  neutral: {
+    id: 'neutral',
+    intro: 'Analysis engaged.',
+    facetFound: 'Detail verified — adds value.',
+    facetMissing: 'No extra features detected.',
+    valueUp: 'Market trend positive.',
+    valueDown: 'Pricing within expected range.',
+    photoPrompt: 'Additional angles could help.',
+    closeout: 'Listing ready.',
+    avatarAccessory: 'headset',
+    themeColor: 'from-slate-200 to-slate-600',
+  },
+};
+
+export function getMoodTooltip(mood: GisterMood | undefined): string | undefined {
+  if (!mood) return undefined;
+  return MOOD_TOOLTIPS[mood];
+}
+
+
