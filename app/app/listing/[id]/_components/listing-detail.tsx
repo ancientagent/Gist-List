@@ -488,17 +488,22 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         {/* Alerts and Actions */}
         {listing.notifications && listing.notifications.length > 0 && (
           <div className="mb-4">
-            <NotificationList 
-              notifications={listing.notifications} 
+            <NotificationList
+              notifications={listing.notifications}
               listingId={listingId}
               onResolve={fetchListing}
               onScrollToField={scrollToField}
               itemCategory={listing.category}
+              fulfillmentType={listing.fulfillmentType}
               onAddDetail={(text) => {
                 // Append chip text to description
                 const currentDesc = listing.description || '';
                 const newDesc = currentDesc ? `${currentDesc}\n${text}` : text;
                 setListing({ ...listing, description: newDesc });
+              }}
+              onPhotoRequest={(requirement) => {
+                // Navigate to camera with the photo requirement
+                router.push(`/camera?listing=${listingId}&requirement=${encodeURIComponent(requirement)}`);
               }}
             />
           </div>
@@ -534,7 +539,10 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               section="photos"
               notifications={grouped.photos}
               onApply={(n) => {
-                if (n.actionType === 'serial_closeup' || n.actionType === 'retake_photo' || n.actionType === 'add_photo') {
+                if (n.type === 'PHOTO') {
+                  // Navigate to camera with listing ID and photo requirement
+                  router.push(`/camera?listing=${listingId}&requirement=${encodeURIComponent(n.message)}`);
+                } else if (n.actionType === 'serial_closeup' || n.actionType === 'retake_photo' || n.actionType === 'add_photo') {
                   // Reuse existing flow: open camera by scrolling to gallery; actual camera open handled elsewhere
                   document.getElementById('photo-gallery')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
@@ -563,7 +571,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         </div>
 
         {/* Description */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <div id="field-description" className={`bg-white rounded-lg shadow-sm p-4 mb-4 ${highlightedField === 'description' ? 'ring-2 ring-purple-500' : ''}`}>
           <Label>Description</Label>
           <Textarea
             value={listing.description || ''}
