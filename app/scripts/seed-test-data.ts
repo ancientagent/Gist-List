@@ -121,7 +121,7 @@ async function main() {
       priceForParts: 40.00,
       isPremiumItem: true,
       specialClass: 'vintage',
-      facets: [
+      facets: JSON.stringify([
         {
           name: 'Original packaging',
           category: 'Provenance',
@@ -146,8 +146,8 @@ async function main() {
           status: 'present',
           confidence: 0.85,
         },
-      ],
-      priceUplifts: {
+      ]),
+      priceUplifts: JSON.stringify({
         total: 0.18,
         special: 0.05,
         facets: {
@@ -155,15 +155,15 @@ async function main() {
           Rarity: 0.04,
           Provenance: 0.04,
         },
-      },
+      }),
       verifiedCondition: 'Like New',
-      verifiedConditionScore: {
+      verifiedConditionScore: JSON.stringify({
         surface: 0.85,
         function: 0.90,
         clean: 0.88,
         complete: 0.80,
         avg: 0.8575,
-      },
+      }),
     },
   });
   console.log(`  ✓ Created listing: ${premiumListing.title}`);
@@ -188,11 +188,11 @@ async function main() {
       priceForParts: 40.00,
       isPremiumItem: true,
       specialClass: 'electronics',
-      priceUplifts: {
+      priceUplifts: JSON.stringify({
         total: 0.00,
         special: 0.05,
         facets: {},
-      },
+      }),
     },
   });
   console.log(`  ✓ Created listing: ${forPartsListing.title}`);

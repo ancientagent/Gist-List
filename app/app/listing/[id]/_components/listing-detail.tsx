@@ -539,7 +539,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               section="photos"
               notifications={grouped.photos}
               onApply={(n) => {
-                if (n.type === 'PHOTO') {
+                if (n.actionType === 'upload_photo' || n.actionType === 'add_photo_requirement') {
                   // Navigate to camera with listing ID and photo requirement
                   router.push(`/camera?listing=${listingId}&requirement=${encodeURIComponent(n.message)}`);
                 } else if (n.actionType === 'serial_closeup' || n.actionType === 'retake_photo' || n.actionType === 'add_photo') {

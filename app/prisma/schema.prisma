@@ -74,6 +74,9 @@ model User {
   totalApiCost        Float   @default(0)    // Total API costs in USD
   totalStorageCost    Float   @default(0)    // Total storage costs in USD
   
+  // Condition Report Preferences
+  conditionReportMode String  @default("all") // "all", "premium", or "off"
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -190,6 +193,16 @@ model Listing {
   usePremium        Boolean  @default(false) // User checked premium checkbox
   premiumFacts      String?  @db.Text // Premium/special facts AI went extra mile to provide
   usefulLinks       String?  @db.Text // JSON array of useful links (manuals, businesses, parts, services)
+  
+  // Verified Condition (Sweep B)
+  verifiedCondition      String? // e.g., "Like New", "Very Good"
+  verifiedConditionScore String? @db.Text // JSON: { surface, function, clean, complete, avg }
+  
+  // Premium/Special Items (Sweep B)
+  isPremiumItem     Boolean  @default(false) // Vintage, collectible, rare, luxury
+  specialClass      String?  // "Vintage", "Collectible", "Antique", "Luxury", "Custom", "Art"
+  facets            String?  @db.Text // JSON array of 5 facets: authentication, condition, rarity, provenance, completeness
+  priceUplifts      String?  @db.Text // JSON: { total, special, facets: { category: pct } }
   
   // Platform recommendations
   recommendedPlatforms String[] // top 2-3 platforms
