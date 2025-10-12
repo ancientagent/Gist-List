@@ -447,3 +447,100 @@ body {
         flex-direction: column;
     }
 }
+/* Auth Status */
+.auth-status {
+    margin-top: 8px;
+    text-align: center;
+}
+
+/* Scheduling Section */
+.scheduling-section {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.scheduling-section h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+}
+
+.schedule-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.schedule-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.schedule-option:hover {
+    border-color: #6366f1;
+    background-color: #f9fafb;
+}
+
+.schedule-option input[type="radio"] {
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.schedule-option input[type="radio"]:checked + .option-label {
+    color: #6366f1;
+}
+
+.schedule-option input[type="radio"]:checked ~ * {
+    border-color: #6366f1;
+}
+
+.option-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.option-label strong {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.option-label small {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.schedule-option input[type="radio"]:checked + .option-label strong {
+    color: #6366f1;
+}
+
+.custom-time-picker {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.time-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}

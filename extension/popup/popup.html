@@ -11,14 +11,15 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Gist List</h1>
+            <h1>Gister</h1>
             <p class="tagline">AI-Powered Reseller Assistant</p>
+            <div class="auth-status" id="authStatus"></div>
         </div>
 
         <!-- Data Sync Section -->
         <div class="sync-section">
             <div class="sync-controls">
-                <button id="importData" class="btn btn-secondary">Import Listings</button>
+                <button id="syncFromApp" class="btn btn-primary">Sync from Gister App</button>
                 <button id="refreshData" class="btn btn-secondary">Refresh</button>
             </div>
             <div class="sync-status" id="syncStatus">
@@ -31,8 +32,8 @@
             <h3>Available Listings <span id="listingCount" class="count">0</span></h3>
             <div id="listingsContainer" class="listings-container">
                 <div class="empty-state" id="emptyState">
-                    <p>No listings found. Import your listings from the phone app to get started.</p>
-                    <button class="btn btn-primary" onclick="document.getElementById('importData').click()">Import Listings</button>
+                    <p>No listings found. Sync your listings from the Gister app to get started.</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('syncFromApp').click()">Sync Listings</button>
                 </div>
             </div>
         </div>
@@ -85,6 +86,40 @@
             </div>
         </div>
 
+        <!-- Scheduling Section -->
+        <div class="scheduling-section" id="schedulingSection" style="display: none;">
+            <h3>⏰ Schedule Posting</h3>
+            <div class="schedule-options">
+                <label class="schedule-option">
+                    <input type="radio" name="scheduleType" value="now" checked>
+                    <span class="option-label">
+                        <strong>Post Now</strong>
+                        <small>Start posting immediately</small>
+                    </span>
+                </label>
+                
+                <label class="schedule-option">
+                    <input type="radio" name="scheduleType" value="ai">
+                    <span class="option-label">
+                        <strong>🤖 AI Recommended Time</strong>
+                        <small id="aiTimeRecommendation">Let AI choose optimal time</small>
+                    </span>
+                </label>
+                
+                <label class="schedule-option">
+                    <input type="radio" name="scheduleType" value="custom">
+                    <span class="option-label">
+                        <strong>Custom Time</strong>
+                        <small>Choose your own schedule</small>
+                    </span>
+                </label>
+            </div>
+
+            <div class="custom-time-picker" id="customTimePicker" style="display: none;">
+                <input type="datetime-local" id="customTime" class="time-input">
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="action-section" id="actionSection" style="display: none;">
             <div class="action-buttons">
@@ -114,9 +149,7 @@
         </div>
     </div>
 
-    <!-- Hidden File Input for Data Import -->
-    <input type="file" id="fileInput" accept=".json" style="display: none;">
-
+    <script src="../api/gister-api.js"></script>
     <script src="user-feedback.js"></script>
     <script src="popup.js"></script>
 </body>

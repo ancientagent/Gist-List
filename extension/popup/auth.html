@@ -1,0 +1,145 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect to Gister</title>
+    <link rel="stylesheet" href="popup.css">
+    <style>
+        .auth-container {
+            padding: 20px;
+            max-width: 350px;
+        }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .auth-header h1 {
+            font-size: 24px;
+            color: #6366f1;
+            margin-bottom: 8px;
+        }
+        .auth-header p {
+            font-size: 13px;
+            color: #64748b;
+        }
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+        }
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+        .auth-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .btn-connect {
+            padding: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-connect:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .btn-connect:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .help-text {
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 16px;
+        }
+        .help-text a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>🔐 Connect to Gister</h1>
+            <p>Sign in with your Gister account to sync listings</p>
+        </div>
+
+        <form class="auth-form" id="authForm">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="your@email.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <div class="auth-buttons">
+                <button type="submit" class="btn-connect" id="connectBtn">
+                    Connect Extension
+                </button>
+            </div>
+        </form>
+
+        <div class="help-text">
+            Don't have an account? <a href="https://gistlist.abacusai.app/auth/signup" target="_blank">Sign up on Gister</a>
+        </div>
+    </div>
+
+    <script src="../api/gister-api.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>

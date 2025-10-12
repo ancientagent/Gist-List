@@ -1,13 +1,9 @@
-// Popup Script for Gister Extension
-class GisterPopup {
+// Popup Script for Gist List Extension
+class GistListPopup {
     constructor() {
-        this.apiClient = new GisterAPIClient();
         this.listings = [];
         this.selectedListings = [];
         this.selectedPlatforms = [];
-        this.scheduleType = 'now';
-        this.customScheduleTime = null;
-        this.aiRecommendedTime = null;
         this.isPosting = false;
         this.postingProgress = {
             current: 0,
@@ -23,9 +19,6 @@ class GisterPopup {
     }
 
     async init() {
-        // Check authentication first
-        await this.checkAuthentication();
-        
         // Load stored data
         await this.loadStoredData();
         
@@ -39,50 +32,16 @@ class GisterPopup {
         this.checkPlatformAvailability();
     }
 
-    async checkAuthentication() {
-        await this.apiClient.loadAuthData();
-        
-        if (!this.apiClient.isAuthenticated()) {
-            // Redirect to auth page
-            window.location.href = 'auth.html';
-            return;
-        }
-
-        // Show auth status
-        const authStatus = document.getElementById('authStatus');
-        if (authStatus) {
-            authStatus.innerHTML = `
-                <span style="color: #10b981; font-size: 12px;">
-                    ✓ Connected to Gister
-                </span>
-            `;
-        }
-    }
-
     setupEventListeners() {
-        // Data sync
-        const syncBtn = document.getElementById('syncFromApp');
-        if (syncBtn) {
-            syncBtn.addEventListener('click', () => this.syncFromGisterApp());
-        }
+        // Data import and sync
+        document.getElementById('importData').addEventListener('click', () => this.importData());
         document.getElementById('refreshData').addEventListener('click', () => this.refreshData());
+        document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileImport(e));
 
         // Platform selection
         document.querySelectorAll('input[name="platform"]').forEach(checkbox => {
             checkbox.addEventListener('change', () => this.updatePlatformSelection());
         });
-
-        // Scheduling options
-        document.querySelectorAll('input[name="scheduleType"]').forEach(radio => {
-            radio.addEventListener('change', (e) => this.handleScheduleTypeChange(e.target.value));
-        });
-
-        const customTimeInput = document.getElementById('customTime');
-        if (customTimeInput) {
-            customTimeInput.addEventListener('change', (e) => {
-                this.customScheduleTime = e.target.value;
-            });
-        }
 
         // Action buttons
         document.getElementById('selectAll').addEventListener('click', () => this.selectAllListings());
@@ -94,44 +53,6 @@ class GisterPopup {
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             this.handleBackgroundMessage(message, sender, sendResponse);
         });
-    }
-
-    handleScheduleTypeChange(type) {
-        this.scheduleType = type;
-        const customTimePicker = document.getElementById('customTimePicker');
-        
-        if (type === 'custom') {
-            customTimePicker.style.display = 'block';
-            // Set min datetime to now
-            const now = new Date();
-            now.setMinutes(now.getMinutes() + 5); // At least 5 minutes in future
-            document.getElementById('customTime').min = now.toISOString().slice(0, 16);
-        } else {
-            customTimePicker.style.display = 'none';
-        }
-
-        // Update AI recommendation if selected
-        if (type === 'ai' && this.selectedListings.length > 0) {
-            this.updateAIRecommendation();
-        }
-    }
-
-    async updateAIRecommendation() {
-        if (this.selectedListings.length === 0) return;
-
-        const firstListing = this.listings[this.selectedListings[0]];
-        const recommendation = await this.apiClient.getAIRecommendedTime(
-            firstListing.id,
-            firstListing.category
-        );
-
-        this.aiRecommendedTime = recommendation.scheduledTime;
-        
-        const recommendationEl = document.getElementById('aiTimeRecommendation');
-        if (recommendationEl) {
-            const time = new Date(recommendation.scheduledTime);
-            recommendationEl.textContent = `Recommended: ${time.toLocaleString()} - ${recommendation.reason}`;
-        }
     }
 
     async loadStoredData() {
@@ -170,31 +91,54 @@ class GisterPopup {
         }
     }
 
-    async syncFromGisterApp() {
-        const loadingToast = this.feedbackManager.showLoading('Syncing from Gister app...');
-        this.showStatus('Syncing...', 'loading');
+    importData() {
+        // Trigger file input
+        document.getElementById('fileInput').click();
+    }
+
+    async handleFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const loadingToast = this.feedbackManager.showLoading('Importing listings...');
 
         try {
-            const listings = await this.apiClient.getListings();
+            const text = await file.text();
             
-            this.listings = listings;
-            await this.saveData();
-            this.updateUI();
-
-            this.feedbackManager.removeToast(loadingToast);
-            this.feedbackManager.showSuccess(
-                `Successfully synced ${listings.length} listing${listings.length !== 1 ? 's' : ''}!`,
-                4000
-            );
-            this.showStatus(`Synced ${listings.length} listings`, 'success');
+            // Use background data sync for validation and processing
+            chrome.runtime.sendMessage({
+                action: 'syncData',
+                method: 'file_import',
+                options: { fileData: text }
+            }, (response) => {
+                this.feedbackManager.removeToast(loadingToast);
+                
+                if (response && response.success) {
+                    this.listings = response.result.total || [];
+                    this.updateUI();
+                    this.feedbackManager.showSuccess(
+                        `Successfully imported ${response.result.imported} listings!`, 
+                        4000
+                    );
+                } else {
+                    this.feedbackManager.handleError(new Error(response?.error || 'Import failed'), {
+                        context: 'fileImport',
+                        retryCallback: () => this.handleFileImport(event)
+                    });
+                }
+            });
+            
         } catch (error) {
             this.feedbackManager.removeToast(loadingToast);
             this.feedbackManager.handleError(error, {
-                context: 'syncFromApp',
-                retryCallback: () => this.syncFromGisterApp()
+                context: 'fileImport',
+                category: 'validation',
+                retryCallback: () => this.handleFileImport(event)
             });
-            this.showStatus('Sync failed', 'error');
         }
+
+        // Reset file input
+        event.target.value = '';
     }
 
     validateListingData(data) {
@@ -303,11 +247,7 @@ class GisterPopup {
 
     updatePlatformSection() {
         const section = document.getElementById('platformSection');
-        const schedulingSection = document.getElementById('schedulingSection');
-        
-        const shouldShow = this.listings.length > 0;
-        section.style.display = shouldShow ? 'block' : 'none';
-        schedulingSection.style.display = shouldShow ? 'block' : 'none';
+        section.style.display = this.listings.length > 0 ? 'block' : 'none';
     }
 
     updatePlatformSelection() {
@@ -379,12 +319,6 @@ class GisterPopup {
     async startPosting() {
         if (this.isPosting) return;
 
-        // Check if scheduling is requested
-        if (this.scheduleType !== 'now') {
-            return this.schedulePosting();
-        }
-
-        // Immediate posting
         this.isPosting = true;
         this.postingProgress.current = 0;
         this.postingProgress.total = this.selectedListings.length * this.selectedPlatforms.length;
@@ -402,7 +336,6 @@ class GisterPopup {
         // Show progress section
         document.getElementById('progressSection').style.display = 'block';
         document.getElementById('platformSection').style.display = 'none';
-        document.getElementById('schedulingSection').style.display = 'none';
         document.getElementById('actionSection').style.display = 'none';
 
         // Start posting process
@@ -447,57 +380,6 @@ class GisterPopup {
 
         this.isPosting = false;
         this.currentProgressId = null;
-    }
-
-    async schedulePosting() {
-        // Validate schedule time
-        let scheduledTime;
-        if (this.scheduleType === 'ai') {
-            if (!this.aiRecommendedTime) {
-                await this.updateAIRecommendation();
-            }
-            scheduledTime = this.aiRecommendedTime;
-        } else if (this.scheduleType === 'custom') {
-            if (!this.customScheduleTime) {
-                this.feedbackManager.showError('Please select a time for scheduled posting');
-                return;
-            }
-            scheduledTime = new Date(this.customScheduleTime).toISOString();
-        }
-
-        const loadingToast = this.feedbackManager.showLoading('Scheduling posts...');
-
-        try {
-            // Schedule each selected listing
-            const schedulePromises = this.selectedListings.map(async (listingIndex) => {
-                const listing = this.listings[listingIndex];
-                return await this.apiClient.createScheduledPost(
-                    listing.id,
-                    this.selectedPlatforms,
-                    scheduledTime,
-                    this.scheduleType === 'ai'
-                );
-            });
-
-            await Promise.all(schedulePromises);
-
-            this.feedbackManager.removeToast(loadingToast);
-            
-            const scheduleDate = new Date(scheduledTime);
-            this.feedbackManager.showSuccess(
-                `✓ Scheduled ${this.selectedListings.length} listing(s) to post on ${this.selectedPlatforms.length} platform(s) at ${scheduleDate.toLocaleString()}`,
-                6000
-            );
-
-            // Reset selections
-            this.resetToStart();
-        } catch (error) {
-            this.feedbackManager.removeToast(loadingToast);
-            this.feedbackManager.handleError(error, {
-                context: 'scheduling',
-                retryCallback: () => this.schedulePosting()
-            });
-        }
     }
 
     async processPostings() {
@@ -691,5 +573,5 @@ class GisterPopup {
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new GisterPopup();
+    new GistListPopup();
 });
