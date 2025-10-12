@@ -601,7 +601,7 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                       }
                     }
 
-                    // Create QUESTIONS (actionable insights - blue)
+                    // Create QUESTIONS (actionable insights - blue) and INSIGHTS (yellow)
                     if (finalResult.questions?.length > 0) {
                       for (const question of finalResult.questions) {
                         // For buyer_disclosure, ensure only ONE notification exists
@@ -632,11 +632,27 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                           await prisma.aINotification.create({
                             data: {
                               listingId,
-                              type: 'QUESTION',
+                              type: question.actionType === 'insight' ? 'INSIGHT' : 'QUESTION',
                               message: question.message,
                               field: null,
                               actionType: question.actionType,
-                              actionData: question.data ? JSON.stringify(question.data) : null,
+                              // Extend actionData with section/mood/context for Pass A without DB migration
+                              actionData: JSON.stringify({
+                                ...(question.data || {}),
+                                section: question.section || undefined,
+                                mood: (finalResult.category && typeof finalResult.category === 'string') ? ((): string => {
+                                  const c = finalResult.category.toLowerCase();
+                                  if (c.includes('electronic')) return 'tech';
+                                  if (c.includes('jewel')) return 'luxury';
+                                  if (c.includes('doll') || c.includes('clown')) return 'doll';
+                                  if (/\b(19\d\d|18\d\d)\b/.test(c) || c.includes('vintage')) return 'historic';
+                                  if (c.includes('painting') || c.includes('art')) return 'art';
+                                  if (c.includes('apparel') || c.includes('fashion') || c.includes('shoe') || c.includes('clothing')) return 'fashion';
+                                  if (c.includes('toy')) return 'kitsch';
+                                  return 'neutral';
+                                })() : 'neutral',
+                                context: question.context || undefined,
+                              }),
                             },
                           });
                         }

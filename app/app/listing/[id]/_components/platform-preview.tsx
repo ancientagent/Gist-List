@@ -24,21 +24,9 @@ interface PlatformField {
 const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[]> = {
   'eBay': (listing) => {
     const fields: PlatformField[] = [];
-    
-    // UPC/EAN for electronics (unique to eBay)
-    if (listing.category?.toLowerCase().includes('electronics')) {
-      fields.push({
-        name: 'upc',
-        label: 'UPC/EAN',
-        type: 'text',
-        value: '',
-        confidence: 0,
-        isUnique: true,
-        placeholder: 'If you have the barcode...'
-      });
-    }
-    
-    // Handling time (unique field)
+    const category = listing.category?.toLowerCase() || '';
+
+    // Handling time (universal eBay field)
     fields.push({
       name: 'handling_time',
       label: 'Handling Time (days)',
@@ -48,16 +36,123 @@ const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[
       isUnique: true,
       placeholder: '1-3'
     });
-    
+
+    // Electronics
+    if (category.includes('electronics') || category.includes('computer') || category.includes('phone') || category.includes('camera')) {
+      fields.push({
+        name: 'upc',
+        label: 'UPC/EAN',
+        type: 'text',
+        value: listing.upc || '',
+        confidence: listing.upc ? 1 : 0,
+        isUnique: true,
+        placeholder: 'Barcode number'
+      });
+      fields.push({
+        name: 'mpn',
+        label: 'MPN (Manufacturer Part Number)',
+        type: 'text',
+        value: listing.mpn || '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'e.g., A1234'
+      });
+    }
+
+    // Books
+    if (category.includes('book')) {
+      fields.push({
+        name: 'isbn',
+        label: 'ISBN',
+        type: 'text',
+        value: listing.isbn || '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: '10 or 13 digit ISBN'
+      });
+      fields.push({
+        name: 'publication_year',
+        label: 'Publication Year',
+        type: 'text',
+        value: listing.year || '',
+        confidence: listing.year ? 0.8 : 0,
+        placeholder: 'e.g., 2020'
+      });
+    }
+
+    // Clothing
+    if (category.includes('clothing') || category.includes('apparel') || category.includes('fashion')) {
+      fields.push({
+        name: 'size_type',
+        label: 'Size Type',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'Regular, Petite, Plus, Big & Tall'
+      });
+    }
+
+    // Collectibles
+    if (category.includes('collectible') || category.includes('vintage') || category.includes('antique')) {
+      fields.push({
+        name: 'country_manufacture',
+        label: 'Country/Region of Manufacture',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'e.g., United States, Japan'
+      });
+    }
+
     return fields;
   },
   'Mercari': (listing) => {
-    // Mercari uses standard fields mostly
-    return [];
+    const fields: PlatformField[] = [];
+    const category = listing.category?.toLowerCase() || '';
+
+    // Shipping weight (required for Mercari shipping labels)
+    fields.push({
+      name: 'shipping_weight',
+      label: 'Item Weight (lbs)',
+      type: 'number',
+      value: listing.weight?.toString() || '',
+      confidence: listing.weight ? 1 : 0.3,
+      isUnique: true,
+      placeholder: 'Required for shipping'
+    });
+
+    // Clothing-specific
+    if (category.includes('clothing') || category.includes('apparel') || category.includes('fashion')) {
+      fields.push({
+        name: 'department',
+        label: 'Department',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'Women, Men, Kids, Unisex'
+      });
+    }
+
+    return fields;
   },
   'Poshmark': (listing) => {
     const fields: PlatformField[] = [];
-    
+    const category = listing.category?.toLowerCase() || '';
+
+    // Department (required for Poshmark)
+    fields.push({
+      name: 'department',
+      label: 'Department',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'Women, Men, Kids, Home'
+    });
+
     // Original price (unique to Poshmark)
     fields.push({
       name: 'original_price',
@@ -66,30 +161,186 @@ const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[
       value: '',
       confidence: 0,
       isUnique: true,
-      placeholder: 'Original purchase price'
+      placeholder: 'What you originally paid'
     });
-    
+
+    // NWT indicator for clothing
+    if (category.includes('clothing') || category.includes('apparel') || category.includes('fashion')) {
+      fields.push({
+        name: 'nwt',
+        label: 'New With Tags (NWT)?',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'Yes or No'
+      });
+    }
+
     return fields;
   },
   'Facebook Marketplace': (listing) => {
-    // Facebook uses standard fields
-    return [];
+    const fields: PlatformField[] = [];
+    const category = listing.category?.toLowerCase() || '';
+
+    // Pickup/Delivery options
+    fields.push({
+      name: 'fulfillment_options',
+      label: 'Fulfillment Options',
+      type: 'text',
+      value: listing.fulfillmentType === 'local' ? 'Local pickup only' : 'Local pickup or shipping',
+      confidence: listing.fulfillmentType ? 0.9 : 0.5,
+      isUnique: true,
+      placeholder: 'Local pickup, Shipping, or Both'
+    });
+
+    // Vehicles need special fields
+    if (category.includes('car') || category.includes('vehicle') || category.includes('auto')) {
+      fields.push({
+        name: 'mileage',
+        label: 'Mileage',
+        type: 'number',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'e.g., 50000'
+      });
+      fields.push({
+        name: 'vin',
+        label: 'VIN',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: '17-character VIN'
+      });
+    }
+
+    return fields;
   },
   'OfferUp': (listing) => {
-    // OfferUp uses standard fields
-    return [];
+    const fields: PlatformField[] = [];
+    const category = listing.category?.toLowerCase() || '';
+
+    // Firm price indicator
+    fields.push({
+      name: 'firm_price',
+      label: 'Firm Price?',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'Yes or No (negotiable)'
+    });
+
+    // Vehicles
+    if (category.includes('car') || category.includes('vehicle') || category.includes('auto')) {
+      fields.push({
+        name: 'mileage',
+        label: 'Mileage',
+        type: 'number',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'e.g., 50000'
+      });
+    }
+
+    return fields;
   },
   'Craigslist': (listing) => {
-    // Craigslist uses standard fields
-    return [];
+    const fields: PlatformField[] = [];
+    const category = listing.category?.toLowerCase() || '';
+
+    // Neighborhood/Area (important for local pickup)
+    fields.push({
+      name: 'neighborhood',
+      label: 'Neighborhood/Area',
+      type: 'text',
+      value: listing.location || '',
+      confidence: listing.location ? 0.8 : 0,
+      isUnique: true,
+      placeholder: 'e.g., Downtown, Westside'
+    });
+
+    // Delivery option
+    fields.push({
+      name: 'delivery_available',
+      label: 'Delivery Available?',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'Yes or No'
+    });
+
+    // VIN for vehicles
+    if (category.includes('car') || category.includes('vehicle') || category.includes('auto')) {
+      fields.push({
+        name: 'vin',
+        label: 'VIN',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: '17-character VIN'
+      });
+      fields.push({
+        name: 'mileage',
+        label: 'Mileage',
+        type: 'number',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'e.g., 50000'
+      });
+    }
+
+    return fields;
   },
   'Nextdoor': (listing) => {
-    // Nextdoor uses standard fields
-    return [];
+    const fields: PlatformField[] = [];
+    const category = listing.category?.toLowerCase() || '';
+
+    // Pickup details (critical for Nextdoor)
+    fields.push({
+      name: 'pickup_instructions',
+      label: 'Pickup Instructions',
+      type: 'text',
+      value: listing.meetupPreference || '',
+      confidence: listing.meetupPreference ? 0.8 : 0,
+      isUnique: true,
+      placeholder: 'e.g., Front porch pickup, contact first'
+    });
+
+    // Cross-posted indicator
+    fields.push({
+      name: 'cross_posted',
+      label: 'Cross-posted elsewhere?',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'Yes or No (transparency for neighbors)'
+    });
+
+    return fields;
   },
   'Reverb': (listing) => {
     const fields: PlatformField[] = [];
-    
+    const category = listing.category?.toLowerCase() || '';
+
+    // Year (important for instruments)
+    fields.push({
+      name: 'year',
+      label: 'Year',
+      type: 'text',
+      value: listing.year || '',
+      confidence: listing.year ? 0.9 : 0,
+      isUnique: true,
+      placeholder: 'e.g., 2015 or 1980s'
+    });
+
     // Serial number (unique to Reverb for instruments)
     fields.push({
       name: 'serial_number',
@@ -100,7 +351,7 @@ const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[
       isUnique: true,
       placeholder: 'If visible on instrument'
     });
-    
+
     // Finish/color for instruments
     fields.push({
       name: 'finish',
@@ -110,12 +361,73 @@ const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[
       confidence: listing.color ? 0.8 : 0.3,
       placeholder: 'e.g., Sunburst, Matte Black'
     });
-    
+
+    // Country of manufacture
+    fields.push({
+      name: 'country_manufacture',
+      label: 'Country/Region of Manufacture',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'e.g., USA, Japan, Mexico'
+    });
+
+    // Handedness (for guitars/basses)
+    if (category.includes('guitar') || category.includes('bass')) {
+      fields.push({
+        name: 'handedness',
+        label: 'Handedness',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'Right-Handed or Left-Handed'
+      });
+    }
+
+    // Includes (accessories)
+    fields.push({
+      name: 'includes',
+      label: 'Includes',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'e.g., Hard case, cables, manual'
+    });
+
     return fields;
   },
   'Vinted': (listing) => {
-    // Vinted uses standard fields
-    return [];
+    const fields: PlatformField[] = [];
+    const category = listing.category?.toLowerCase() || '';
+
+    // Package size (required for Vinted shipping)
+    fields.push({
+      name: 'package_size',
+      label: 'Package Size',
+      type: 'text',
+      value: '',
+      confidence: 0,
+      isUnique: true,
+      placeholder: 'Small, Medium, Large, Extra Large'
+    });
+
+    // Clothing-specific fields
+    if (category.includes('clothing') || category.includes('apparel') || category.includes('fashion')) {
+      fields.push({
+        name: 'gender',
+        label: 'Gender',
+        type: 'text',
+        value: '',
+        confidence: 0,
+        isUnique: true,
+        placeholder: 'Women, Men, Unisex'
+      });
+    }
+
+    return fields;
   },
 };
 
