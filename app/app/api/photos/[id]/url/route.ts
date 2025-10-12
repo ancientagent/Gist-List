@@ -37,6 +37,9 @@ export async function GET(
     }
 
     // Get signed URL
+    if (!photo.cloudStoragePath) {
+      return NextResponse.json({ error: 'Photo file not available' }, { status: 404 });
+    }
     const url = await downloadFile(photo.cloudStoragePath);
 
     return NextResponse.json({ url });

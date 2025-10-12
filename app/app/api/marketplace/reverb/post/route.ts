@@ -68,7 +68,9 @@ export async function POST(request: NextRequest) {
       price: listing.price || 0,
       condition: listing.condition || "Good",
       categories: [], // TODO: Map categories
-      photos: listing.photos.map((p) => p.cdnUrl || p.cloudStoragePath),
+      photos: listing.photos
+        .map((p) => p.cdnUrl || p.cloudStoragePath)
+        .filter((url): url is string => !!url), // Filter out null/undefined
     };
 
     // Post to Reverb

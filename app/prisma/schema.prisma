@@ -175,8 +175,16 @@ model Listing {
   weight            Float?
   dimensions        String?  // "LxWxH"
   shippingCostEst   Float?
-  location          String?  // for local sales
+  location          String?  // for local sales (original user input)
   meetupPreference  String?  // delivery/meetup preference
+  
+  // Standardized Location (for buyer "near me" search)
+  locationCity      String?  // Standardized city
+  locationState     String?  // Standardized state/province
+  locationCountry   String   @default("US") // Standardized country
+  locationZipCode   String?  // For radius search
+  latitude          Float?   // Geocoded coordinates
+  longitude         Float?
   
   // Premium Features
   usePremium        Boolean  @default(false) // User checked premium checkbox
@@ -186,6 +194,20 @@ model Listing {
   // Platform recommendations
   recommendedPlatforms String[] // top 2-3 platforms
   qualifiedPlatforms   String[] // all qualifying platforms
+  
+  // Availability Tracking (for buyer search)
+  availableOnPlatforms String[] @default([]) // ["ebay", "mercari"] - where it's currently live
+  lastSeenOnPlatform   String?  // Last platform where it was verified available
+  lastVerifiedAt       DateTime? // When availability was last checked via webhook/poll
+  
+  // Popularity Metrics (for buyer search ranking)
+  viewCount         Int      @default(0)
+  favoriteCount     Int      @default(0)
+  shareCount        Int      @default(0)
+  
+  // Search Optimization
+  searchableText    String?  @db.Text // Combined searchable text (title + description + tags)
+  categoryId        String?  // Link to ItemCategory taxonomy
   
   // AI Learning
   editedFields      String[] // Track which fields user edited for AI learning
@@ -207,17 +229,30 @@ model Listing {
   scheduledPosts    ScheduledPost[]
   marketResearch    MarketResearch?
   postingQueue      PostingQueue[]
+  category_rel      ItemCategory? @relation(fields: [categoryId], references: [id])
+  platformSyncs     PlatformSync[]
+  searchIndex       SearchIndex?
 }
 
 model Photo {
   id                String   @id @default(cuid())
   listingId         String
-  cloudStoragePath  String   // S3 key
+  cloudStoragePath  String?  // Temporary S3 key for AI processing (deleted after item sold)
   cdnUrl            String?  // CDN URL for fast access
+  thumbnailUrl      String?  // Small thumbnail for preview (kept for search)
+  platformImageUrl  String?  // URL where image lives on marketplace (eBay, Mercari, etc.)
   order             Int      @default(0)
   isPrimary         Boolean  @default(false)
+  
+  // Image metadata (no raw image data)
+  width             Int?
+  height            Int?
+  aspectRatio       String?  // "16:9", "4:3", "square"
   originalSizeBytes Int?     // Original file size
   compressedSizeBytes Int?   // Compressed file size
+  processedAt       DateTime? // When AI analysis completed
+  deletedFromS3At   DateTime? // When original was removed from S3 (after sale)
+  
   createdAt         DateTime @default(now())
   
   listing           Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
@@ -466,4 +501,78 @@ model ApiUsage {
   
   @@unique([userId, platform, action, month])
   @@index([userId, month])
+}
+
+// ========== BUYER SEARCH INFRASTRUCTURE ==========
+
+// Item Category Taxonomy for Better Search
+model ItemCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique // "Electronics", "Clothing", "Collectibles"
+  slug        String   @unique // "electronics"
+  parentId    String?  // For subcategories
+  level       Int      @default(0) // 0 = root, 1 = sub, etc.
+  facets      String[] // Searchable facets: ["brand", "condition", "size"]
+  
+  parent      ItemCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ItemCategory[] @relation("CategoryHierarchy")
+  listings    Listing[]
+  
+  @@index([slug])
+  @@index([parentId])
+}
+
+// Platform Sync Tracking for Marketplace Updates
+model PlatformSync {
+  id            String   @id @default(cuid())
+  listingId     String
+  platform      String   // "ebay", "mercari"
+  platformItemId String  // ID on the platform
+  
+  // Sync status
+  status        String   @default("active") // active, sold, ended, removed
+  lastSyncedAt  DateTime @default(now())
+  syncSource    String   // "webhook", "poll", "manual"
+  
+  // Platform data cache
+  currentPrice  Float?
+  viewCount     Int?
+  watchers      Int?
+  
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  @@unique([listingId, platform])
+  @@index([platform, status])
+  @@index([platformItemId])
+}
+
+// Search Index Cache for Fast Buyer Queries
+model SearchIndex {
+  id              String   @id @default(cuid())
+  listingId       String   @unique
+  
+  // Denormalized search data (copied from Listing for fast access)
+  title           String
+  category        String
+  subcategory     String?
+  condition       String
+  priceMin        Float?
+  priceMax        Float?
+  location        String?   // "Chicago, IL"
+  platforms       String[]  // ["ebay", "mercari"] - where it's live
+  
+  // Pre-computed search ranking scores
+  relevanceScore  Float   @default(0)  // How well it matches search terms (0-1)
+  qualityScore    Float   @default(0)  // Listing completeness, image quality (0-1)
+  popularityScore Float   @default(0)  // Views, favorites, recency (0-1)
+  
+  // Metadata
+  lastIndexedAt   DateTime @default(now())
+  
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  // Performance indexes
+  @@index([category, priceMin, priceMax])
+  @@index([location])
+  @@index([platforms])
 }

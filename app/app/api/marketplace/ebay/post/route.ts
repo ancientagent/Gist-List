@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
       price: listing.price || 0,
       condition: listing.condition || "Good",
       category_id: "default", // TODO: Map category
-      images: listing.photos.map((p) => p.cdnUrl || p.cloudStoragePath),
+      images: listing.photos
+        .map((p) => p.cdnUrl || p.cloudStoragePath)
+        .filter((url): url is string => !!url), // Filter out null/undefined
     };
 
     // Post to eBay

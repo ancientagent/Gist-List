@@ -53,7 +53,11 @@ export async function POST(
     const shouldUsePremium = wantsPremium && premiumAvailable && !alreadyUsedPremium;
 
     // Get signed URL for the photo
-    const photoUrl = await downloadFile(listing.photos[0].cloudStoragePath);
+    const cloudStoragePath = listing.photos[0]?.cloudStoragePath;
+    if (!cloudStoragePath) {
+      return NextResponse.json({ error: 'Photo not found or not uploaded yet' }, { status: 400 });
+    }
+    const photoUrl = await downloadFile(cloudStoragePath);
 
     // Fetch the image and convert to base64
     const imageResponse = await fetch(photoUrl);

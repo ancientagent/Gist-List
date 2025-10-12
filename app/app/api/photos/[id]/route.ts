@@ -31,8 +31,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Photo not found' }, { status: 404 });
     }
 
-    // Delete from S3
-    await deleteFile(photo.cloudStoragePath);
+    // Delete from S3 (if still exists)
+    if (photo.cloudStoragePath) {
+      await deleteFile(photo.cloudStoragePath);
+    }
 
     // Delete from database
     await prisma.photo.delete({
