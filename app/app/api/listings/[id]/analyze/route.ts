@@ -4,8 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { downloadFile } from '@/lib/s3';
-
-
+import { queueReindex } from '@/lib/search-indexing';
 
 export const dynamic = 'force-dynamic';
 
@@ -643,6 +642,11 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         }
                       }
                     }
+
+                    // Trigger search reindexing after analysis completes
+                    queueReindex(listingId, 'listing_analyzed').catch((err) => {
+                      console.error('[SearchIndex] Failed to queue reindex after analysis:', err);
+                    });
 
                     const finalData = JSON.stringify({
                       status: 'completed',

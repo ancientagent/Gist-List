@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-
-
+import { queueReindex, shouldReindex } from '@/lib/search-indexing';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +105,13 @@ export async function PATCH(
         status: data.status ?? undefined,
       },
     });
+
+    // Trigger search reindexing if relevant fields changed
+    if (shouldReindex(data)) {
+      queueReindex(listingId, 'listing_updated').catch((err) => {
+        console.error('[SearchIndex] Failed to queue reindex:', err);
+      });
+    }
 
     // Auto-save shipping/location preferences for future listings
     if (data.fulfillmentType || data.willingToShip !== undefined || data.okForLocals !== undefined ||

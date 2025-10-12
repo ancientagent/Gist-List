@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { uploadFile } from '@/lib/s3';
+import { queueReindex } from '@/lib/search-indexing';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,6 +155,11 @@ export async function POST(request: NextRequest) {
     await prisma.user.update({
       where: { id: userId },
       data: { listingCount: user.listingCount + 1 },
+    });
+
+    // Trigger initial search indexing
+    queueReindex(listing.id, 'listing_created').catch((err) => {
+      console.error('[SearchIndex] Failed to queue initial reindex:', err);
     });
 
     return NextResponse.json({

@@ -546,25 +546,31 @@ model PlatformSync {
   @@index([platformItemId])
 }
 
-// Search Index Cache for Fast Buyer Queries
+// Search Index for Buyer Marketplace Queries
 model SearchIndex {
   id              String   @id @default(cuid())
   listingId       String   @unique
   
-  // Denormalized search data (copied from Listing for fast access)
+  // Denormalized search data
   title           String
+  searchableText  String           @db.Text // precomputed, lowercased, stemmed text blob
   category        String
   subcategory     String?
   condition       String
   priceMin        Float?
   priceMax        Float?
-  location        String?   // "Chicago, IL"
-  platforms       String[]  // ["ebay", "mercari"] - where it's live
+  location        String?          // "Chicago, IL"
+  geoHash         String?          // optional, null until we enable radius search
   
-  // Pre-computed search ranking scores
-  relevanceScore  Float   @default(0)  // How well it matches search terms (0-1)
-  qualityScore    Float   @default(0)  // Listing completeness, image quality (0-1)
-  popularityScore Float   @default(0)  // Views, favorites, recency (0-1)
+  // Facet-based Quality System
+  facets          Json?            // full facet payload (name/value/status/confidence/timestamps)
+  highlightedFacets String[] @default([]) // seller-selected facets to count in composite grade
+  gradeSignals    Json?            // { facetGrades: { auth:0.95, condition:0.8 }, gradeMeta: {...}, verifiedFacetCount, totalFacetTargets }
+  gradeScore      Float    @default(0)   // 0..1 composite computed from seller-selected facets
+  
+  // Ranking Scores (placeholders for now)
+  popularityScore Float   @default(0)
+  relevanceScore  Float   @default(0)
   
   // Metadata
   lastIndexedAt   DateTime @default(now())
@@ -574,5 +580,6 @@ model SearchIndex {
   // Performance indexes
   @@index([category, priceMin, priceMax])
   @@index([location])
-  @@index([platforms])
+  @@index([geoHash])
+  @@index([gradeScore])
 }
