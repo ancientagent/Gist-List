@@ -203,11 +203,15 @@ export async function expectPhotoVerifiedBadge(page: Page, photoIndex: number) {
  */
 export async function expectConditionNotesContain(
   page: Page,
-  expectedText: string
+  expectedText: string | RegExp
 ) {
   const conditionNotes = page.locator('[data-testid="condition-notes"]');
   const text = await conditionNotes.inputValue();
-  expect(text).toContain(expectedText);
+  if (typeof expectedText === 'string') {
+    expect(text).toContain(expectedText);
+  } else {
+    expect(text).toMatch(expectedText);
+  }
 }
 
 /**
@@ -303,7 +307,7 @@ export async function expectNoLoadingSpinner(page: Page) {
 /**
  * Assert that an error message is displayed
  */
-export async function expectErrorMessage(page: Page, errorText?: string) {
+export async function expectErrorMessage(page: Page, errorText?: string | RegExp) {
   const error = page.locator('[data-testid="error-message"]');
   await expect(error).toBeVisible();
 
@@ -315,7 +319,7 @@ export async function expectErrorMessage(page: Page, errorText?: string) {
 /**
  * Assert that a success message/toast is displayed
  */
-export async function expectSuccessMessage(page: Page, successText?: string) {
+export async function expectSuccessMessage(page: Page, successText?: string | RegExp) {
   const success = page.locator('[data-testid="success-message"], .toast-success');
   await expect(success).toBeVisible({ timeout: 5000 });
 
