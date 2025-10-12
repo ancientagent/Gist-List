@@ -1,7 +1,7 @@
 
 {
-  "name": "Gister",
-  "short_name": "Gister",
+  "name": "GISTer",
+  "short_name": "GISTer",
   "description": "AI-powered reselling assistant",
   "start_url": "/",
   "display": "standalone",

@@ -89,7 +89,7 @@ export default function ListingsManager() {
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-indigo-600">Gister</h1>
+            <h1 className="text-xl font-bold text-indigo-600">GISTer</h1>
             <p className="text-xs text-gray-500">{session?.user?.name || 'User'}</p>
           </div>
           <div className="flex items-center gap-2">

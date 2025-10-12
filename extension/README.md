@@ -1,5 +1,5 @@
 
-# Gister Chrome Extension
+# GISTer Chrome Extension
 
 **AI-Powered Reseller Assistant** - Automate posting listings to multiple reselling platforms with intelligent scheduling and smart form filling.
 
@@ -25,14 +25,14 @@
 - **Custom Scheduling**: Set your own posting schedule
 
 ### 🔄 Seamless Integration
-- **Gister App Sync**: Automatically sync listings from your Gister mobile/web app
+- **GISTer App Sync**: Automatically sync listings from your GISTer mobile/web app
 - **Real-Time Updates**: Two-way sync between extension and app
 - **Secure Authentication**: OAuth-based secure connection
 
 ## Installation
 
 ### From Chrome Web Store (Coming Soon)
-1. Visit the Gister extension page on Chrome Web Store
+1. Visit the GISTer extension page on Chrome Web Store
 2. Click "Add to Chrome"
 3. Follow the prompts to install
 
@@ -42,22 +42,22 @@
 3. Enable "Developer mode" (toggle in top-right corner)
 4. Click "Load unpacked"
 5. Select the extension folder
-6. The Gister extension icon should now appear in your browser toolbar
+6. The GISTer extension icon should now appear in your browser toolbar
 
 ## Setup & Usage
 
 ### Initial Setup
 1. **Install the Extension** (see above)
-2. **Click the Gister Icon** in your browser toolbar
-3. **Connect to Gister App**:
-   - Enter your Gister account email and password
+2. **Click the GISTer Icon** in your browser toolbar
+3. **Connect to GISTer App**:
+   - Enter your GISTer account email and password
    - Click "Connect Extension"
-   - Authorization will be verified with your Gister account
+   - Authorization will be verified with your GISTer account
 
 ### Syncing Listings
-1. Open the Gister extension popup
-2. Click **"Sync from Gister App"**
-3. Your listings will be loaded from your Gister account
+1. Open the GISTer extension popup
+2. Click **"Sync from GISTer App"**
+3. Your listings will be loaded from your GISTer account
 4. Select listings you want to post
 
 ### Posting to Platforms
@@ -101,14 +101,14 @@
 
 ## Troubleshooting
 
-### Extension Not Connecting to Gister App
+### Extension Not Connecting to GISTer App
 - Verify you're using the correct email and password
-- Check that you have an active Gister account
-- Try logging out and back in on the Gister web app
+- Check that you have an active GISTer account
+- Try logging out and back in on the GISTer web app
 
 ### Listings Not Syncing
 - Click the "Refresh" button in the extension
-- Ensure you have listings in your Gister app
+- Ensure you have listings in your GISTer app
 - Check your internet connection
 
 ### Posting Failures
@@ -123,7 +123,7 @@
 
 ## Privacy & Security
 
-- **Secure Authentication**: Uses OAuth 2.0 for secure connection to Gister app
+- **Secure Authentication**: Uses OAuth 2.0 for secure connection to GISTer app
 - **No Data Storage**: Extension only stores temporary session data
 - **Platform Permissions**: Only accesses supported marketplace websites
 - **End-to-End Encryption**: All data transmission is encrypted
@@ -137,8 +137,8 @@
 ## Version History
 
 ### v2.0.0 (Current)
-- ✨ Rebranded to "Gister"
-- ✨ Added seamless Gister app integration
+- ✨ Rebranded to "GISTer"
+- ✨ Added seamless GISTer app integration
 - ✨ Introduced AI-powered scheduling
 - ✨ Improved authentication flow
 - 🐛 Fixed form filling issues on eBay and Mercari
@@ -151,7 +151,7 @@
 
 ## License
 
-© 2025 Gister. All rights reserved.
+© 2025 GISTer. All rights reserved.
 
 ---
 

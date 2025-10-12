@@ -1,5 +1,5 @@
 
-// Gister API Client for Chrome Extension
+// GISTer API Client for Chrome Extension
 class GisterAPIClient {
     constructor() {
         // Default to production, fallback to localhost for development
@@ -72,7 +72,7 @@ class GisterAPIClient {
             if (response.status === 401) {
                 // Token expired or invalid
                 await this.clearAuthData();
-                throw new Error('Authentication required. Please log in to Gister app.');
+                throw new Error('Authentication required. Please log in to GISTer app.');
             }
 
             if (!response.ok) {

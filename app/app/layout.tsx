@@ -8,7 +8,7 @@ import { Toaster } from 'sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Gister - Say-Snap-Sell',
+  title: 'GISTer - Say-Snap-Sell',
   description: 'Say-Snap-Sell: AI-Powered reselling with voice, camera, and smart market research',
   manifest: '/manifest.json',
 };

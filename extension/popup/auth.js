@@ -1,5 +1,5 @@
 
-// Authentication Script for Gister Extension
+// Authentication Script for GISTer Extension
 class AuthManager {
     constructor() {
         this.apiClient = new GisterAPIClient();

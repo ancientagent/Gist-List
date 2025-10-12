@@ -1,5 +1,5 @@
-// Popup Script for Gister Extension
-class GisterPopup {
+// Popup Script for GISTer Extension
+class GISTerPopup {
     constructor() {
         this.apiClient = new GisterAPIClient();
         this.listings = [];
@@ -53,7 +53,7 @@ class GisterPopup {
         if (authStatus) {
             authStatus.innerHTML = `
                 <span style="color: #10b981; font-size: 12px;">
-                    ✓ Connected to Gister
+                    ✓ Connected to GISTer
                 </span>
             `;
         }
@@ -63,7 +63,7 @@ class GisterPopup {
         // Data sync
         const syncBtn = document.getElementById('syncFromApp');
         if (syncBtn) {
-            syncBtn.addEventListener('click', () => this.syncFromGisterApp());
+            syncBtn.addEventListener('click', () => this.syncFromGISTerApp());
         }
         document.getElementById('refreshData').addEventListener('click', () => this.refreshData());
 
@@ -170,8 +170,8 @@ class GisterPopup {
         }
     }
 
-    async syncFromGisterApp() {
-        const loadingToast = this.feedbackManager.showLoading('Syncing from Gister app...');
+    async syncFromGISTerApp() {
+        const loadingToast = this.feedbackManager.showLoading('Syncing from GISTer app...');
         this.showStatus('Syncing...', 'loading');
 
         try {
@@ -191,7 +191,7 @@ class GisterPopup {
             this.feedbackManager.removeToast(loadingToast);
             this.feedbackManager.handleError(error, {
                 context: 'syncFromApp',
-                retryCallback: () => this.syncFromGisterApp()
+                retryCallback: () => this.syncFromGISTerApp()
             });
             this.showStatus('Sync failed', 'error');
         }
@@ -691,5 +691,5 @@ class GisterPopup {
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new GisterPopup();
+    new GISTerPopup();
 });

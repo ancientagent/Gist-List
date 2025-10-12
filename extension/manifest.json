@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Gister - AI Reseller Assistant",
+  "name": "GISTer - AI Reseller Assistant",
   "version": "2.0.0",
   "description": "Automate posting listings to multiple reselling platforms with AI-powered scheduling and smart form filling",
   
@@ -28,7 +28,7 @@
   
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Gister",
+    "default_title": "GISTer",
     "default_icon": {
       "16": "assets/icon16.png",
       "32": "assets/icon32.png",

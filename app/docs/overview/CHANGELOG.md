@@ -1,4 +1,4 @@
-# Gister Changelog
+# GISTer Changelog
 
 ## Sweep B: Buyer Search Marketplace & Advanced Features (Oct 9-12, 2025)
 
@@ -31,7 +31,7 @@
 - **Extension Auth API**: Secure authentication endpoints for extension communication
 - **Listings Sync**: Real-time sync of listings between app and extension
 - **Scheduled Posting**: API for timed auto-posting to multiple marketplaces
-- **Extension v2.0.0**: Rebranded and packaged Gister Chrome Extension
+- **Extension v2.0.0**: Rebranded and packaged GISTer Chrome Extension
 
 ### 🗄️ Database & Schema Updates
 - **SearchIndex Table**: Denormalized search data with facet grading (50+ fields)
