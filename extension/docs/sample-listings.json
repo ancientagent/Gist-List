@@ -1,0 +1,158 @@
+{
+  "version": "1.0",
+  "exportedAt": 1703875200000,
+  "exportedBy": "gist-list-sample-data",
+  "listings": [
+    {
+      "id": "sample_electronics_001",
+      "title": "iPhone 14 Pro Max 256GB Space Black",
+      "description": "Unlocked iPhone 14 Pro Max in Space Black color with 256GB storage. Phone is in excellent condition with minimal signs of use. Includes original box, Lightning cable, and documentation. Battery health at 96%. No cracks or scratches on screen or body. Perfect working condition.",
+      "price": 899.99,
+      "category": "electronics",
+      "condition": "excellent",
+      "brand": "Apple",
+      "model": "iPhone 14 Pro Max",
+      "color": "space black",
+      "year": 2022,
+      "location": "San Francisco, CA",
+      "shippingCost": 15.99,
+      "images": [
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800",
+        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800"
+      ],
+      "createdAt": 1703875200000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_clothing_001",
+      "title": "Vintage Levi's 501 Original Jeans",
+      "description": "Classic Levi's 501 original jeans in vintage wash. Size 32x32. Made in USA. These jeans have the perfect broken-in feel and classic fit. Some natural fading and wear that adds character. No holes or tears. A timeless wardrobe staple.",
+      "price": 65.00,
+      "category": "clothing",
+      "condition": "good",
+      "brand": "Levi's",
+      "model": "501 Original",
+      "size": "32x32",
+      "color": "blue",
+      "location": "Portland, OR",
+      "shippingCost": 8.99,
+      "images": [
+        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800",
+        "https://images.unsplash.com/photo-1582552938357-32b906df40cb?w=800"
+      ],
+      "createdAt": 1703875100000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_furniture_001",
+      "title": "Mid-Century Modern Walnut Coffee Table",
+      "description": "Beautiful mid-century modern coffee table made from solid walnut wood. Features clean lines and tapered legs characteristic of the era. Excellent craftsmanship with dovetail joints. Minor surface wear consistent with age, but structurally sound. Perfect for living room or den.",
+      "price": 450.00,
+      "category": "furniture",
+      "condition": "good",
+      "brand": "Lane Furniture",
+      "color": "walnut brown",
+      "year": 1965,
+      "location": "Austin, TX",
+      "shippingCost": 75.00,
+      "images": [
+        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800",
+        "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800"
+      ],
+      "createdAt": 1703875000000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_instruments_001",
+      "title": "Fender Player Stratocaster Electric Guitar",
+      "description": "Fender Player Series Stratocaster in 3-Color Sunburst finish. Made in Mexico. Features alder body, maple neck with pau ferro fingerboard. Three single-coil pickups with 5-way switching. Excellent playing condition with some minor dings and scratches. Includes gig bag.",
+      "price": 649.99,
+      "category": "music",
+      "condition": "excellent",
+      "brand": "Fender",
+      "model": "Player Stratocaster",
+      "color": "3-color sunburst",
+      "year": 2020,
+      "location": "Nashville, TN",
+      "shippingCost": 45.00,
+      "images": [
+        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800",
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800"
+      ],
+      "createdAt": 1703874900000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_books_001",
+      "title": "Complete Harry Potter Book Set (7 Books)",
+      "description": "Complete set of Harry Potter books by J.K. Rowling. All seven books in hardcover first American editions. Books are in very good condition with minimal shelf wear. Dust jackets included for all books. Perfect for collectors or new readers starting the series.",
+      "price": 125.00,
+      "category": "books",
+      "condition": "very good",
+      "brand": "Scholastic",
+      "location": "Boston, MA",
+      "shippingCost": 12.99,
+      "images": [
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800",
+        "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800"
+      ],
+      "createdAt": 1703874800000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_automotive_001",
+      "title": "Vintage Honda Motorcycle Helmet",
+      "description": "Vintage Honda motorcycle helmet from the 1980s. Size Large. Classic red and white Honda Racing colors. Shows some age and wear but still functional. Great for collectors or vintage bike enthusiasts. Inner padding could use replacement but helmet structure is solid.",
+      "price": 89.00,
+      "category": "automotive",
+      "condition": "fair",
+      "brand": "Honda",
+      "size": "L",
+      "color": "red",
+      "year": 1985,
+      "location": "Los Angeles, CA",
+      "shippingCost": 18.99,
+      "images": [
+        "https://live.staticflickr.com/2250/2243215257_5b938dae33_b.jpg"
+      ],
+      "createdAt": 1703874700000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_sports_001",
+      "title": "Wilson Pro Staff Tennis Racket",
+      "description": "Wilson Pro Staff tennis racket used by recreational player. Grip size 4 1/4. String tension around 55 lbs. Shows normal playing wear but no cracks or damage to frame. Good intermediate racket for players looking to improve their game. Includes racket cover.",
+      "price": 45.00,
+      "category": "sports",
+      "condition": "good",
+      "brand": "Wilson",
+      "model": "Pro Staff",
+      "location": "Miami, FL",
+      "shippingCost": 22.00,
+      "images": [
+        "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800",
+        "https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=800"
+      ],
+      "createdAt": 1703874600000,
+      "updatedAt": 1703875200000
+    },
+    {
+      "id": "sample_jewelry_001",
+      "title": "Sterling Silver Chain Necklace",
+      "description": "Beautiful sterling silver chain necklace, 18 inches long. Classic rope chain design. Marked .925 sterling silver. Shows minimal tarnishing and wear. Perfect everyday piece or for layering with other jewelry. Includes small jewelry pouch.",
+      "price": 35.00,
+      "category": "jewelry",
+      "condition": "excellent",
+      "size": "18 inch",
+      "color": "silver",
+      "location": "Denver, CO",
+      "shippingCost": 4.99,
+      "images": [
+        "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800",
+        "https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=800"
+      ],
+      "createdAt": 1703874500000,
+      "updatedAt": 1703875200000
+    }
+  ]
+}
