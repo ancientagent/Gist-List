@@ -83,6 +83,18 @@ model User {
   listings      Listing[]
   chips         UserChip[]
   scheduledPosts ScheduledPost[]
+  
+  // Marketplace Integrations
+  ebayCredential         EbayCredential?
+  reverbCredential       ReverbCredential?
+  
+  // Notification System
+  pushSubscriptions      PushSubscription[]
+  notificationPreference NotificationPreference?
+  postingQueue           PostingQueue[]
+  
+  // Usage Tracking
+  apiUsage               ApiUsage[]
 }
 
 model Subscription {
@@ -182,11 +194,17 @@ model Listing {
   updatedAt         DateTime @updatedAt
   postedAt          DateTime?
   
+  // API Platform IDs
+  ebayListingId     String?  // eBay item ID after posting
+  reverbListingId   String?  // Reverb listing ID after posting
+  
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   photos            Photo[]
   platformData      PlatformData[]
   notifications     AINotification[]
   scheduledPosts    ScheduledPost[]
+  marketResearch    MarketResearch?
+  postingQueue      PostingQueue[]
 }
 
 model Photo {
@@ -274,4 +292,161 @@ model ScheduledPost {
   
   @@index([userId, status])
   @@index([scheduledTime, status])
+}
+
+// ========== MARKETPLACE API INTEGRATIONS ==========
+
+// eBay OAuth 2.0 Credentials
+model EbayCredential {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  ebayUserId   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Reverb API Token
+model ReverbCredential {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiToken  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Enhanced Market Research Cache
+model MarketResearch {
+  id                String   @id @default(cuid())
+  listingId         String   @unique
+  listing           Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  // Price Intelligence
+  averagePrice      Float?
+  medianPrice       Float?
+  lowPrice          Float?
+  highPrice         Float?
+  
+  // Competition Analysis
+  competitorCount   Int      @default(0)
+  pricePercentile   Float?   // Where your price falls (0-100)
+  
+  // Trending Data
+  trendingScore     Float?   // 0-100, how hot this item is
+  trendingKeywords  String[] // Keywords driving searches
+  
+  // Timing Intelligence
+  bestDayToList     String?  // "Sunday"
+  bestTimeToList    String?  // "6-8 PM EST"
+  avgSaleSpeed      Float?   // Days to sell
+  
+  // Seasonal Patterns
+  seasonalTrend     String?  // "increasing", "decreasing", "stable"
+  peakSeason        String?  // "Holiday", "Back to School", etc.
+  
+  // Data Source
+  platform          String   @default("ebay") // Which API provided this data
+  dataFetchedAt     DateTime @default(now())
+  
+  @@index([dataFetchedAt])
+}
+
+// ========== NOTIFICATION SYSTEM ==========
+
+// PWA Push Notification Subscriptions
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  keys      Json     // {p256dh, auth} for web push
+  deviceInfo String? // User agent, device type
+  createdAt DateTime @default(now())
+}
+
+// User Notification Preferences
+model NotificationPreference {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Channel Preferences
+  pushEnabled   Boolean  @default(true)
+  emailEnabled  Boolean  @default(true)
+  smsEnabled    Boolean  @default(false) // Premium only
+  
+  // Contact Info
+  phoneNumber   String?
+  
+  // Scheduling Preferences
+  sessionTime   String?  // "20:00" - preferred posting time
+  batchMode     Boolean  @default(false) // Queue all posts for session
+  
+  // Notification Types
+  notifyOnReady    Boolean @default(true)  // Listing ready to post
+  notifyOnPosted   Boolean @default(true)  // Successfully posted
+  notifyOnTrending Boolean @default(true)  // Item is trending
+  notifyOnPriceDrop Boolean @default(false) // Competitor price drop
+  
+  updatedAt     DateTime @updatedAt
+}
+
+// Posting Queue for Semi-Automated Platforms
+model PostingQueue {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  platforms   String[]  // ["poshmark", "mercari", "offerup"]
+  
+  // Workflow Status
+  status      String    @default("pending") // pending, notified, approved, posting, posted, expired, failed
+  
+  // Timestamps
+  notifiedAt  DateTime? // When user was notified
+  approvedAt  DateTime? // When user clicked "Post Now"
+  postedAt    DateTime? // When posting completed
+  expiresAt   DateTime  // Magic link expiration
+  
+  // Magic Link for Email/SMS
+  magicToken  String    @unique @default(cuid())
+  
+  // Error Tracking
+  errorMessage String?  @db.Text
+  retryCount   Int      @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, status])
+  @@index([expiresAt])
+  @@index([magicToken])
+}
+
+// API Usage Tracking for Rate Limiting
+model ApiUsage {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  platform   String   // "ebay", "reverb"
+  action     String   // "listing_create", "market_research", "image_upload"
+  
+  // Time-based tracking
+  month      String   // "2025-10"
+  count      Int      @default(0)
+  
+  // Cost tracking
+  cost       Float?   @default(0)
+  
+  updatedAt  DateTime @updatedAt
+  
+  @@unique([userId, platform, action, month])
+  @@index([userId, month])
 }
