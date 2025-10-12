@@ -197,11 +197,35 @@ export default function ListingsManager() {
       {/* FAB - New Post */}
       <Link
         href="/camera"
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+        className="fixed bottom-24 right-6 bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
         title="New Post"
       >
         <Camera className="w-6 h-6" />
       </Link>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-around">
+          <Link href="/listings">
+            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1 text-indigo-600">
+              <Package className="w-5 h-5" />
+              <span className="text-xs">Listings</span>
+            </Button>
+          </Link>
+          <Link href="/camera">
+            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
+              <Camera className="w-5 h-5" />
+              <span className="text-xs">Camera</span>
+            </Button>
+          </Link>
+          <Link href="/connections">
+            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
+              <Settings className="w-5 h-5" />
+              <span className="text-xs">Connections</span>
+            </Button>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }

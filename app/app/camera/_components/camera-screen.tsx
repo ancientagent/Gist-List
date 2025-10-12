@@ -3,11 +3,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Camera, Mic, Loader2 } from 'lucide-react';
+import { Camera, Mic, Loader2, Package, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function CameraScreen() {
   const { data: session } = useSession() || {};
@@ -412,6 +413,30 @@ export default function CameraScreen() {
           </p>
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-around">
+          <Link href="/listings">
+            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
+              <Package className="w-5 h-5" />
+              <span className="text-xs">Listings</span>
+            </Button>
+          </Link>
+          <Link href="/camera">
+            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1 text-indigo-600">
+              <Camera className="w-5 h-5" />
+              <span className="text-xs">Camera</span>
+            </Button>
+          </Link>
+          <Link href="/connections">
+            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
+              <Settings className="w-5 h-5" />
+              <span className="text-xs">Connections</span>
+            </Button>
+          </Link>
+        </div>
+      </nav>
 
       <style jsx>{`
         @keyframes listening-dots {
