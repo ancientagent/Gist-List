@@ -123,6 +123,14 @@ The chip bin already supports `actionData.options` (implemented for question-bas
 
 ---
 
+## Quick Facts & Auto-Population
+
+Quick Facts (Slice 1) now consumes notification context to insert structured lines:
+- "Comes with" → adds `Comes with: …`
+- "Missing" → adds `Missing: …`
+- "Inoperable" → appends condition text, flips condition to "For parts / not working", and reapplies ladder pricing
+- Per-user/category memory stored in localStorage so frequent disclosures surface first
+
 ## Auto-Population for Premium Items
 
 ### When AI Should Auto-Populate (No Notification Needed)

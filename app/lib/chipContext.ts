@@ -66,6 +66,14 @@ const CHIP_TEMPLATES: Record<string, ChipOption[]> = {
     { text: 'Screen Works', category: 'functional', itemCategories: ['electronics'] },
     { text: 'Buttons Responsive', category: 'functional', itemCategories: ['electronics'] },
   ],
+
+  inoperable: [
+    { text: 'Does Not Power On', category: 'inoperable', itemCategories: ['electronics', 'appliances', 'tools'] },
+    { text: 'Powers On but Won’t Start', category: 'inoperable', itemCategories: ['electronics', 'appliances'] },
+    { text: 'Screen Is Non-Functional', category: 'inoperable', itemCategories: ['electronics'] },
+    { text: 'No Audio Output', category: 'inoperable', itemCategories: ['electronics'] },
+    { text: 'Mechanical Parts Seized', category: 'inoperable', itemCategories: ['tools', 'collectibles'] },
+  ],
   
   fit_notes: [
     { text: 'Runs Small', category: 'fit_notes', itemCategories: ['clothing', 'shoes'] },
@@ -173,6 +181,7 @@ export function formatChipToText(parentChip: string, selectedChip: string): stri
     condition_details: '',
     functional: '',
     fit_notes: 'Fit:',
+    inoperable: 'Inoperable:',
   };
   
   const prefix = prefixes[parentChip] || '';

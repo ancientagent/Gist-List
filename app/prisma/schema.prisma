@@ -1,7 +1,6 @@
 generator client {
     provider = "prisma-client-js"
     binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
-    output = "/home/ubuntu/gist_list/app/node_modules/.prisma/client"
 }
 
 datasource db {
@@ -67,6 +66,7 @@ model User {
   defaultMeetupPreference String? // delivery/meetup preference
   defaultWeight          Float?  // typical shipping weight
   defaultDimensions      String? // typical dimensions
+  conditionReportMode    String  @default("all") // all | premium | off
   
   // Cost Tracking
   totalTokensUsed     Int     @default(0)    // Total LLM tokens consumed
@@ -82,6 +82,7 @@ model User {
   subscriptions Subscription[]
   listings      Listing[]
   chips         UserChip[]
+  telemetryEvents TelemetryEvent[]
 }
 
 model Subscription {
@@ -153,6 +154,13 @@ model Listing {
   priceForParts     Float?   // Fixed average for For Parts condition
   bestPostTime      String?
   marketInsights    String?  @db.Text
+  isPremiumItem         Boolean @default(false)
+  verifiedCondition        String?  @db.VarChar(50)
+  verifiedConditionScore   Json?
+  specialClass           String?  @db.VarChar(50)
+  facets                 Json?
+  highlightedFacets      String[] @default([])
+  priceUplifts           Json?
   
   // Shipping & Local
   fulfillmentType   String?  @default("shipping") // "shipping" or "local"
@@ -185,6 +193,7 @@ model Listing {
   photos            Photo[]
   platformData      PlatformData[]
   notifications     AINotification[]
+  telemetryEvents   TelemetryEvent[]
 }
 
 model Photo {
@@ -196,8 +205,15 @@ model Photo {
   isPrimary         Boolean  @default(false)
   originalSizeBytes Int?     // Original file size
   compressedSizeBytes Int?   // Compressed file size
+  requirement       String?
+  facetTag          String?
+  status            String   @default("pending") // pending, accepted, rejected
+  notificationId    String?
+  verificationReason String?
+  analysisData      Json?
+  verifiedAt        DateTime?
   createdAt         DateTime @default(now())
-  
+
   listing           Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
 }
 
@@ -252,4 +268,50 @@ model UserChip {
   
   @@unique([userId, category, text, itemCategory])
   @@index([userId, category, itemCategory])
+}
+
+model TelemetryEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  listingId  String
+  eventType  String   @db.VarChar(50)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([eventType])
+}
+
+model SearchIndex {
+  id              String   @id @default(cuid())
+  listingId       String   @unique
+
+  title           String
+  searchableText  String
+  category        String
+  subcategory     String?
+  condition       String
+  priceMin        Float?
+  priceMax        Float?
+  location        String?
+  geoHash         String?
+
+  facets          Json?
+  highlightedFacets String[] @default([])
+  gradeSignals    Json?
+  gradeScore      Float    @default(0)
+  popularityScore Float    @default(0)
+  relevanceScore  Float    @default(0)
+
+  lastIndexedAt   DateTime @default(now())
+
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([category, priceMin, priceMax])
+  @@index([location])
+  @@index([geoHash])
+  @@index([gradeScore])
 }

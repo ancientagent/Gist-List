@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { reindexListing } from '@/lib/search-index';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,8 @@ export async function POST(
       where: { id: listingId },
       data: { usePremium: true },
     });
+
+    await reindexListing(listingId);
 
     // Increment user's premium posts used
     const updatedUser = await prisma.user.update({

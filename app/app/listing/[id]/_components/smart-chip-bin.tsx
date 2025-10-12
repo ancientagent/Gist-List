@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { getChipSuggestions, formatChipToText, ChipOption } from '@/lib/chipContext';
 import { toast } from 'sonner';
+import type { NotificationType } from '@/src/notifications/types';
+import { logTelemetryEvent } from '@/lib/telemetry';
 
 interface SmartChipBinProps {
   isOpen: boolean;
@@ -18,6 +20,10 @@ interface SmartChipBinProps {
   listingId: string;
   notificationData?: any; // Additional data from the notification (e.g., possibleYears)
   allowMultiple?: boolean; // Allow multiple entries before closing
+  notificationId?: string | null;
+  notificationType?: NotificationType;
+  notificationField?: string | null;
+  onCompleteMultiEntry?: () => Promise<boolean> | boolean;
 }
 
 export default function SmartChipBin({
@@ -29,6 +35,10 @@ export default function SmartChipBin({
   listingId,
   notificationData,
   allowMultiple = false,
+  notificationId,
+  notificationType,
+  notificationField,
+  onCompleteMultiEntry,
 }: SmartChipBinProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [customChipText, setCustomChipText] = useState('');
@@ -36,6 +46,7 @@ export default function SmartChipBin({
   const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [selectedDecade, setSelectedDecade] = useState<string | null>(null);
   const [addedItems, setAddedItems] = useState<string[]>([]); // Track items added in multi-entry mode
+  const [isFinishing, setIsFinishing] = useState(false);
   
   const chipSuggestions = getChipSuggestions(itemCategory);
   
@@ -90,7 +101,66 @@ export default function SmartChipBin({
       loadUserChips();
     }
   }, [isOpen]);
-  
+
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveCategory(null);
+      setIsAddingCustom(false);
+      setCustomChipText('');
+      setSelectedDecade(null);
+      setAddedItems([]);
+      setIsFinishing(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveCategory(null);
+      setIsAddingCustom(false);
+      setCustomChipText('');
+      setSelectedDecade(null);
+      setAddedItems([]);
+      setIsFinishing(false);
+    }
+  }, [notificationId, isOpen]);
+
+  const isDescriptionField = !notificationField || notificationField === 'description';
+
+  const displayTextForEntry = (text: string) =>
+    isDescriptionField ? `• ${text}` : text;
+
+  const addedItemsHeading = isDescriptionField
+    ? 'Will post to description'
+    : 'Will update listing field';
+
+  const emitChipSelectTelemetry = (
+    chipText: string,
+    formattedText: string,
+    source: 'preset' | 'memory' | 'custom' | 'option' | 'unknown' | 'year',
+    category?: string | null,
+  ) => {
+    void logTelemetryEvent({
+      listingId,
+      eventType: 'chip_select',
+      metadata: {
+        notificationId: notificationId ?? null,
+        notificationType: notificationType ?? null,
+        field: notificationField ?? null,
+        category: category ?? null,
+        chipText,
+        formattedText,
+        source,
+        allowMultiple,
+      },
+    });
+  };
+
+  const handleQuickTagSelect = (category: string) => {
+    setActiveCategory(category);
+    setIsAddingCustom(true);
+    setCustomChipText('');
+  };
+
   const loadUserChips = async () => {
     try {
       const response = await fetch('/api/chips');
@@ -108,7 +178,11 @@ export default function SmartChipBin({
     setIsAddingCustom(false);
   };
   
-  const handleChipClick = async (parentCategory: string, chip: ChipOption) => {
+  const handleChipClick = async (
+    parentCategory: string,
+    chip: ChipOption,
+    source: 'preset' | 'memory',
+  ) => {
     const formattedText = formatChipToText(parentCategory, chip.text);
 
     // Save chip usage
@@ -126,11 +200,12 @@ export default function SmartChipBin({
       console.error('Failed to save chip usage:', error);
     }
 
+    emitChipSelectTelemetry(chip.text, formattedText, source, parentCategory);
     onChipSelect(formattedText);
 
     if (allowMultiple) {
       // In multi-entry mode, add to list and reset for next entry
-      setAddedItems(prev => [...prev, formattedText]);
+      setAddedItems((prev) => [...prev, displayTextForEntry(formattedText)]);
       setActiveCategory(null);
       setIsAddingCustom(false);
       toast.success('Detail added! Add more or tap Done.');
@@ -162,13 +237,14 @@ export default function SmartChipBin({
       console.error('Failed to save custom chip:', error);
     }
 
+    emitChipSelectTelemetry(customChipText.trim(), formattedText, 'custom', activeCategory);
     onChipSelect(formattedText);
     setCustomChipText('');
     setIsAddingCustom(false);
 
     if (allowMultiple) {
       // In multi-entry mode, add to list and reset for next entry
-      setAddedItems(prev => [...prev, formattedText]);
+      setAddedItems((prev) => [...prev, displayTextForEntry(formattedText)]);
       setActiveCategory(null);
       toast.success('Detail added! Add more or tap Done.');
     } else {
@@ -219,6 +295,7 @@ export default function SmartChipBin({
                   <button
                     key={idx}
                     onClick={() => {
+                      emitChipSelectTelemetry(option, option, 'option', 'question_option');
                       onChipSelect(option);
                       onClose();
                     }}
@@ -229,6 +306,7 @@ export default function SmartChipBin({
                 ))}
                 <button
                   onClick={() => {
+                    emitChipSelectTelemetry('Unknown', 'Unknown', 'unknown', 'question_option');
                     onChipSelect('Unknown');
                     onClose();
                   }}
@@ -249,6 +327,7 @@ export default function SmartChipBin({
                     className="text-base flex-1"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && customChipText.trim()) {
+                        emitChipSelectTelemetry(customChipText.trim(), customChipText.trim(), 'custom', 'question_option');
                         onChipSelect(customChipText.trim());
                         setCustomChipText('');
                         onClose();
@@ -258,6 +337,7 @@ export default function SmartChipBin({
                   <Button
                     onClick={() => {
                       if (customChipText.trim()) {
+                        emitChipSelectTelemetry(customChipText.trim(), customChipText.trim(), 'custom', 'question_option');
                         onChipSelect(customChipText.trim());
                         setCustomChipText('');
                         onClose();
@@ -323,6 +403,7 @@ export default function SmartChipBin({
                         <button
                           key={idx}
                           onClick={() => {
+                            emitChipSelectTelemetry(year, year, 'year', 'year_version');
                             onChipSelect(year);
                             onClose();
                           }}
@@ -349,6 +430,7 @@ export default function SmartChipBin({
                   ))}
                   <button
                     onClick={() => {
+                      emitChipSelectTelemetry('Unknown', 'Unknown', 'unknown', 'year_version');
                       onChipSelect('Unknown');
                       onClose();
                     }}
@@ -375,6 +457,7 @@ export default function SmartChipBin({
                     <button
                       key={year}
                       onClick={() => {
+                        emitChipSelectTelemetry(year.toString(), year.toString(), 'year', 'year_version');
                         onChipSelect(year.toString());
                         setSelectedDecade(null);
                         onClose();
@@ -399,7 +482,14 @@ export default function SmartChipBin({
     { key: 'comes_with', label: 'Comes With', color: 'bg-green-100 text-green-800 border-green-300' },
     { key: 'condition_details', label: 'Condition', color: 'bg-amber-100 text-amber-800 border-amber-300' },
     { key: 'functional', label: 'Functional', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+    { key: 'inoperable', label: 'Inoperable', color: 'bg-rose-100 text-rose-800 border-rose-300' },
   ];
+
+  const quickTagButtons = [
+    { key: 'comes_with', label: 'Comes with' },
+    { key: 'missing', label: 'Missing' },
+    { key: 'inoperable', label: 'Inoperable' },
+  ] as const;
   
   // Add fit_notes for clothing
   if (itemCategory?.toLowerCase().includes('cloth') || itemCategory?.toLowerCase().includes('shoe')) {
@@ -457,30 +547,64 @@ export default function SmartChipBin({
         
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
+          {allowMultiple && addedItems.length > 0 && (
+            <div className="mb-4 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 mb-2">
+                {addedItemsHeading}
+              </p>
+              <ul className="space-y-1 text-sm text-purple-900">
+                {addedItems.map((entry, idx) => (
+                  <li key={`${entry}-${idx}`}>{entry}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {!activeCategory ? (
             // Show parent categories
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600 mb-3">What would you like to add?</p>
-              <div className="flex flex-wrap gap-2">
-                {parentCategories.map((cat) => (
+            <div className="space-y-4">
+              {allowMultiple && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-purple-600 mb-2">
+                    Quick tags
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {quickTagButtons.map((tag) => (
+                      <button
+                        key={tag.key}
+                        onClick={() => handleQuickTagSelect(tag.key)}
+                        className="px-3 py-2 rounded-full border border-purple-300 bg-purple-50 text-purple-700 text-xs font-semibold uppercase tracking-wide hover:bg-purple-100 hover:border-purple-400 transition"
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">What would you like to add?</p>
+                <div className="flex flex-wrap gap-2">
+                  {parentCategories.map((cat) => (
+                    <button
+                      key={cat.key}
+                      onClick={() => handleParentChipClick(cat.key)}
+                      className={`px-4 py-2.5 rounded-full border-2 font-medium text-sm transition-all hover:scale-105 ${cat.color}`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
                   <button
-                    key={cat.key}
-                    onClick={() => handleParentChipClick(cat.key)}
-                    className={`px-4 py-2.5 rounded-full border-2 font-medium text-sm transition-all hover:scale-105 ${cat.color}`}
+                    onClick={() => {
+                      setActiveCategory('custom');
+                      setIsAddingCustom(true);
+                    }}
+                    className="px-4 py-2.5 rounded-full border-2 border-dashed border-gray-400 text-gray-700 font-medium text-sm transition-all hover:scale-105 hover:border-purple-400 hover:text-purple-700"
                   >
-                    {cat.label}
+                    <Plus className="w-4 h-4 inline mr-1" />
+                    Custom
                   </button>
-                ))}
-                <button
-                  onClick={() => {
-                    setActiveCategory('custom');
-                    setIsAddingCustom(true);
-                  }}
-                  className="px-4 py-2.5 rounded-full border-2 border-dashed border-gray-400 text-gray-700 font-medium text-sm transition-all hover:scale-105 hover:border-purple-400 hover:text-purple-700"
-                >
-                  <Plus className="w-4 h-4 inline mr-1" />
-                  Custom
-                </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -540,7 +664,7 @@ export default function SmartChipBin({
                   {chipSuggestions[activeCategory]?.map((chip, idx) => (
                     <button
                       key={`preset-${idx}`}
-                      onClick={() => handleChipClick(activeCategory, chip)}
+                      onClick={() => handleChipClick(activeCategory, chip, 'preset')}
                       className="px-4 py-2 rounded-full bg-gray-100 hover:bg-purple-100 border border-gray-300 hover:border-purple-400 text-gray-800 hover:text-purple-900 font-medium text-sm transition-all"
                     >
                       {chip.text}
@@ -551,7 +675,7 @@ export default function SmartChipBin({
                   {userChips[activeCategory]?.map((chip, idx) => (
                     <button
                       key={`user-${idx}`}
-                      onClick={() => handleChipClick(activeCategory, chip)}
+                      onClick={() => handleChipClick(activeCategory, chip, 'memory')}
                       className="px-4 py-2 rounded-full bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-800 font-medium text-sm transition-all"
                     >
                       {chip.text}
@@ -563,6 +687,51 @@ export default function SmartChipBin({
             </div>
           )}
         </div>
+        {allowMultiple && (
+          <div className="border-t border-gray-100 bg-white px-6 py-4">
+            <Button
+              onClick={async () => {
+                if (addedItems.length === 0 || isFinishing) {
+                  if (addedItems.length === 0) {
+                    toast.error('Add at least one detail before finishing.');
+                  }
+                  return;
+                }
+
+                setIsFinishing(true);
+                try {
+                  let success = true;
+
+                  if (onCompleteMultiEntry) {
+                    const result = await onCompleteMultiEntry();
+                    success = result !== false;
+                  } else {
+                    onClose();
+                  }
+
+                  if (success) {
+                    setAddedItems([]);
+                    setActiveCategory(null);
+                    setIsAddingCustom(false);
+                    setCustomChipText('');
+                    setSelectedDecade(null);
+                  }
+                } finally {
+                  setIsFinishing(false);
+                }
+              }}
+              disabled={addedItems.length === 0 || isFinishing}
+              className="w-full bg-purple-600 text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isFinishing ? 'Saving…' : 'Done'}
+            </Button>
+            {addedItems.length === 0 && (
+              <p className="mt-2 text-xs text-gray-500">
+                Add at least one detail before finishing.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

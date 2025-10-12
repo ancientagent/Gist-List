@@ -84,6 +84,18 @@ export async function downloadFile(key: string): Promise<string> {
   return url;
 }
 
+export async function downloadFileBuffer(key: string): Promise<Buffer> {
+  const { bucketName } = getBucketConfig();
+
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+  });
+
+  const { Body } = await s3Client.send(command);
+  return streamToBuffer(Body as any);
+}
+
 export async function deleteFile(key: string): Promise<void> {
   const { bucketName } = getBucketConfig();
 
@@ -116,7 +128,7 @@ export async function renameFile(oldKey: string, newKey: string): Promise<string
   return newKey;
 }
 
-async function streamToBuffer(stream: any): Promise<Buffer> {
+export async function streamToBuffer(stream: any): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: any[] = [];
     stream.on('data', (chunk: any) => chunks.push(chunk));

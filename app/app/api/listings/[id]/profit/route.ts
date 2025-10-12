@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { calculateProfitForAllPlatforms, getBestPlatformByProfit } from '@/lib/profit-calculator';
+import { reindexListing } from '@/lib/search-index';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,6 +129,8 @@ export async function POST(
         profitMargin,
       },
     });
+
+    await reindexListing(listingId);
 
     return NextResponse.json({
       success: true,

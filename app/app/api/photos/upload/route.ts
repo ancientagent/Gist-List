@@ -5,9 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { uploadFileWithCompression } from '@/lib/s3';
-
-
-
+import { logTelemetryEvent } from '@/lib/telemetry';
+import { reindexListing } from '@/lib/search-index';
 export const dynamic = 'force-dynamic';
 
 // Check condition only for new/retaken photos
@@ -81,44 +80,105 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const photo = formData.get('photo') as File;
-    const listingId = formData.get('listingId') as string;
+    const photo = formData.get('photo') as File | null;
+    const listingId = (formData.get('listingId') as string | null) ?? null;
     const isRetake = formData.get('isRetake') === 'true';
-    const photoId = formData.get('photoId') as string | null;
+    const existingPhotoId = (formData.get('photoId') as string | null) ?? null;
+    const notificationId = (formData.get('notificationId') as string | null) ?? null;
+    const requirement = (formData.get('requirement') as string | null) ?? null;
+    const facetTag = (formData.get('facetTag') as string | null) ?? null;
 
     if (!photo || !listingId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Upload photo to S3 with compression
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      select: { userId: true },
+    });
+
+    if (!listing || listing.userId !== (session.user as any).id) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+    }
+
     const buffer = Buffer.from(await photo.arrayBuffer());
     const fileName = `listings/${Date.now()}-${photo.name}`;
     const uploadResult = await uploadFileWithCompression(buffer, fileName);
-    
+
     console.log(`📦 Additional photo compressed: ${uploadResult.originalSize} → ${uploadResult.compressedSize} bytes (${uploadResult.savingsPercent.toFixed(1)}% savings)`);
 
-    // Check condition only (don't reset description or other fields)
-    const conditionCheck = await checkConditionOnly(buffer);
+    const mode = notificationId ? 'workflow' : 'gallery';
 
-    if (isRetake && photoId) {
-      // Update existing photo
-      await prisma.photo.update({
-        where: { id: photoId },
-        data: { 
-          cloudStoragePath: uploadResult.key,
-          originalSizeBytes: uploadResult.originalSize,
-          compressedSizeBytes: uploadResult.compressedSize,
-        },
-      });
-    } else {
-      // Create new photo
+    if (mode === 'workflow') {
       const maxOrder = await prisma.photo.findFirst({
         where: { listingId },
         orderBy: { order: 'desc' },
         select: { order: true },
       });
 
-      await prisma.photo.create({
+      const created = await prisma.photo.create({
+        data: {
+          listingId,
+          cloudStoragePath: uploadResult.key,
+          order: (maxOrder?.order ?? -1) + 1,
+          isPrimary: false,
+          originalSizeBytes: uploadResult.originalSize,
+          compressedSizeBytes: uploadResult.compressedSize,
+          requirement,
+          facetTag,
+          status: 'pending',
+          notificationId,
+        },
+        select: { id: true, status: true },
+      });
+
+      await logTelemetryEvent({
+        userId: listing.userId,
+        listingId,
+        eventType: 'photo_uploaded',
+        metadata: {
+          mode,
+          photoId: created.id,
+          requirement,
+          facetTag,
+          notificationId,
+        },
+      });
+
+      return NextResponse.json({
+        photoId: created.id,
+        status: created.status,
+      });
+    }
+
+    // Existing gallery flow (retake/additional photos)
+    if (isRetake && existingPhotoId) {
+      await prisma.photo.update({
+        where: { id: existingPhotoId },
+        data: {
+          cloudStoragePath: uploadResult.key,
+          originalSizeBytes: uploadResult.originalSize,
+          compressedSizeBytes: uploadResult.compressedSize,
+        },
+      });
+
+      await logTelemetryEvent({
+        userId: listing.userId,
+        listingId,
+        eventType: 'photo_uploaded',
+        metadata: {
+          mode: 'retake',
+          photoId: existingPhotoId,
+        },
+      });
+    } else {
+      const maxOrder = await prisma.photo.findFirst({
+        where: { listingId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+
+      const created = await prisma.photo.create({
         data: {
           listingId,
           cloudStoragePath: uploadResult.key,
@@ -127,10 +187,22 @@ export async function POST(request: NextRequest) {
           originalSizeBytes: uploadResult.originalSize,
           compressedSizeBytes: uploadResult.compressedSize,
         },
+        select: { id: true },
+      });
+
+      await logTelemetryEvent({
+        userId: listing.userId,
+        listingId,
+        eventType: 'photo_uploaded',
+        metadata: {
+          mode: 'gallery',
+          photoId: created.id,
+        },
       });
     }
 
-    // Update listing with new condition notes only
+    const conditionCheck = await checkConditionOnly(buffer);
+
     if (conditionCheck.conditionNotes) {
       await prisma.listing.update({
         where: { id: listingId },
@@ -138,6 +210,8 @@ export async function POST(request: NextRequest) {
           conditionNotes: conditionCheck.conditionNotes,
         },
       });
+
+      await reindexListing(listingId);
     }
 
     return NextResponse.json({ success: true });

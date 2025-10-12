@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -38,11 +38,19 @@ export default function ListingsManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    fetchListings();
+  const fetchPhotoUrl = useCallback(async (listingId: string, photoId: string) => {
+    try {
+      const response = await fetch(`/api/photos/${photoId}/url`);
+      const data = await response.json();
+      if (data.url) {
+        setPhotoUrls((prev) => ({ ...prev, [listingId]: data.url }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch photo URL:', error);
+    }
   }, []);
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     try {
       const response = await fetch('/api/listings');
       if (!response.ok) throw new Error('Failed to fetch listings');
@@ -61,19 +69,11 @@ export default function ListingsManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchPhotoUrl]);
 
-  const fetchPhotoUrl = async (listingId: string, photoId: string) => {
-    try {
-      const response = await fetch(`/api/photos/${photoId}/url`);
-      const data = await response.json();
-      if (data.url) {
-        setPhotoUrls((prev) => ({ ...prev, [listingId]: data.url }));
-      }
-    } catch (error) {
-      console.error('Failed to fetch photo URL:', error);
-    }
-  };
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   const handleSignOut = async () => {
     await signOut({ redirect: false });

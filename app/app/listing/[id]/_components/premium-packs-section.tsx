@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Crown, Sparkles, Zap, Lock, Check } from 'lucide-react';
+import { Crown, Sparkles, Zap, Lock, Check, Gem } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,15 @@ interface PremiumPacksSectionProps {
   premiumPostsTotal?: number;
 }
 
+const formatSpecialClass = (value?: string | null) => {
+  if (!value || typeof value !== 'string') return null;
+  return value
+    .split(/[_\s\-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function PremiumPacksSection({
   listing,
   usePremium,
@@ -25,12 +34,11 @@ export default function PremiumPacksSection({
   premiumPostsUsed = 0,
   premiumPostsTotal = 0,
 }: PremiumPacksSectionProps) {
-  // Hide this section completely when premium features are unlocked
+  const [activeTab, setActiveTab] = useState<'lister' | 'automation' | 'details'>('automation');
+
   if (usePremium) {
     return null;
   }
-
-  const [activeTab, setActiveTab] = useState<'lister' | 'automation' | 'details'>('automation');
 
   const isPremiumTier = userTier === 'BASIC' || userTier === 'PRO';
   const isFreeUser = !userTier || userTier === 'FREE';
@@ -52,15 +60,16 @@ export default function PremiumPacksSection({
 
   const premiumFacts = listing.premiumFacts;
 
-  // Determine if item qualifies as premium
-  const itemPrice = listing.price || 0;
-  const isPremiumItem = itemPrice > 100;
+  const specialClassLabel = formatSpecialClass(listing?.specialClass);
+  const itemPrice = Number(listing.price ?? 0) || 0;
+  const premiumDetected = Boolean(listing?.isPremiumItem);
   const isTechnicalItem = ['Electronics', 'Camera', 'Computer', 'Gaming', 'Musical Instrument'].some(
     cat => listing.category?.toLowerCase().includes(cat.toLowerCase())
   );
   const isCollectible = ['Collectible', 'Antique', 'Vintage', 'Art'].some(
     tag => listing.category?.toLowerCase().includes(tag.toLowerCase())
   );
+  const isPremiumItem = premiumDetected || itemPrice > 100 || isTechnicalItem || isCollectible;
 
   // Check what the AI found for Pro Lister Pack
   const hasManual = usefulLinks && usefulLinks.some((l: any) => 
@@ -123,7 +132,20 @@ export default function PremiumPacksSection({
       </div>
 
       {/* Tab Content */}
-      <div className="p-4">
+      <div className="p-4 space-y-3">
+        {isPremiumItem && (
+          <div className="bg-gradient-to-r from-purple-50 to-emerald-50 border border-purple-200 rounded-lg p-3 flex items-start gap-3">
+            <Gem className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-purple-900">
+                {specialClassLabel ? `${specialClassLabel} opportunity` : 'Premium item opportunity'}
+              </p>
+              <p className="text-xs text-purple-700">
+                Upgrade to the Quality Verification Pack to showcase the Roadshow Reveal card and verified value boost.
+              </p>
+            </div>
+          </div>
+        )}
         {activeTab === 'lister' && (
           <div>
             {!usePremium ? (
@@ -133,7 +155,7 @@ export default function PremiumPacksSection({
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>1 link for the operator's manual</span>
+                      <span>1 link for the operator&apos;s manual</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -299,7 +321,7 @@ export default function PremiumPacksSection({
                 </p>
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs text-gray-800 mb-3 font-medium italic text-center">
-                    This glorious package is a true attention getter, you'll be fighting them off with a stick!
+                    This glorious package is a true attention getter, you&apos;ll be fighting them off with a stick!
                   </p>
                   
                   <ul className="space-y-2 text-xs text-gray-700">

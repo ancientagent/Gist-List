@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { uploadFile } from '@/lib/s3';
+import { reindexListing } from '@/lib/search-index';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,6 +155,8 @@ export async function POST(request: NextRequest) {
       where: { id: userId },
       data: { listingCount: user.listingCount + 1 },
     });
+
+    await reindexListing(listing.id);
 
     return NextResponse.json({
       success: true,

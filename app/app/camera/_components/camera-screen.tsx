@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Camera, Mic, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -249,11 +250,12 @@ export default function CameraScreen() {
       {/* Camera Viewfinder */}
       <div className="relative flex-1 overflow-hidden">
         {capturedImage ? (
-          // Show captured image
-          <img 
-            src={capturedImage} 
-            alt="Captured" 
-            className="w-full h-full object-cover"
+          <Image
+            src={capturedImage}
+            alt="Captured"
+            fill
+            className="object-cover"
+            unoptimized
           />
         ) : showStartButton ? (
           // Show start camera button

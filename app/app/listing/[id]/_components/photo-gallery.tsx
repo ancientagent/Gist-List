@@ -14,6 +14,11 @@ interface Photo {
   cloudStoragePath: string;
   order: number;
   isPrimary: boolean;
+  status?: string | null;
+  requirement?: string | null;
+  facetTag?: string | null;
+  verificationReason?: string | null;
+  analysisData?: Record<string, any> | null;
 }
 
 export default function PhotoGallery({ 
@@ -249,6 +254,23 @@ export default function PhotoGallery({
                   Primary
                 </div>
               )}
+              {photo.status && (
+                <div
+                  className={`absolute bottom-0.5 left-0.5 text-[10px] px-1.5 py-0.5 rounded-full text-white ${
+                    photo.status === 'accepted'
+                      ? 'bg-emerald-600'
+                      : photo.status === 'rejected'
+                        ? 'bg-red-600'
+                        : 'bg-amber-500'
+                  }`}
+                >
+                  {photo.status === 'accepted'
+                    ? 'Verified'
+                    : photo.status === 'rejected'
+                      ? 'Retry needed'
+                      : 'Pending QA'}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -361,6 +383,74 @@ export default function PhotoGallery({
                       )}
                     </div>
                   </div>
+                </div>
+
+                <div className="p-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-700 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {currentPhoto.status && (
+                      <span
+                        className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                          currentPhoto.status === 'accepted'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : currentPhoto.status === 'rejected'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-amber-100 text-amber-700'
+                        }`}
+                      >
+                        {currentPhoto.status === 'accepted'
+                          ? 'Verified photo'
+                          : currentPhoto.status === 'rejected'
+                            ? 'Needs retry'
+                            : 'Pending review'}
+                      </span>
+                    )}
+                    {currentPhoto.requirement && (
+                      <span className="text-xs text-gray-500">
+                        Requirement: {currentPhoto.requirement.replace(/[_-]+/g, ' ')}
+                      </span>
+                    )}
+                  </div>
+
+                  {currentPhoto.analysisData?.summary && (
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">AI Findings</p>
+                      <p className="text-sm text-gray-700">{currentPhoto.analysisData.summary}</p>
+                    </div>
+                  )}
+
+                  {currentPhoto.analysisData?.conditionNotes && (
+                    <p className="text-sm text-gray-600">
+                      {currentPhoto.analysisData.conditionNotes}
+                    </p>
+                  )}
+
+                  {(() => {
+                    const scoreData = currentPhoto.analysisData?.scores as Record<string, unknown> | undefined;
+                    if (!scoreData) return null;
+                    return (
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                      {['surface', 'function', 'clean', 'complete'].map((key) => {
+                        const raw = scoreData[key];
+                        const value = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : null;
+                        if (value == null || Number.isNaN(value)) return null;
+                        const percent = Math.round(Math.min(1, Math.max(0, value)) * 100);
+                        const label = key.charAt(0).toUpperCase() + key.slice(1);
+                        return (
+                          <div key={key} className="flex items-center justify-between">
+                            <span>{label}</span>
+                            <span className="font-medium text-gray-800">{percent}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    );
+                  })()}
+
+                  {currentPhoto.verificationReason && currentPhoto.status === 'rejected' && (
+                    <p className="text-xs text-red-600">
+                      {currentPhoto.verificationReason}
+                    </p>
+                  )}
                 </div>
               </>
             ) : null}

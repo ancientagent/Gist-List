@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,13 +43,7 @@ export function ProfitCalculator({
   const [bestPlatform, setBestPlatform] = useState<{ platform: string; profit: ProfitBreakdown } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (purchasePrice > 0) {
-      calculateProfit();
-    }
-  }, [purchasePrice]);
-
-  async function calculateProfit() {
+  const calculateProfit = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/listings/${listingId}/profit`, {
@@ -68,7 +62,13 @@ export function ProfitCalculator({
     } finally {
       setLoading(false);
     }
-  }
+  }, [listingId, purchasePrice]);
+
+  useEffect(() => {
+    if (purchasePrice > 0) {
+      calculateProfit();
+    }
+  }, [purchasePrice, calculateProfit]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

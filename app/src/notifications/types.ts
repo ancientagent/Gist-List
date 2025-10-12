@@ -1,4 +1,4 @@
-export type NotificationType = 'ALERT' | 'QUESTION' | 'INSIGHT';
+export type NotificationType = 'ALERT' | 'QUESTION' | 'INSIGHT' | 'PHOTO';
 
 export type ChipSection = 'photos' | 'condition' | 'price' | 'shipping' | 'fineDetails';
 

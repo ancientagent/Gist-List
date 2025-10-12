@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { computePriceBands } from '@/src/lib/priceLogic';
+import { reindexListing } from '@/lib/search-index';
 
 
 
@@ -34,6 +36,7 @@ export async function GET(
             subscriptionTier: true,
             premiumPostsUsed: true,
             premiumPostsTotal: true,
+            conditionReportMode: true,
           }
         }
       },
@@ -43,7 +46,18 @@ export async function GET(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    return NextResponse.json(listing);
+    const ladderStats = computePriceBands({
+      newMedian: listing.brandNewPrice ?? null,
+      usedQ90: listing.priceRangeHigh ?? null,
+      usedQ50: listing.priceRangeMid ?? null,
+      usedQ10: listing.priceRangeLow ?? null,
+      partsMedian: listing.priceForParts ?? null,
+    });
+
+    return NextResponse.json({
+      ...listing,
+      ladderStats,
+    });
   } catch (error: any) {
     console.error('Fetch listing error:', error);
     return NextResponse.json(
@@ -104,6 +118,7 @@ export async function PATCH(
         recommendedPlatforms: data.recommendedPlatforms ?? undefined,
         qualifiedPlatforms: data.qualifiedPlatforms ?? undefined,
         status: data.status ?? undefined,
+        highlightedFacets: data.highlightedFacets ?? undefined,
       },
     });
 
@@ -123,6 +138,8 @@ export async function PATCH(
         },
       });
     }
+
+    await reindexListing(listingId);
 
     return NextResponse.json(listing);
   } catch (error: any) {

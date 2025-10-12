@@ -1,20 +1,34 @@
 
 'use client';
 
-import { useState } from 'react';
-import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, X, Check, Camera, Lightbulb } from 'lucide-react';
+import { useRef, useState, type ChangeEvent } from 'react';
+import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, X, Camera, Lightbulb, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import SmartChipBin from './smart-chip-bin';
+import { type NotificationType } from '@/src/notifications/types';
+import { logTelemetryEvent } from '@/lib/telemetry';
 
-interface Notification {
+export interface Notification {
   id: string;
-  type: string;
+  type: NotificationType;
   message: string;
   field: string | null;
   actionType: string | null;
   actionData: string | null;
   resolved: boolean;
+}
+
+interface NotificationActionData {
+  requirement?: string;
+  facetTag?: string;
+  section?: string;
+  [key: string]: any;
+}
+
+export interface QuickFactsPayload {
+  notification: Notification;
+  actionData: Record<string, unknown> | null;
 }
 
 export default function NotificationList({
@@ -24,8 +38,8 @@ export default function NotificationList({
   onScrollToField,
   itemCategory,
   onAddDetail,
-  onPhotoRequest,
   fulfillmentType,
+  onQuickFacts,
 }: {
   notifications: Notification[];
   listingId: string;
@@ -33,14 +47,170 @@ export default function NotificationList({
   onScrollToField?: (field: string) => void;
   itemCategory?: string | null;
   onAddDetail?: (text: string) => void;
-  onPhotoRequest?: (requirement: string) => void;
   fulfillmentType?: string | null;
+  onQuickFacts?: (payload: QuickFactsPayload) => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showChipBin, setShowChipBin] = useState(false);
   const [activeNotification, setActiveNotification] = useState<Notification | null>(null);
-  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
-  const [activePhotoNotification, setActivePhotoNotification] = useState<Notification | null>(null);
+  const [allowMultipleEntries, setAllowMultipleEntries] = useState(false);
+  const [activeNotificationData, setActiveNotificationData] = useState<NotificationActionData | null>(null);
+  const [photoWorkflow, setPhotoWorkflow] = useState({
+    isOpen: false,
+    notification: null as Notification | null,
+    data: null as NotificationActionData | null,
+    isSubmitting: false,
+    error: '' as string,
+    reasons: [] as string[],
+  });
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+
+  const parseActionData = (raw: string | null): NotificationActionData => {
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const shouldAllowMultiEntry = (
+    notification: Notification,
+    data: NotificationActionData,
+  ): boolean => {
+    if (notification.type !== 'QUESTION') {
+      return false;
+    }
+
+    if (data?.allowMultiple === true) {
+      return true;
+    }
+
+    const options = Array.isArray(data?.options) ? data.options : [];
+    const message = notification.message?.toLowerCase() ?? '';
+
+    const hasInlineOptions =
+      message.includes('?') && (message.includes(' or ') || message.includes(','));
+
+    const isYearPrompt = message.includes('year/version');
+
+    return options.length === 0 && !hasInlineOptions && !isYearPrompt;
+  };
+
+  const formatRequirement = (value: string | undefined) => {
+    if (!value) return '';
+    return value
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const resetPhotoWorkflow = () => {
+    setPhotoWorkflow({
+      isOpen: false,
+      notification: null,
+      data: null,
+      isSubmitting: false,
+      error: '',
+      reasons: [],
+    });
+  };
+
+  const triggerFileSelection = (mode: 'camera' | 'upload') => {
+    if (photoWorkflow.isSubmitting) return;
+    if (mode === 'camera') {
+      cameraInputRef.current?.click();
+    } else {
+      uploadInputRef.current?.click();
+    }
+  };
+
+  const submitPhotoFile = async (file: File) => {
+    if (!photoWorkflow.notification) return;
+    if (!listingId) {
+      toast.error('Listing not available');
+      return;
+    }
+
+    setPhotoWorkflow((prev) => ({ ...prev, isSubmitting: true, error: '', reasons: [] }));
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      formData.append('listingId', listingId);
+      formData.append('notificationId', photoWorkflow.notification.id);
+
+      if (photoWorkflow.data?.requirement) {
+        formData.append('requirement', photoWorkflow.data.requirement);
+      }
+      if (photoWorkflow.data?.facetTag) {
+        formData.append('facetTag', photoWorkflow.data.facetTag);
+      }
+
+      const uploadResponse = await fetch('/api/photos/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const payload = await uploadResponse.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to upload photo');
+      }
+
+      const uploadJson = await uploadResponse.json();
+      const newPhotoId = uploadJson.photoId as string | undefined;
+
+      if (!newPhotoId) {
+        toast.success('Photo uploaded');
+        resetPhotoWorkflow();
+        onResolve();
+        return;
+      }
+
+      const verifyResponse = await fetch(`/api/photos/${newPhotoId}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+
+      if (verifyResponse.status === 422) {
+        const payload = await verifyResponse.json();
+        setPhotoWorkflow((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          error: 'We need a clearer shot. Try the tips below and retake the photo.',
+          reasons: payload.reasons || [],
+        }));
+        return;
+      }
+
+      if (!verifyResponse.ok) {
+        const payload = await verifyResponse.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to verify photo');
+      }
+
+      await verifyResponse.json();
+      toast.success('Photo verified and notification resolved');
+      resetPhotoWorkflow();
+      onResolve();
+    } catch (error: any) {
+      console.error('Photo workflow error:', error);
+      setPhotoWorkflow((prev) => ({
+        ...prev,
+        isSubmitting: false,
+        error: error?.message || 'Failed to process photo',
+      }));
+    }
+  };
+
+  const handleWorkflowFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await submitPhotoFile(file);
+    event.target.value = '';
+  };
 
   // Filter out shipping-related notifications if fulfillment type is "local"
   const filteredNotifications = fulfillmentType === 'local'
@@ -49,7 +219,7 @@ export default function NotificationList({
 
   if (filteredNotifications.length === 0) return null;
 
-  const resolveNotification = async (notificationId: string) => {
+  const resolveNotification = async (notificationId: string): Promise<boolean> => {
     try {
       const response = await fetch(`/api/notifications/${notificationId}/resolve`, {
         method: 'POST',
@@ -58,8 +228,10 @@ export default function NotificationList({
       if (!response.ok) throw new Error('Failed to resolve');
 
       onResolve();
+      return true;
     } catch (error) {
       toast.error('Failed to resolve notification');
+      return false;
     }
   };
 
@@ -83,19 +255,69 @@ export default function NotificationList({
   };
 
   // Generate contextual helper text for PHOTO notifications
-  const getPhotoHelperText = (message: string): string => {
-    const action = extractPhotoAction(message);
+  const getPhotoHelperText = (notification: Notification): string => {
+    const data = parseActionData(notification.actionData);
+    if (data.requirement) {
+      return `Capture ${formatRequirement(data.requirement)}`;
+    }
+    const action = extractPhotoAction(notification.message);
     return `Select to add ${action}`;
   };
 
   const handlePhotoNotificationClick = (notification: Notification) => {
-    setActivePhotoNotification(notification);
-    setShowPhotoDialog(true);
+    const parsed = parseActionData(notification.actionData);
+
+    void logTelemetryEvent({
+      listingId,
+      eventType: 'notification_tap',
+      metadata: {
+        notificationId: notification.id,
+        notificationType: notification.type,
+        field: notification.field,
+        actionType: notification.actionType,
+        section: parsed?.section ?? null,
+        mode: 'photo_workflow',
+      },
+    });
+
+    setPhotoWorkflow({
+      isOpen: true,
+      notification,
+      data: parsed,
+      isSubmitting: false,
+      error: '',
+      reasons: [],
+    });
   };
 
   const handleNotificationClick = (notification: Notification) => {
+    const parsed = parseActionData(notification.actionData);
+
+    void logTelemetryEvent({
+      listingId,
+      eventType: 'notification_tap',
+      metadata: {
+        notificationId: notification.id,
+        notificationType: notification.type,
+        field: notification.field,
+        actionType: notification.actionType,
+        section: parsed?.section ?? null,
+      },
+    });
+
+    if (notification.actionType === 'buyer_disclosure' && onQuickFacts) {
+      setAllowMultipleEntries(false);
+      setActiveNotification(null);
+      setActiveNotificationData(null);
+      onQuickFacts({ notification, actionData: parsed });
+      return;
+    }
+
     // PHOTO notifications handled separately
     if (notification.type === 'PHOTO') {
+      setAllowMultipleEntries(false);
+      setActiveNotification(null);
+      setActiveNotificationData(null);
       handlePhotoNotificationClick(notification);
       return;
     }
@@ -112,35 +334,61 @@ export default function NotificationList({
 
     // Show chip bin for filling the field or description
     setActiveNotification(notification);
+    setActiveNotificationData(parsed);
+    setAllowMultipleEntries(shouldAllowMultiEntry(notification, parsed));
     setShowChipBin(true);
   };
 
   const handleChipSelect = (text: string) => {
     if (onAddDetail) {
-      // If notification has no specific field, add to description in list form
-      if (activeNotification && !activeNotification.field) {
-        // Add as bullet point list item
+      const targetsDescription =
+        !activeNotification?.field ||
+        activeNotification.field === 'description';
+
+      if (targetsDescription) {
         onAddDetail(`\n• ${text}`);
       } else {
-        // Add directly to specified field
         onAddDetail(text);
       }
     }
 
+    if (allowMultipleEntries) {
+      return;
+    }
+
     // Resolve the notification after chip selection
     if (activeNotification) {
-      resolveNotification(activeNotification.id);
+      void resolveNotification(activeNotification.id);
     }
 
     toast.success('Detail added');
     setShowChipBin(false);
     setActiveNotification(null);
+    setActiveNotificationData(null);
+    setAllowMultipleEntries(false);
   };
 
   const alerts = filteredNotifications.filter(n => n.type === 'ALERT');
   const questions = filteredNotifications.filter(n => n.type === 'QUESTION');
   const photos = filteredNotifications.filter(n => n.type === 'PHOTO');
   const insights = filteredNotifications.filter(n => n.type === 'INSIGHT');
+
+  const handleMultiEntryComplete = async (): Promise<boolean> => {
+    const resolved = activeNotification
+      ? await resolveNotification(activeNotification.id)
+      : true;
+
+    if (!resolved) {
+      return false;
+    }
+
+    toast.success('Details added');
+    setShowChipBin(false);
+    setActiveNotification(null);
+    setActiveNotificationData(null);
+    setAllowMultipleEntries(false);
+    return true;
+  };
 
   return (
     <div className="space-y-3">
@@ -216,7 +464,7 @@ export default function NotificationList({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          resolveNotification(notification.id);
+                          void resolveNotification(notification.id);
                         }}
                         className="flex-shrink-0"
                       >
@@ -240,7 +488,7 @@ export default function NotificationList({
                           {notification.message}
                         </p>
                         <p className="text-xs text-purple-700 mt-1 font-medium">
-                          📸 {getPhotoHelperText(notification.message)}
+                          📸 {getPhotoHelperText(notification)}
                         </p>
                       </div>
                       <Button
@@ -248,7 +496,7 @@ export default function NotificationList({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          resolveNotification(notification.id);
+                          void resolveNotification(notification.id);
                         }}
                         className="flex-shrink-0"
                       >
@@ -280,7 +528,7 @@ export default function NotificationList({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          resolveNotification(notification.id);
+                          void resolveNotification(notification.id);
                         }}
                         className="flex-shrink-0"
                       >
@@ -312,7 +560,7 @@ export default function NotificationList({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          resolveNotification(notification.id);
+                          void resolveNotification(notification.id);
                         }}
                         className="flex-shrink-0"
                       >
@@ -333,73 +581,124 @@ export default function NotificationList({
         onClose={() => {
           setShowChipBin(false);
           setActiveNotification(null);
+          setActiveNotificationData(null);
+          setAllowMultipleEntries(false);
         }}
         onChipSelect={handleChipSelect}
         notificationMessage={activeNotification?.message}
         itemCategory={itemCategory}
         listingId={listingId}
-        notificationData={activeNotification?.actionData ? JSON.parse(activeNotification.actionData) : null}
+        notificationData={activeNotificationData}
+        allowMultiple={allowMultipleEntries}
+        notificationId={activeNotification?.id}
+        notificationType={activeNotification?.type}
+        notificationField={activeNotification?.field ?? null}
+        onCompleteMultiEntry={handleMultiEntryComplete}
       />
 
-      {/* Photo Upload/Camera Dialog */}
-      {showPhotoDialog && activePhotoNotification && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center" onClick={() => setShowPhotoDialog(false)}>
+      {photoWorkflow.isOpen && photoWorkflow.notification && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => {
+            if (!photoWorkflow.isSubmitting) {
+              resetPhotoWorkflow();
+            }
+          }}
+        >
           <div
-            className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm mx-4"
+            className="bg-white rounded-2xl shadow-2xl p-6 max-w-md mx-4 w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-center mb-6">
-              <Camera className="w-12 h-12 mx-auto mb-3 text-purple-600" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {activePhotoNotification.message}
-              </h3>
-              <p className="text-sm text-gray-600">
-                Choose how you'd like to add this photo
-              </p>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Capture requested photo</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {photoWorkflow.notification.message}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (!photoWorkflow.isSubmitting) resetPhotoWorkflow();
+                }}
+              >
+                <X className="w-5 h-5" />
+              </Button>
             </div>
+
+            {photoWorkflow.data?.requirement && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-xs text-purple-800 mb-4">
+                Requirement: <span className="font-medium">{formatRequirement(photoWorkflow.data.requirement)}</span>
+              </div>
+            )}
+
+            {photoWorkflow.error && (
+              <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700 mb-4">
+                <p className="font-medium">{photoWorkflow.error}</p>
+                {photoWorkflow.reasons.length > 0 && (
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    {photoWorkflow.reasons.map((reason, index) => (
+                      <li key={index}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <div className="space-y-3">
               <Button
-                onClick={() => {
-                  if (onPhotoRequest) {
-                    onPhotoRequest(activePhotoNotification.message);
-                  }
-                  setShowPhotoDialog(false);
-                  setActivePhotoNotification(null);
-                }}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-6 text-lg"
+                onClick={() => triggerFileSelection('camera')}
+                disabled={photoWorkflow.isSubmitting}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4"
               >
-                📷 Camera
+                <Camera className="w-4 h-4 mr-2" /> Use Camera
               </Button>
-
               <Button
-                onClick={() => {
-                  if (onPhotoRequest) {
-                    onPhotoRequest(activePhotoNotification.message);
-                  }
-                  setShowPhotoDialog(false);
-                  setActivePhotoNotification(null);
-                }}
+                onClick={() => triggerFileSelection('upload')}
+                disabled={photoWorkflow.isSubmitting}
                 variant="outline"
-                className="w-full border-2 border-purple-300 text-purple-700 hover:bg-purple-50 py-6 text-lg"
+                className="w-full border-2 border-purple-200 text-purple-700 hover:bg-purple-50 py-4"
               >
-                📤 Upload
+                Upload from device
               </Button>
-
               <Button
                 onClick={() => {
-                  setShowPhotoDialog(false);
-                  setActivePhotoNotification(null);
+                  if (!photoWorkflow.isSubmitting) resetPhotoWorkflow();
                 }}
                 variant="ghost"
                 className="w-full text-gray-600"
+                disabled={photoWorkflow.isSubmitting}
               >
                 Cancel
               </Button>
             </div>
+
+            {photoWorkflow.isSubmitting && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 mt-4">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Processing photo...</span>
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleWorkflowFileChange}
+      />
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleWorkflowFileChange}
+      />
     </div>
   );
 }

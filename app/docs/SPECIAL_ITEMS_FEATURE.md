@@ -15,6 +15,18 @@ Special Items often require **multiple close-up photos** of specific features, s
 
 ---
 
+## Current Implementation Snapshot (2025-10-11)
+
+- `/api/photos/upload` captures workflow metadata (requirement, facetTag, notificationId) and stores compressed assets
+- `/api/photos/[id]/verify` runs quality checks, aggregates facet metadata, infers `specialClass`, calculates capped price uplifts, and resolves the originating notification
+- Listings now persist `verifiedCondition`, `verifiedConditionScore`, `facets`, `priceUplifts`, and boolean `isPremiumItem`
+- `listing-detail.tsx` surfaces the Condition Report card plus the Roadshow Reveal card (baseline vs verified value, facet contributions, upgrade CTA)
+- Pricing ladder helpers call `applyPremiumUplift` so chips and auto-pricing honour verified premiums (capped at +20%, skipped for parts-only)
+
+Next slice: telemetry/doc polish + rollout planning
+
+---
+
 ## Facets: The Value-Defining Features
 
 ### What Are Facets?

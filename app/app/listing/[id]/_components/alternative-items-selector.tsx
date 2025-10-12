@@ -143,7 +143,7 @@ export default function AlternativeItemsSelector({
                   AI considered these alternatives:
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  If the current item isn't correct, select the right one:
+                  If the current item isn&apos;t correct, select the right one:
                 </p>
               </div>
               <div className="space-y-2">
@@ -194,7 +194,7 @@ export default function AlternativeItemsSelector({
                       Analyzing...
                     </>
                   ) : (
-                    'Submit'
+                    <>Submit</>
                   )}
                 </Button>
               </div>
@@ -206,10 +206,10 @@ export default function AlternativeItemsSelector({
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-sm text-red-900 mb-1">
-                    Hmm, looks like we're having some trouble here
+                    Hmm, looks like we&apos;re having some trouble here
                   </h4>
                   <p className="text-xs text-red-700">
-                    Let's start over with a new photo
+                    Let&apos;s start over with a new photo
                   </p>
                 </div>
               </div>

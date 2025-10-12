@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { downloadFile } from '@/lib/s3';
+import { reindexListing } from '@/lib/search-index';
+import { logTelemetryEvent } from '@/lib/telemetry';
+import { computePriceBands, getSuggestedPrice, roundToCents } from '@/src/lib/priceLogic';
 
 
 
@@ -486,6 +489,40 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                     }
                     // Otherwise: keep existing condition notes (don't overwrite if new photo shows cleaner angle)
 
+                    const ladderStats = computePriceBands({
+                      newMedian: finalResult.NEW_med ?? finalResult.brandNewPrice ?? null,
+                      usedQ90: finalResult.USED_q90 ?? finalResult.priceRangeHigh ?? null,
+                      usedQ50: finalResult.USED_q50 ?? finalResult.priceRangeMid ?? null,
+                      usedQ10: finalResult.USED_q10 ?? finalResult.priceRangeLow ?? null,
+                      partsMedian: finalResult.PARTS_med ?? finalResult.priceForParts ?? null,
+                    });
+
+                    const autoSuggestedPrice = (() => {
+                      const ladderSuggestion = finalCondition
+                        ? getSuggestedPrice(ladderStats, finalCondition)
+                        : null;
+                      if (ladderSuggestion !== null) {
+                        return roundToCents(ladderSuggestion);
+                      }
+
+                      if (!finalResult.avgMarketPrice) return null;
+                      const basePrice = finalResult.avgMarketPrice;
+                      const conditionKey = finalCondition || 'Good';
+                      const multipliers: Record<string, number> = {
+                        'New': 1.0,
+                        'Like New': 0.9,
+                        'Very Good': 0.75,
+                        'Good': 0.65,
+                        'Fair': 0.5,
+                        'Poor': 0.375,
+                        'For Parts': 0.2,
+                        'For parts / not working': 0.2,
+                        'For Parts / Not Working': 0.2,
+                      };
+                      const multiplier = multipliers[conditionKey] ?? 0.65;
+                      return roundToCents(basePrice * multiplier);
+                    })();
+
                     // Update listing in database
                     await prisma.listing.update({
                       where: { id: listingId },
@@ -525,50 +562,11 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         premiumFacts: shouldUsePremium ? (finalResult.premiumFacts ?? null) : null,
                         usefulLinks: shouldUsePremium && finalResult.usefulLinks ? JSON.stringify(finalResult.usefulLinks) : null,
                         // Auto-set price from AI based on condition if not already set
-                        price: listing.price ?? (() => {
-                          const condition = finalCondition;
-                          
-                          // Use comprehensive pricing if available
-                          if (finalResult.brandNewPrice || finalResult.priceRangeHigh) {
-                            switch (condition) {
-                              case 'New':
-                                return finalResult.brandNewPrice ?? finalResult.priceRangeHigh ?? null;
-                              case 'Like New':
-                                // Like New = +20% of Very Good (priceRangeHigh)
-                                return finalResult.priceRangeHigh ? finalResult.priceRangeHigh * 1.20 : null;
-                              case 'Very Good':
-                                return finalResult.priceRangeHigh ?? null;
-                              case 'Good':
-                                return finalResult.priceRangeMid ?? finalResult.priceRangeHigh ?? null;
-                              case 'Fair':
-                                return finalResult.priceRangeLow ?? finalResult.priceRangeMid ?? null;
-                              case 'Poor':
-                                // Poor = -25% of Fair (priceRangeLow)
-                                return finalResult.priceRangeLow ? finalResult.priceRangeLow * 0.75 : null;
-                              case 'For Parts':
-                                return finalResult.priceForParts ?? finalResult.priceRangeLow ?? null;
-                              default:
-                                return finalResult.priceRangeMid ?? null;
-                            }
-                          }
-                          
-                          // Fallback to old logic for backwards compatibility
-                          if (!finalResult.avgMarketPrice) return null;
-                          const basePrice = finalResult.avgMarketPrice;
-                          if (!condition) return basePrice * 0.65;
-                          const multipliers: Record<string, number> = {
-                            'New': 1.0,
-                            'Like New': 0.90,  // Updated from 0.85
-                            'Very Good': 0.75,
-                            'Good': 0.65,
-                            'Fair': 0.50,
-                            'Poor': 0.375,  // Updated: 0.50 * 0.75 = 0.375
-                            'For Parts': 0.20
-                          };
-                          return basePrice * (multipliers[condition] || 0.65);
-                        })(),
+                        price: listing.price ?? autoSuggestedPrice,
                       },
                     });
+
+                    await reindexListing(listingId);
 
                     // Increment premium usage counter if premium was used
                     if (shouldUsePremium) {
@@ -625,40 +623,83 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                             });
                           }
                         } else {
-                          // For all other notifications, create normally
-                          await prisma.aINotification.create({
+                          const isPhotoRequest = question.actionType === 'add_photo' || question.actionType === 'photo_request' || question.actionType === 'photo';
+                          const requirementSlug = isPhotoRequest
+                            ? (question.data?.requirement as string | undefined) ??
+                              (question.message
+                                ? question.message
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]+/g, '_')
+                                    .replace(/^_|_$/g, '')
+                                    .slice(0, 60)
+                                : 'photo_evidence')
+                            : undefined;
+
+                          const mood = finalResult.category && typeof finalResult.category === 'string'
+                            ? (() => {
+                                const c = finalResult.category.toLowerCase();
+                                if (c.includes('electronic')) return 'tech';
+                                if (c.includes('jewel')) return 'luxury';
+                                if (c.includes('doll') || c.includes('clown')) return 'doll';
+                                if (/\b(19\d\d|18\d\d)\b/.test(c) || c.includes('vintage')) return 'historic';
+                                if (c.includes('painting') || c.includes('art')) return 'art';
+                                if (c.includes('apparel') || c.includes('fashion') || c.includes('shoe') || c.includes('clothing')) return 'fashion';
+                                if (c.includes('toy')) return 'kitsch';
+                                return 'neutral';
+                              })()
+                            : 'neutral';
+
+                          const actionPayload: Record<string, any> = {
+                            ...(question.data || {}),
+                            section: question.section || (isPhotoRequest ? 'photos' : undefined),
+                            mood,
+                            context: question.context || undefined,
+                          };
+
+                          if (isPhotoRequest && requirementSlug) {
+                            actionPayload.requirement = requirementSlug;
+                          }
+
+                          const notificationType = isPhotoRequest
+                            ? 'PHOTO'
+                            : question.actionType === 'insight'
+                              ? 'INSIGHT'
+                              : 'QUESTION';
+
+                          const createdNotification = await prisma.aINotification.create({
                             data: {
                               listingId,
-                              type: question.actionType === 'insight' ? 'INSIGHT' : 'QUESTION',
+                              type: notificationType,
                               message: question.message,
                               field: null,
                               actionType: question.actionType,
-                              // Extend actionData with section/mood/context for Pass A without DB migration
-                              actionData: JSON.stringify({
-                                ...(question.data || {}),
-                                section: question.section || undefined,
-                                mood: (finalResult.category && typeof finalResult.category === 'string') ? ((): string => {
-                                  const c = finalResult.category.toLowerCase();
-                                  if (c.includes('electronic')) return 'tech';
-                                  if (c.includes('jewel')) return 'luxury';
-                                  if (c.includes('doll') || c.includes('clown')) return 'doll';
-                                  if (/\b(19\d\d|18\d\d)\b/.test(c) || c.includes('vintage')) return 'historic';
-                                  if (c.includes('painting') || c.includes('art')) return 'art';
-                                  if (c.includes('apparel') || c.includes('fashion') || c.includes('shoe') || c.includes('clothing')) return 'fashion';
-                                  if (c.includes('toy')) return 'kitsch';
-                                  return 'neutral';
-                                })() : 'neutral',
-                                context: question.context || undefined,
-                              }),
+                              actionData: JSON.stringify(actionPayload),
                             },
                           });
+
+                          if (notificationType === 'PHOTO') {
+                            await logTelemetryEvent({
+                              userId,
+                              listingId,
+                              eventType: 'photo_request',
+                              metadata: {
+                                notificationId: createdNotification.id,
+                                requirement: actionPayload.requirement ?? null,
+                                facetTag: actionPayload.facetTag ?? null,
+                                actionType: question.actionType,
+                              },
+                            });
+                          }
                         }
                       }
                     }
 
                     const finalData = JSON.stringify({
                       status: 'completed',
-                      result: finalResult,
+                      result: {
+                        ...finalResult,
+                        ladderStats,
+                      },
                     });
                     controller.enqueue(encoder.encode(`data: ${finalData}\n\n`));
                     console.log('✅ Analysis completed successfully!');

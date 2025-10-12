@@ -20,13 +20,12 @@ interface Listing {
 }
 
 export default function InsightsSection({ listing }: { listing: Listing & { usePremium?: boolean } }) {
-  // Only show insights when premium features are unlocked for this listing
   const isPremiumUnlocked = listing.usePremium === true;
-  
+  const [showBestTimePrompt, setShowBestTimePrompt] = useState(false);
+
   if (!isPremiumUnlocked) {
     return null;
   }
-  const [showBestTimePrompt, setShowBestTimePrompt] = useState(false);
 
   const hasPriceInsights =
     listing.avgMarketPrice !== null ||

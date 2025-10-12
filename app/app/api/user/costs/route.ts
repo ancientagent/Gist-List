@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         listingCount: user.listingCount,
         avgCostPerListing,
       },
-      recentListings: listings.map(listing => ({
+      recentListings: listings.map((listing: typeof listings[0]) => ({
         id: listing.id,
         title: listing.title || 'Untitled',
         tokensUsed: listing.tokensUsed || 0,

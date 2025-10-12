@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { downloadFile } from '@/lib/s3';
+import { reindexListing } from '@/lib/search-index';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,6 +232,8 @@ Respond with raw JSON only. No markdown, no code blocks.`,
         })(),
       },
     });
+
+    await reindexListing(listingId);
 
     // Increment premium usage if used
     if (shouldUsePremium) {
