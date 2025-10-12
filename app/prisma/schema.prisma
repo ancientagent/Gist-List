@@ -82,6 +82,7 @@ model User {
   subscriptions Subscription[]
   listings      Listing[]
   chips         UserChip[]
+  scheduledPosts ScheduledPost[]
 }
 
 model Subscription {
@@ -185,6 +186,7 @@ model Listing {
   photos            Photo[]
   platformData      PlatformData[]
   notifications     AINotification[]
+  scheduledPosts    ScheduledPost[]
 }
 
 model Photo {
@@ -252,4 +254,24 @@ model UserChip {
   
   @@unique([userId, category, text, itemCategory])
   @@index([userId, category, itemCategory])
+}
+
+model ScheduledPost {
+  id            String   @id @default(cuid())
+  userId        String
+  listingId     String
+  platforms     String[] // Array of platform names to post to
+  scheduledTime DateTime // When to post
+  useAITime     Boolean  @default(false) // Whether using AI-recommended time
+  status        String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+  errorMessage  String?  @db.Text
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, status])
+  @@index([scheduledTime, status])
 }
