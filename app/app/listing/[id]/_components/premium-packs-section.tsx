@@ -129,19 +129,22 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER - Show what AI found without revealing data
               <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-4 h-4 text-purple-600" />
+                  <Label className="text-sm font-bold text-gray-900">Pro Lister Pack</Label>
+                </div>
+
+                <p className="text-xs text-gray-600 mb-3">
+                  Build your reputation and stand out as a true professional with the Pro Lister Pack - a complimentary package for the buyer complete with helpful resources and information.
+                </p>
+
+                <p className="text-xs text-gray-700 mb-2 font-medium">This pack includes:</p>
+
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
-                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>1 link for the operator's manual</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>1 spec sheet</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>Contact information for parts dealers in the area</span>
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Analyzing your Collectibles for helpful resources...</span>
                     </li>
                   </ul>
                 </div>
@@ -215,18 +218,31 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER
               <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-4 h-4 text-purple-600" />
+                  <Label className="text-sm font-bold text-gray-900">Insights & Automation Pack</Label>
+                </div>
+
+                <p className="text-xs text-gray-600 mb-3">
+                  Higher level use of GISTer agent enhanced research to make the most of your post. Apply market insights to assess the value of your items. Schedule time auto-posting for up to 5 different sites!
+                </p>
+
+                <p className="text-xs text-gray-700 mb-2 font-medium">
+                  Receive the latest 2nd hand market research on your items specifically to discover trends, what's in, what's hot and what's not, and apply it to your assistant's list logic for intelligent, automatic and hassle-free posting for up to 6 sites at 1 time.
+                </p>
+
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
-                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                       <span><strong>Smart scheduling:</strong> Post during peak hours for maximum visibility</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                       <span><strong>Multi-platform:</strong> Automatically post to 6 sites simultaneously</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Zap className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
                       <span><strong>Market insights:</strong> Real-time trends and pricing recommendations</span>
                     </li>
                   </ul>
@@ -294,26 +310,30 @@ export default function PremiumPacksSection({
             {!usePremium ? (
               // FREE TIER
               <div className="space-y-3">
-                <p className="text-xs text-gray-600 mb-2">
-                  GISTer shows it off for all to see.. in detail..
+                <div className="flex items-center gap-2 mb-2">
+                  <Lock className="w-4 h-4 text-purple-600" />
+                  <Label className="text-sm font-bold text-gray-900">Fine Details Pack</Label>
+                </div>
+
+                <p className="text-xs text-gray-600 mb-3">
+                  Includes all the fine details that help your item sell, including 20 SEO-optimized search tags and platform-specific fields.
                 </p>
+
+                <p className="text-xs text-gray-700 mb-2 font-medium">This pack includes:</p>
+
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs text-gray-800 mb-3 font-medium italic text-center">
-                    This glorious package is a true attention getter, you'll be fighting them off with a stick!
-                  </p>
-                  
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span><strong>SEO Optimization:</strong> 20 premium search tags for prime visibility</span>
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>20 SEO-optimized search tags ordered by effectiveness</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span><strong>Maximum Range</strong> {additionalFieldsCount}+ additional platform-specific fields for {platformsWithFields}</span>
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>8+ additional platform-specific fields for eBay, Mercari, Facebook Marketplace</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span><strong>all conditions met</strong> autocompletion for every descriptor, on every site, for every item.</span>
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Custom descriptions optimized for each platform</span>
                     </li>
                   </ul>
                 </div>
