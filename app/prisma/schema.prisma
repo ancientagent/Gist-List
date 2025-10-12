@@ -87,6 +87,7 @@ model User {
   // Marketplace Integrations
   ebayCredential         EbayCredential?
   reverbCredential       ReverbCredential?
+  etsyCredential         EtsyCredential?
   
   // Notification System
   pushSubscriptions      PushSubscription[]
@@ -197,6 +198,7 @@ model Listing {
   // API Platform IDs
   ebayListingId     String?  // eBay item ID after posting
   reverbListingId   String?  // Reverb listing ID after posting
+  etsyListingId     String?  // Etsy listing ID after posting
   
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   photos            Photo[]
@@ -317,6 +319,21 @@ model ReverbCredential {
   apiToken  String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Etsy OAuth 2.0 Credentials
+model EtsyCredential {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  etsyUserId   String
+  etsyShopId   String
+  shopName     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // Enhanced Market Research Cache
