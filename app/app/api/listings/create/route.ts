@@ -106,7 +106,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const formData = await request.formData();
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (error) {
+      console.error('FormData parsing error:', error);
+      return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
+    }
+
     const photo = formData.get('photo') as File;
     const theGist = formData.get('theGist') as string;
 
@@ -114,17 +121,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Photo is required' }, { status: 400 });
     }
 
+    // Validate photo file
+    if (!photo.type || !photo.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Invalid file type. Please upload an image.' }, { status: 400 });
+    }
+
+    // Convert to buffer with validation
+    let buffer: Buffer;
+    try {
+      const arrayBuffer = await photo.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Empty image file');
+      }
+      buffer = Buffer.from(arrayBuffer);
+      console.log(`📸 Received photo: ${buffer.length} bytes, type: ${photo.type}`);
+    } catch (error) {
+      console.error('Buffer conversion error:', error);
+      return NextResponse.json({ error: 'Failed to process image file' }, { status: 400 });
+    }
+
     // Upload photo to S3 with compression
-    const buffer = Buffer.from(await photo.arrayBuffer());
-    const fileName = `listings/${Date.now()}-${photo.name}`;
+    const fileName = `listings/${Date.now()}-${photo.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     
-    const { uploadFileWithCompression } = await import('@/lib/s3');
-    const uploadResult = await uploadFileWithCompression(buffer, fileName);
-    
-    console.log(`📦 Image compressed: ${uploadResult.originalSize} → ${uploadResult.compressedSize} bytes (${uploadResult.savingsPercent.toFixed(1)}% savings)`);
+    let uploadResult;
+    try {
+      const { uploadFileWithCompression } = await import('@/lib/s3');
+      uploadResult = await uploadFileWithCompression(buffer, fileName);
+      console.log(`📦 Image compressed: ${uploadResult.originalSize} → ${uploadResult.compressedSize} bytes (${uploadResult.savingsPercent.toFixed(1)}% savings)`);
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      return NextResponse.json({ 
+        error: `Failed to upload image: ${error?.message || 'Unknown error'}` 
+      }, { status: 500 });
+    }
 
     // Quick AI confidence check
-    const aiCheck = await quickConfidenceCheck(buffer, theGist || '');
+    let aiCheck;
+    try {
+      aiCheck = await quickConfidenceCheck(buffer, theGist || '');
+      console.log(`🤖 AI check complete: confidence=${aiCheck.confidence}, identified=${aiCheck.itemIdentified}`);
+    } catch (error: any) {
+      console.error('AI check error:', error);
+      // Continue with default values if AI check fails
+      aiCheck = {
+        confidence: 0.5,
+        itemIdentified: true,
+        imageQualityIssue: null,
+      };
+    }
 
     // Create listing with storage tracking
     const listing = await prisma.listing.create({
@@ -138,6 +182,8 @@ export async function POST(request: NextRequest) {
         storageBytes: uploadResult.compressedSize,
       },
     });
+
+    console.log(`✅ Listing created: ${listing.id}`);
 
     // Create photo record with size tracking
     await prisma.photo.create({
@@ -171,8 +217,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Create listing error:', error);
+    console.error('Error stack:', error?.stack);
     return NextResponse.json(
-      { error: error?.message || 'Failed to create listing' },
+      { 
+        error: error?.message || 'Failed to create listing',
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      },
       { status: 500 }
     );
   }

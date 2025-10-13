@@ -138,13 +138,20 @@ export default function PremiumPacksSection({
                   Build your reputation and stand out as a true professional with the Pro Lister Pack - a complimentary package for the buyer complete with helpful resources and information.
                 </p>
 
-                <p className="text-xs text-gray-700 mb-2 font-medium">This pack includes:</p>
-
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
+                  <p className="text-xs text-gray-700 mb-3 italic">Analyzing your Collectibles for helpful resources...</p>
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>Analyzing your Collectibles for helpful resources...</span>
+                      <span>Official product manuals or documentation</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Local repair shops or service centers</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span>Parts suppliers or accessories dealers</span>
                     </li>
                   </ul>
                 </div>
@@ -316,16 +323,15 @@ export default function PremiumPacksSection({
                 </div>
 
                 <p className="text-xs text-gray-600 mb-3">
-                  Includes all the fine details that help your item sell, including 20 SEO-optimized search tags and platform-specific fields.
+                  Includes all the fine details that help your item sell, including 20 SEO-optimized search tags for prime visibility and platform-specific fields.
                 </p>
 
-                <p className="text-xs text-gray-700 mb-2 font-medium">This pack includes:</p>
-
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
+                  <p className="text-xs text-gray-700 mb-3 italic">Everything where all at once</p>
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span>20 SEO-optimized search tags ordered by effectiveness</span>
+                      <span>SEO Optimization: 20 premium search tags for prime visibility</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />

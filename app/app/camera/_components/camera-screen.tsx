@@ -181,57 +181,98 @@ export default function CameraScreen() {
       // Create canvas to capture photo
       const canvas = document.createElement('canvas');
       const video = videoRef.current;
-      canvas.width = video.videoWidth || 1920;
-      canvas.height = video.videoHeight || 1080;
+      
+      // Validate video dimensions
+      if (!video.videoWidth || !video.videoHeight) {
+        throw new Error('Camera not ready. Please wait and try again.');
+      }
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (!ctx) {
+        throw new Error('Failed to create canvas context');
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Show captured image in viewfinder
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      setCapturedImage(imageDataUrl);
+      
+      // Convert to blob with error handling
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => {
+            if (b) {
+              resolve(b);
+            } else {
+              reject(new Error('Failed to create image blob'));
+            }
+          },
+          'image/jpeg',
+          0.95
+        );
+      });
+
+      // Validate blob
+      if (blob.size === 0) {
+        throw new Error('Captured image is empty');
+      }
+
+      // Upload photo and create listing
+      setIsAnalyzing(true);
+      const formData = new FormData();
+      formData.append('photo', blob, 'photo.jpg');
+      formData.append('theGist', theGist || '');
+
+      const response = await fetch('/api/listings/create', {
+        method: 'POST',
+        body: formData,
+      });
+
+      // Handle network errors
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = 'Failed to create listing';
         
-        // Show captured image in viewfinder
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-        setCapturedImage(imageDataUrl);
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
         
-        // Convert to blob
-        const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.95);
-        });
+        throw new Error(errorMessage);
+      }
 
-        // Upload photo and create listing
-        setIsAnalyzing(true);
-        const formData = new FormData();
-        formData.append('photo', blob, 'photo.jpg');
-        formData.append('theGist', theGist);
+      const data = await response.json();
 
-        const response = await fetch('/api/listings/create', {
-          method: 'POST',
-          body: formData,
-        });
+      // Validate response data
+      if (!data.listingId) {
+        throw new Error('Invalid server response');
+      }
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create listing');
-        }
-
-        // Check AI confidence
-        if (data.confidence && data.confidence > 0.7 && data.itemIdentified) {
-          // Confident - proceed to List Mode
-          toast.success('Item identified!');
-          router.push(`/listing/${data.listingId}`);
-        } else {
-          // Not confident - ask to retake
-          setIsAnalyzing(false);
-          setRetakeMessage(
-            data.imageQualityIssue || 
-            'Unable to identify item clearly. Please retake with better lighting and focus.'
-          );
-        }
+      // Check AI confidence
+      if (data.confidence && data.confidence > 0.7 && data.itemIdentified) {
+        // Confident - proceed to List Mode
+        toast.success('Item identified!');
+        router.push(`/listing/${data.listingId}`);
+      } else {
+        // Not confident - ask to retake
+        setIsAnalyzing(false);
+        setRetakeMessage(
+          data.imageQualityIssue || 
+          'Unable to identify item clearly. Please retake with better lighting and focus.'
+        );
       }
     } catch (error: any) {
       console.error('Capture error:', error);
-      toast.error(error?.message || 'Failed to capture photo');
+      const errorMessage = error?.message || 'Failed to capture photo. Please try again.';
+      toast.error(errorMessage);
       setIsAnalyzing(false);
+      setCapturedImage(null); // Reset captured image on error
     } finally {
       setIsCapturing(false);
     }

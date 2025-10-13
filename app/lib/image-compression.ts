@@ -34,8 +34,22 @@ export async function compressImage(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const originalSize = inputBuffer.length;
   
+  // Validate input
+  if (!inputBuffer || inputBuffer.length === 0) {
+    console.error('Image compression: Empty input buffer');
+    throw new Error('Invalid image data');
+  }
+  
   try {
-    let pipeline = sharp(inputBuffer);
+    // Validate Sharp is available
+    if (!sharp) {
+      throw new Error('Image processing library not available');
+    }
+    
+    let pipeline = sharp(inputBuffer, {
+      failOnError: false, // Continue processing even if some operations fail
+      limitInputPixels: 268402689, // Limit to ~500MP to prevent memory issues
+    });
     
     // Resize if needed
     if (opts.maxWidth || opts.maxHeight) {
@@ -48,20 +62,39 @@ export async function compressImage(
     // Apply compression based on format
     switch (opts.format) {
       case 'jpeg':
-        pipeline = pipeline.jpeg({ quality: opts.quality, mozjpeg: true });
+        pipeline = pipeline.jpeg({ 
+          quality: opts.quality, 
+          mozjpeg: true,
+          force: true // Force JPEG output
+        });
         break;
       case 'png':
-        pipeline = pipeline.png({ quality: opts.quality, compressionLevel: 9 });
+        pipeline = pipeline.png({ 
+          quality: opts.quality, 
+          compressionLevel: 9,
+          force: true
+        });
         break;
       case 'webp':
-        pipeline = pipeline.webp({ quality: opts.quality });
+        pipeline = pipeline.webp({ 
+          quality: opts.quality,
+          force: true
+        });
         break;
     }
     
     const compressedBuffer = await pipeline.toBuffer();
+    
+    // Validate output
+    if (!compressedBuffer || compressedBuffer.length === 0) {
+      throw new Error('Compression produced empty result');
+    }
+    
     const compressedSize = compressedBuffer.length;
     const compressionRatio = originalSize / compressedSize;
     const savingsPercent = ((originalSize - compressedSize) / originalSize) * 100;
+    
+    console.log(`✅ Image compressed: ${originalSize} → ${compressedSize} bytes (${savingsPercent.toFixed(1)}% savings)`);
     
     return {
       buffer: compressedBuffer,
@@ -70,8 +103,10 @@ export async function compressImage(
       compressionRatio,
       savingsPercent,
     };
-  } catch (error) {
-    console.error('Image compression error:', error);
+  } catch (error: any) {
+    console.error('Image compression error:', error?.message || error);
+    console.error('Falling back to original image without compression');
+    
     // Return original if compression fails
     return {
       buffer: inputBuffer,
