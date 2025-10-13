@@ -384,9 +384,9 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     if (Math.abs(percentDiff) < 15) return null; // Price is reasonable
     
     if (percentDiff > 15) {
-      return `Your price seems high for "${listing.condition}" condition. Market data suggests $${conditionPrice.toFixed(2)}`;
+      return `Your price seems high for "${listing.condition}" condition. Market data suggests $${conditionPrice?.toFixed(2) ?? '0.00'}`;
     } else {
-      return `You could ask for more! Items in "${listing.condition}" condition typically sell for $${conditionPrice.toFixed(2)}`;
+      return `You could ask for more! Items in "${listing.condition}" condition typically sell for $${conditionPrice?.toFixed(2) ?? '0.00'}`;
     }
   };
 
@@ -847,7 +847,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               
               {listing.shippingCostEst && (
                 <p className="text-sm text-emerald-600">
-                  Estimated shipping cost: ${listing.shippingCostEst.toFixed(2)}
+                  Estimated shipping cost: ${listing.shippingCostEst?.toFixed(2) ?? '0.00'}
                 </p>
               )}
 

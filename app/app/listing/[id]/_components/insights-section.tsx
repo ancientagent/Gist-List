@@ -43,14 +43,14 @@ export default function InsightsSection({ listing }: { listing: Listing & { useP
     if (percentDiff > 20) {
       return {
         type: 'warning',
-        message: `Your price is ${Math.abs(percentDiff).toFixed(0)}% higher than market average. Consider lowering to $${listing.avgMarketPrice.toFixed(2)} for faster sale.`,
+        message: `Your price is ${Math.abs(percentDiff).toFixed(0)}% higher than market average. Consider lowering to $${listing.avgMarketPrice?.toFixed(2) ?? '0.00'} for faster sale.`,
         icon: AlertCircle,
         color: 'amber',
       };
     } else if (percentDiff < -20) {
       return {
         type: 'info',
-        message: `Your price is ${Math.abs(percentDiff).toFixed(0)}% lower than market average. You could price it higher at $${listing.avgMarketPrice.toFixed(2)}.`,
+        message: `Your price is ${Math.abs(percentDiff).toFixed(0)}% lower than market average. You could price it higher at $${listing.avgMarketPrice?.toFixed(2) ?? '0.00'}.`,
         icon: TrendingUp,
         color: 'emerald',
       };
@@ -86,13 +86,13 @@ export default function InsightsSection({ listing }: { listing: Listing & { useP
                 <div className="font-medium text-purple-900 mb-1">Market Price Analysis</div>
                 {listing.avgMarketPrice && (
                   <div className="text-purple-700">
-                    Average: <span className="font-semibold">${listing.avgMarketPrice.toFixed(2)}</span>
+                    Average: <span className="font-semibold">${listing.avgMarketPrice?.toFixed(2) ?? '0.00'}</span>
                   </div>
                 )}
                 {listing.suggestedPriceMin && listing.suggestedPriceMax && (
                   <div className="text-purple-700">
-                    Suggested range: ${listing.suggestedPriceMin.toFixed(2)} - $
-                    {listing.suggestedPriceMax.toFixed(2)}
+                    Suggested range: ${listing.suggestedPriceMin?.toFixed(2) ?? '0.00'} - $
+                    {listing.suggestedPriceMax?.toFixed(2) ?? '0.00'}
                   </div>
                 )}
               </div>
@@ -186,7 +186,7 @@ export default function InsightsSection({ listing }: { listing: Listing & { useP
               <div className="flex-1 text-sm">
                 <div className="font-medium text-green-900 mb-1">Shipping Estimate</div>
                 <div className="text-green-700">
-                  Est. ${listing.shippingCostEst.toFixed(2)} via USPS
+                  Est. ${listing.shippingCostEst?.toFixed(2) ?? '0.00'} via USPS
                 </div>
               </div>
             </div>
