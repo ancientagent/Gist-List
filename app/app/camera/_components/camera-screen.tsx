@@ -286,6 +286,33 @@ export default function CameraScreen() {
     await initCamera();
   };
 
+  // Development helper: Create sample listing instantly
+  const [isCreatingSample, setIsCreatingSample] = useState(false);
+  const isDev = process.env.NODE_ENV !== 'production';
+  
+  const createSampleListing = async () => {
+    if (isCreatingSample) return;
+    
+    setIsCreatingSample(true);
+    try {
+      const response = await fetch('/api/dev/sample-listing', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create sample listing');
+      }
+
+      const data = await response.json();
+      toast.success('Sample listing created!');
+      router.push(`/listing/${data.listingId}`);
+    } catch (error: any) {
+      console.error('Sample listing error:', error);
+      toast.error(error.message || 'Failed to create sample listing');
+      setIsCreatingSample(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Camera Viewfinder */}
@@ -332,20 +359,42 @@ export default function CameraScreen() {
           <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm">
             {session?.user?.name || 'Guest'}
           </div>
-          {isListening && (
-            <div className="bg-emerald-500 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
-              <Mic className="w-4 h-4" />
-              <span className="animate-listening">Listening</span>
-              <span className="animate-listening-dots">...</span>
-            </div>
-          )}
-          {isAnalyzing && (
-            <div className="bg-green-600 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Analyzing</span>
-              <span className="animate-listening-dots">...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {isListening && (
+              <div className="bg-emerald-500 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
+                <Mic className="w-4 h-4" />
+                <span className="animate-listening">Listening</span>
+                <span className="animate-listening-dots">...</span>
+              </div>
+            )}
+            {isAnalyzing && (
+              <div className="bg-green-600 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm flex items-center gap-2 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Analyzing</span>
+                <span className="animate-listening-dots">...</span>
+              </div>
+            )}
+            {isDev && (
+              <Button
+                onClick={createSampleListing}
+                disabled={isCreatingSample}
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700 text-white text-xs"
+              >
+                {isCreatingSample ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Package className="w-3 h-3 mr-1" />
+                    Use Sample
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Retake Message */}

@@ -4,6 +4,19 @@
 
 ---
 
+## 2025-10-14 - DeepAgent (Session 2)
+
+### Added
+- feat(dev): Development helper - "Use Sample" button in camera page
+- feat(dev): Sample listing API endpoint for quick testing
+- feat(dev): Five sample items with varied data (vintage, collectibles, electronics, etc.)
+
+### Documentation
+- docs: Updated CHANGELOG.md with development tools additions
+- docs: Updated session summary for dev tools
+
+---
+
 ## 2025-10-14 - DeepAgent (Session 1)
 
 ### Added
