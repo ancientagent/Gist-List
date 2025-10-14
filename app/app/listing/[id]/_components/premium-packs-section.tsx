@@ -31,6 +31,10 @@ export default function PremiumPacksSection({
   }
 
   const [activeTab, setActiveTab] = useState<'lister' | 'automation' | 'details'>('automation');
+  
+  // Check if this is a special item
+  const isSpecialItem = listing.isPremiumItem || false;
+  const specialClass = listing.specialClass || 'Special';
 
   const isPremiumTier = userTier === 'BASIC' || userTier === 'PRO';
   const isFreeUser = !userTier || userTier === 'FREE';
@@ -85,8 +89,25 @@ export default function PremiumPacksSection({
 
   return (
     <div className="bg-white rounded-lg shadow-sm mb-4">
+      {/* Special Item Banner */}
+      {isSpecialItem && (
+        <div className="bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 p-4 rounded-t-lg">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-6 h-6 text-white animate-pulse" />
+            <div className="flex-1">
+              <h3 className="text-white font-bold text-lg">
+                🎯 {specialClass} Item Detected!
+              </h3>
+              <p className="text-white/90 text-sm mt-1">
+                This item has been identified as a special collectible. Unlock premium features below to access detailed insights, collector information, and helpful resources that will help you sell faster and for more money.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 flex">
+      <div className={`border-b border-gray-200 flex ${isSpecialItem ? '' : 'rounded-t-lg'}`}>
         <button
           onClick={() => setActiveTab('automation')}
           className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${

@@ -73,6 +73,8 @@ interface Listing {
   suggestedPriceMin: number | null; // DEPRECATED
   suggestedPriceMax: number | null; // DEPRECATED
   marketInsights: string | null;
+  isPremiumItem: boolean;
+  specialClass: string | null;
   premiumFacts: string | null;
   usefulLinks: string | null;
   usePremium: boolean;

@@ -317,7 +317,30 @@ CRITICAL REQUIREMENTS:
    - Create a question notification listing all unknown fields that were auto-set
    - This notification should always be optional and user can ignore it if the N/A values are correct
 
-${shouldUsePremium ? `11. PREMIUM FACTS & USEFUL LINKS:
+11. SPECIAL ITEM DETECTION (ALWAYS REQUIRED - REGARDLESS OF PREMIUM STATUS):
+    CRITICAL: Always detect if this is a "Special Item" - even for free users.
+    
+    Special Item Categories:
+    - "Vintage" - Items 20+ years old with nostalgic/historical value
+    - "Collectible" - Items sought by collectors (trading cards, limited editions, memorabilia)
+    - "Antique" - Items 100+ years old with historical significance
+    - "Luxury" - High-end designer items, luxury brands (Rolex, Louis Vuitton, Gucci, Chanel, etc.)
+    - "Custom" - Custom-made, handcrafted, or one-of-a-kind items
+    - "Art" - Original artwork, sculptures, fine art pieces
+    - "Rare" - Limited production, hard to find, discontinued items with collector demand
+    
+    If item matches ANY category above:
+    - Set isPremiumItem: true
+    - Set specialClass: "Vintage" | "Collectible" | "Antique" | "Luxury" | "Custom" | "Art" | "Rare"
+    - Set specialItemReason: Brief 1-2 sentence explanation of WHY this is special (for free user preview)
+      Example: "This 1978 Fender Stratocaster is a vintage collectible guitar from Fender's golden era, sought after by collectors and musicians for its iconic sound and craftsmanship."
+    
+    If item is NOT special:
+    - Set isPremiumItem: false
+    - Set specialClass: null
+    - Set specialItemReason: null
+
+${shouldUsePremium ? `12. PREMIUM FACTS & USEFUL LINKS (FOR UNLOCKED PREMIUM ONLY):
     Go the extra mile to provide valuable information that helps the seller and buyer:
     
     Premium Facts (Random/useful/valuable information):
@@ -337,8 +360,8 @@ ${shouldUsePremium ? `11. PREMIUM FACTS & USEFUL LINKS:
     - User guides or tutorials
     - Community forums or resources
     - Similar items for comparison
-    Format: [{ "title": "Link description", "url": "https://..." }, ...]` : `11. PREMIUM FEATURES:
-    SKIP - User did not request premium analysis.
+    Format: [{ "title": "Link description", "url": "https://..." }, ...]` : `12. PREMIUM FEATURES:
+    SKIP - User has not unlocked premium for this item.
     Set premiumFacts and usefulLinks to null.`}
 
 Provide a JSON response:
@@ -375,6 +398,9 @@ Provide a JSON response:
   "suggestedPriceMin": number or null (DEPRECATED),
   "suggestedPriceMax": number or null (DEPRECATED),
   "marketInsights": "detailed market analysis with condition impact",
+  "isPremiumItem": true or false (ALWAYS REQUIRED - detect special items for all users),
+  "specialClass": "Vintage" | "Collectible" | "Antique" | "Luxury" | "Custom" | "Art" | "Rare" | null,
+  "specialItemReason": "1-2 sentence explanation of why this is special" or null,
   "premiumFacts": "Premium/special facts and valuable information about the item" or null,
   "usefulLinks": [{ "title": "Link description", "url": "https://..." }] or null,
   "alerts": [{ "field": "field_name", "message": "Required field message" }],
@@ -525,6 +551,10 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         suggestedPriceMax: finalResult.suggestedPriceMax ?? null,
                         marketInsights: finalResult.marketInsights ?? null,
                         imageQualityIssue: finalResult.imageQualityIssue ?? null,
+                        // Special Item Detection (ALWAYS saved - regardless of premium status)
+                        isPremiumItem: finalResult.isPremiumItem ?? false,
+                        specialClass: finalResult.specialClass ?? null,
+                        // Note: specialItemReason is not in schema yet, will be stored in a notification for free users
                         premiumFacts: shouldUsePremium ? (finalResult.premiumFacts ?? null) : null,
                         usefulLinks: shouldUsePremium && finalResult.usefulLinks ? JSON.stringify(finalResult.usefulLinks) : null,
                         // Auto-set price from AI based on condition if not already set
@@ -656,6 +686,38 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                             },
                           });
                         }
+                      }
+                    }
+
+                    // Create Special Item Detection notification (for free users with special items)
+                    if (finalResult.isPremiumItem && !shouldUsePremium) {
+                      // Check if special item notification already exists
+                      const existingSpecialNotification = await prisma.aINotification.findFirst({
+                        where: {
+                          listingId,
+                          actionType: 'special_item_detected',
+                        },
+                      });
+                      
+                      // Only create if it doesn't exist
+                      if (!existingSpecialNotification) {
+                        const specialClass = finalResult.specialClass || 'Special';
+                        const specialReason = finalResult.specialItemReason || 'This item has been identified as a special collectible item.';
+                        
+                        await prisma.aINotification.create({
+                          data: {
+                            listingId,
+                            type: 'INSIGHT',
+                            message: `🎯 ${specialClass} Item Detected! ${specialReason} Unlock premium features to access detailed insights, collector information, and helpful resources.`,
+                            field: null,
+                            actionType: 'special_item_detected',
+                            actionData: JSON.stringify({
+                              specialClass: finalResult.specialClass,
+                              specialItemReason: finalResult.specialItemReason,
+                              showUpgradePrompt: true,
+                            }),
+                          },
+                        });
                       }
                     }
 
