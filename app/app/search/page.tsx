@@ -444,7 +444,7 @@ export default function SearchPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {results.map((item) => (
-                <Link key={item.id} href={`/listing/${item.id}`}>
+                <Link key={item.id} href={`/marketplace/${item.id}`}>
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
                     <div className="relative aspect-square bg-muted">
                       {item.primaryPhoto ? (
