@@ -1,5 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +22,19 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Check if user is authenticated
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id;
+
     const listing = await prisma.listing.findUnique({
       where: { id: params.id },
       include: {
         photos: {
           orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        },
+        notifications: {
+          where: { resolved: false },
+          orderBy: { createdAt: "desc" },
         },
         searchIndex: true,
         user: {
@@ -32,6 +42,9 @@ export async function GET(
             id: true,
             fullName: true,
             email: true,
+            subscriptionTier: true,
+            premiumPostsUsed: true,
+            premiumPostsTotal: true,
           },
         },
       },
@@ -44,7 +57,34 @@ export async function GET(
       );
     }
 
-    // Format response
+    // Check if requesting user is the owner
+    const isOwner = userId && userId === listing.userId;
+
+    // If owner, return full listing data for editing
+    if (isOwner) {
+      // Filter notifications based on subscription tier
+      // Free users: Only ALERT and QUESTION notifications
+      // Premium users: All notifications including INSIGHT
+      const isPremium = listing.user.subscriptionTier === 'premium';
+      const filteredNotifications = listing.notifications.filter((n: any) => {
+        if (n.type === 'INSIGHT' && !isPremium) {
+          return false; // Hide insights from free users
+        }
+        return true;
+      });
+
+      return NextResponse.json({
+        ...listing,
+        notifications: filteredNotifications,
+        user: {
+          subscriptionTier: listing.user.subscriptionTier,
+          premiumPostsUsed: listing.user.premiumPostsUsed,
+          premiumPostsTotal: listing.user.premiumPostsTotal,
+        },
+      });
+    }
+
+    // If not owner, return minimal public marketplace view
     const response = {
       id: listing.id,
       title: listing.title,
