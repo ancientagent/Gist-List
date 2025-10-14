@@ -474,7 +474,7 @@ export default function SearchPage() {
                         {item.title}
                       </h3>
                       <p className="text-2xl font-bold text-primary mb-2">
-                        ${item.price.toFixed(2)}
+                        ${item.price?.toFixed(2) ?? '0.00'}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Badge variant="outline">{item.condition}</Badge>

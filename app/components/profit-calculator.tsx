@@ -78,7 +78,8 @@ export function ProfitCalculator({
     }).format(amount);
   };
 
-  const formatPercent = (percent: number) => {
+  const formatPercent = (percent: number | null | undefined) => {
+    if (percent == null) return '0.0%';
     return `${percent >= 0 ? '+' : ''}${percent.toFixed(1)}%`;
   };
 

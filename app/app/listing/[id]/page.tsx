@@ -276,7 +276,7 @@ export default function ListingDetailPage() {
                 </div>
               </div>
               <p className="text-4xl font-bold text-primary">
-                ${listing.price.toFixed(2)}
+                ${listing.price?.toFixed(2) ?? '0.00'}
               </p>
             </div>
 
@@ -308,7 +308,7 @@ export default function ListingDetailPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span>Quality Score</span>
                       <span className="font-semibold">
-                        {(listing.grades.gradeScore * 100).toFixed(0)}%
+                        {((listing.grades.gradeScore ?? 0) * 100).toFixed(0)}%
                       </span>
                     </div>
                     {listing.grades.totalTargets > 0 && (

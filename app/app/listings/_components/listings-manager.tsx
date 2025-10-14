@@ -174,7 +174,7 @@ export default function ListingsManager() {
                     <div className="flex items-center gap-2 mt-1">
                       {listing.price ? (
                         <span className="text-lg font-semibold text-indigo-600">
-                          ${listing.price.toFixed(2)}
+                          ${(listing.price ?? 0).toFixed(2)}
                         </span>
                       ) : (
                         <span className="text-sm text-gray-500">No price set</span>
