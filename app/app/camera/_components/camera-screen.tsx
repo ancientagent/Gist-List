@@ -295,7 +295,7 @@ export default function CameraScreen() {
     
     setIsCreatingSample(true);
     try {
-      const response = await fetch('/api/dev/sample-listing', {
+      const response = await fetch('/api/listings/sample', {
         method: 'POST',
       });
 
@@ -304,8 +304,9 @@ export default function CameraScreen() {
       }
 
       const data = await response.json();
-      toast.success('Sample listing created!');
-      router.push(`/listing/${data.listingId}`);
+      toast.success('Processing sample item...');
+      // Navigate to listings page where they'll see the AI analyzing the item
+      router.push('/listings');
     } catch (error: any) {
       console.error('Sample listing error:', error);
       toast.error(error.message || 'Failed to create sample listing');
