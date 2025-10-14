@@ -119,3 +119,17 @@
   min-width: 44px;
   min-height: 44px;
 }
+
+/* Reduce dropdown sensitivity on mobile */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Add larger touch targets for select items on mobile */
+@media (max-width: 768px) {
+  [data-radix-select-content] [data-radix-select-item] {
+    min-height: 48px;
+    padding: 12px 8px;
+  }
+}

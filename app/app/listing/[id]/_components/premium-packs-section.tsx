@@ -134,12 +134,14 @@ export default function PremiumPacksSection({
                   <Label className="text-sm font-bold text-gray-900">Pro Lister Pack</Label>
                 </div>
 
-                <p className="text-xs text-gray-600 mb-3">
-                  Build your reputation and stand out as a true professional with the Pro Lister Pack - a complimentary package for the buyer complete with helpful resources and information.
-                </p>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-3">
+                  <p className="text-xs text-gray-700">
+                    Build your reputation and stand out as a true professional with the Pro Lister Pack - a complimentary package for the buyer complete with helpful resources and information.
+                  </p>
+                </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs text-gray-700 mb-3 italic">Analyzing your Collectibles for helpful resources...</p>
+                  <p className="text-xs text-gray-700 mb-3 font-medium">Analyzing your Collectibles for helpful resources...</p>
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -230,13 +232,17 @@ export default function PremiumPacksSection({
                   <Label className="text-sm font-bold text-gray-900">Insights & Automation Pack</Label>
                 </div>
 
-                <p className="text-xs text-gray-600 mb-3">
-                  Higher level use of GISTer agent enhanced research to make the most of your post. Apply market insights to assess the value of your items. Schedule time auto-posting for up to 5 different sites!
-                </p>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-3">
+                  <p className="text-xs text-gray-700 mb-2">
+                    Higher level use of GISTer agent enhanced research to make the most of your post. Apply market insights to assess the value of your items. Schedule time auto-posting for up to 5 different sites!
+                  </p>
+                </div>
 
-                <p className="text-xs text-gray-700 mb-2 font-medium">
-                  Receive the latest 2nd hand market research on your items specifically to discover trends, what's in, what's hot and what's not, and apply it to your assistant's list logic for intelligent, automatic and hassle-free posting for up to 6 sites at 1 time.
-                </p>
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200 mb-3">
+                  <p className="text-xs text-gray-700 mb-3 font-medium">
+                    Receive the latest 2nd hand market research on your items specifically to discover trends, what's in, what's hot and what's not, and apply it to your assistant's list logic for intelligent, automatic and hassle-free posting for up to 6 sites at 1 time.
+                  </p>
+                </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
                   <ul className="space-y-2 text-xs text-gray-700">
@@ -322,12 +328,14 @@ export default function PremiumPacksSection({
                   <Label className="text-sm font-bold text-gray-900">Fine Details Pack</Label>
                 </div>
 
-                <p className="text-xs text-gray-600 mb-3">
-                  Includes all the fine details that help your item sell, including 20 SEO-optimized search tags for prime visibility and platform-specific fields.
-                </p>
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 mb-3">
+                  <p className="text-xs text-gray-700">
+                    Includes all the fine details that help your item sell, including 20 SEO-optimized search tags for prime visibility and platform-specific fields.
+                  </p>
+                </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs text-gray-700 mb-3 italic">Everything where all at once</p>
+                  <p className="text-xs text-gray-700 mb-3 font-medium">Everything where all at once</p>
                   <ul className="space-y-2 text-xs text-gray-700">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />

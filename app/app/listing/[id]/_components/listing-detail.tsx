@@ -631,19 +631,23 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Title */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <Label>Title</Label>
-          <Input
-            value={listing.title || ''}
-            onChange={(e) => setListing({ ...listing, title: e.target.value })}
-            className="mt-2"
-            placeholder="Item title..."
-          />
-          <div className="mt-2 flex justify-start">
-            <AlternativeItemsSelector
-              alternativeItems={listing.alternativeItems}
-              listingId={listingId}
-              onItemSelected={fetchListing}
-            />
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <Label>Title</Label>
+              <Input
+                value={listing.title || ''}
+                onChange={(e) => setListing({ ...listing, title: e.target.value })}
+                className="mt-2"
+                placeholder="Item title..."
+              />
+            </div>
+            <div className="flex items-end">
+              <AlternativeItemsSelector
+                alternativeItems={listing.alternativeItems}
+                listingId={listingId}
+                onItemSelected={fetchListing}
+              />
+            </div>
           </div>
         </div>
 
@@ -795,12 +799,20 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         value={listing.condition || 'undefined'}
                         onValueChange={handleConditionChange}
                       >
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 touch-manipulation">
                           <SelectValue placeholder="Select condition" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent 
+                          className="touch-manipulation"
+                          onCloseAutoFocus={(e) => {
+                            // Prevent auto-focus that can cause sensitivity issues
+                            e.preventDefault();
+                          }}
+                        >
                           {CONDITION_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            <SelectItem key={opt} value={opt} className="touch-manipulation py-3">
+                              {opt}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
