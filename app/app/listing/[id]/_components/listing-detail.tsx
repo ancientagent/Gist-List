@@ -172,7 +172,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
   const startAnalysis = async () => {
     setIsAnalyzing(true);
+    
+    // Show persistent loading toast
+    const toastId = toast.loading('Analyzing your item with AI...', {
+      duration: Infinity,
+    });
+    
     try {
+      console.log('🔍 Starting analysis for listing:', listingId);
       const response = await fetch(`/api/listings/${listingId}/analyze`, {
         method: 'POST',
       });
@@ -182,23 +189,48 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         try {
           const errorData = await response.json();
           const errorMsg = errorData.error || 'Analysis failed';
-          console.error('Analysis API error:', errorMsg, errorData.details);
-          toast.error(errorMsg.length > 100 ? 'Analysis failed - check console for details' : errorMsg);
+          console.error('❌ Analysis API error:', errorMsg, errorData.details);
+          toast.error(errorMsg.length > 100 ? 'Analysis failed - see console for details' : errorMsg, {
+            id: toastId,
+            duration: 8000,
+          });
         } catch (e) {
-          toast.error('Analysis failed');
+          toast.error('Analysis failed - network error', { id: toastId, duration: 8000 });
         }
         setIsAnalyzing(false);
         return;
       }
 
       const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+      
       const decoder = new TextDecoder();
       let partialRead = '';
+      let streamTimeout: NodeJS.Timeout | undefined = undefined;
+      
+      // Set timeout for stream inactivity
+      const resetStreamTimeout = () => {
+        if (streamTimeout) clearTimeout(streamTimeout);
+        streamTimeout = setTimeout(() => {
+          console.error('⏱️ Stream timeout - no data received for 30 seconds');
+          toast.error('Analysis timed out. Please try again.', { id: toastId, duration: 8000 });
+          setIsAnalyzing(false);
+        }, 30000); // 30 second timeout
+      };
+      
+      resetStreamTimeout();
 
       while (true) {
-        const { done, value } = await reader!.read();
-        if (done) break;
+        const { done, value } = await reader.read();
+        if (done) {
+          clearTimeout(streamTimeout);
+          console.log('📡 Stream ended');
+          break;
+        }
 
+        resetStreamTimeout();
         partialRead += decoder.decode(value, { stream: true });
         let lines = partialRead.split('\n');
         partialRead = lines.pop() || '';
@@ -207,34 +239,55 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
             if (data === '[DONE]') {
+              clearTimeout(streamTimeout);
               setIsAnalyzing(false);
               await fetchListing();
+              toast.success('Analysis complete!', { id: toastId, duration: 3000 });
+              console.log('✅ Analysis completed successfully');
               return;
             }
 
             try {
               const parsed = JSON.parse(data);
               if (parsed.status === 'completed') {
+                clearTimeout(streamTimeout);
                 setIsAnalyzing(false);
                 await fetchListing();
                 
                 // Check if item was identified
                 if (parsed.result?.itemIdentified) {
-                  toast.success('Analysis complete! Item identified.');
+                  toast.success('Analysis complete! Item identified.', { id: toastId, duration: 3000 });
                 } else {
-                  toast.success('Analysis complete.');
+                  toast.success('Analysis complete.', { id: toastId, duration: 3000 });
                 }
+                console.log('✅ Analysis completed successfully');
                 return;
+              } else if (parsed.status === 'processing') {
+                // Update toast with progress
+                toast.loading(parsed.message || 'Analyzing...', { id: toastId });
               }
             } catch (e) {
               // Skip invalid JSON
+              console.log('⚠️ Skipped invalid JSON chunk');
             }
           }
         }
       }
+      
+      // If we exit the loop without getting completion signal
+      clearTimeout(streamTimeout);
+      setIsAnalyzing(false);
+      await fetchListing();
+      toast.success('Analysis complete!', { id: toastId, duration: 3000 });
+      console.log('✅ Analysis stream ended, refreshing data');
+      
     } catch (error: any) {
-      console.error('Analysis error:', error);
-      toast.error('Analysis failed - ' + (error?.message || 'unknown error'));
+      console.error('❌ Analysis error:', error);
+      console.error('Error stack:', error?.stack);
+      toast.error('Analysis failed: ' + (error?.message || 'unknown error'), {
+        id: toastId,
+        duration: 8000,
+      });
       setIsAnalyzing(false);
     }
   };
@@ -473,15 +526,39 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     } as GisterNotification);
   });
 
+  // Show loading skeleton if listing data hasn't loaded yet
+  if (!listing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-2xl mx-auto p-4 pb-24">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+            <span className="text-purple-900 font-medium">Loading your listing...</span>
+          </div>
+          
+          {/* Loading Skeleton */}
+          <div className="space-y-4 animate-pulse">
+            <div className="bg-white rounded-lg p-4 h-48" />
+            <div className="bg-white rounded-lg p-4 h-32" />
+            <div className="bg-white rounded-lg p-4 h-64" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* List Mode Content */}
       <div className="max-w-2xl mx-auto p-4 pb-24">
         {/* Analysis Loading */}
         {isAnalyzing && (
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4 flex items-center gap-3 animate-pulse">
             <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
-            <span className="text-purple-900 font-medium">Analyzing your item...</span>
+            <div className="flex-1">
+              <span className="text-purple-900 font-medium">Analyzing your item with AI...</span>
+              <p className="text-sm text-purple-700 mt-1">This may take 10-30 seconds</p>
+            </div>
           </div>
         )}
 
