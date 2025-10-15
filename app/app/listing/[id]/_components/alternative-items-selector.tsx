@@ -118,7 +118,6 @@ export default function AlternativeItemsSelector({
         <Button
           variant="outline"
           size="sm"
-          className="ml-2"
           disabled={isReanalyzing}
         >
           {isReanalyzing ? (
@@ -129,7 +128,7 @@ export default function AlternativeItemsSelector({
           ) : (
             <>
               <Lightbulb className="w-4 h-4 mr-1 text-yellow-600" />
-              Not It?
+              ?
             </>
           )}
         </Button>

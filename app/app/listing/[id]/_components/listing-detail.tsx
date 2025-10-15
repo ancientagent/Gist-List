@@ -464,7 +464,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     setListing({ ...listing!, ...updates });
   };
 
-  const handleSave = async () => {
+  const handleProcess = async () => {
     if (!listing) return;
     
     setIsSaving(true);
@@ -478,17 +478,17 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to save');
+      if (!response.ok) throw new Error('Failed to process');
       
-      toast.success('Listing saved! Redirecting to storage...');
+      toast.success('Listing processed! Ready for posting...');
       
-      // Redirect to storage page after save
+      // Redirect to listings page where posting process begins
       setTimeout(() => {
         router.push('/listings');
       }, 500);
     } catch (error: any) {
-      console.error('Save error:', error);
-      toast.error('Failed to save listing');
+      console.error('Process error:', error);
+      toast.error('Failed to process listing');
       setIsSaving(false);
     }
   };
@@ -572,7 +572,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         {listing.notifications && listing.notifications.length > 0 && (
           <div className="mb-4">
             <NotificationList
-              notifications={listing.notifications}
+              notifications={listing.notifications.filter((n: any) => n.type !== 'QUESTION')} // Temporarily disable QUESTION notifications
               listingId={listingId}
               onResolve={fetchListing}
               onScrollToField={scrollToField}
@@ -637,23 +637,19 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         {/* Title */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <Label>Title</Label>
-              <Input
-                value={listing.title || ''}
-                onChange={(e) => setListing({ ...listing, title: e.target.value })}
-                className="mt-2"
-                placeholder="Item title..."
-              />
-            </div>
-            <div className="flex items-end">
-              <AlternativeItemsSelector
-                alternativeItems={listing.alternativeItems}
-                listingId={listingId}
-                onItemSelected={fetchListing}
-              />
-            </div>
+          <Label>Title</Label>
+          <Input
+            value={listing.title || ''}
+            onChange={(e) => setListing({ ...listing, title: e.target.value })}
+            className="mt-2"
+            placeholder="Item title..."
+          />
+          <div className="flex justify-end mt-2">
+            <AlternativeItemsSelector
+              alternativeItems={listing.alternativeItems}
+              listingId={listingId}
+              onItemSelected={fetchListing}
+            />
           </div>
         </div>
 
@@ -810,9 +806,18 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         </SelectTrigger>
                         <SelectContent 
                           className="touch-manipulation"
+                          position="popper"
+                          sideOffset={5}
                           onCloseAutoFocus={(e) => {
-                            // Prevent auto-focus that can cause sensitivity issues
+                            // Prevent auto-focus and refocus that can cause accidental re-opening
                             e.preventDefault();
+                          }}
+                          onPointerDownOutside={(e) => {
+                            // Prevent accidental triggers when scrolling
+                            const target = e.target as HTMLElement;
+                            if (target.closest('[role="listbox"]')) {
+                              e.preventDefault();
+                            }
                           }}
                         >
                           {CONDITION_OPTIONS.map((opt) => (
@@ -1015,7 +1020,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
 
         <QuickFactsPanel isOpen={showQuickFacts} onClose={() => setShowQuickFacts(false)} />
 
-        {/* Save Button */}
+        {/* Process Button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">
           <div className="max-w-2xl mx-auto flex gap-3">
             <Button
@@ -1026,19 +1031,19 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
               Listings
             </Button>
             <Button
-              onClick={handleSave}
+              onClick={handleProcess}
               disabled={isSaving}
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Processing...
                 </>
               ) : (
                 <>
                   <Check className="mr-2 h-4 w-4" />
-                  Save
+                  Process
                 </>
               )}
             </Button>

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, Info, Crown, Tag } from 'lucide-react';
+import { Star, Info, Crown, Tag, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -431,6 +431,16 @@ const PLATFORM_UNCERTAIN_FIELDS: Record<string, (listing: any) => PlatformField[
   },
 };
 
+// Free tier platforms
+const FREE_TIER_PLATFORMS = ['eBay', 'Reverb', 'Etsy'];
+
+// Platform connection status interface
+interface PlatformConnectionStatus {
+  eBay: boolean;
+  Reverb: boolean;
+  Etsy: boolean;
+}
+
 export default function PlatformPreview({
   recommendedPlatforms,
   qualifiedPlatforms,
@@ -446,6 +456,12 @@ export default function PlatformPreview({
 }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [platformData, setPlatformData] = useState<Record<string, Record<string, string>>>({});
+  const [connectedPlatforms, setConnectedPlatforms] = useState<PlatformConnectionStatus>({
+    eBay: false,
+    Reverb: false,
+    Etsy: false,
+  });
+  const [isLoadingConnections, setIsLoadingConnections] = useState(true);
   
   // Check if premium features are unlocked for this listing
   const isPremiumUnlocked = listing.usePremium === true;
@@ -453,13 +469,64 @@ export default function PlatformPreview({
   // Free tier: max 3 platforms, Premium: unlimited
   const MAX_PLATFORMS_FREE = 3;
 
+  // Fetch platform connection status
   useEffect(() => {
-    // Pre-select top 2-3 recommended platforms
-    const topRecommended = recommendedPlatforms.slice(0, 3);
+    const fetchConnectionStatus = async () => {
+      try {
+        const [ebayRes, reverbRes, etsyRes] = await Promise.all([
+          fetch('/api/marketplace/ebay/status'),
+          fetch('/api/marketplace/reverb/status'),
+          fetch('/api/marketplace/etsy/status'),
+        ]);
+
+        const [ebayData, reverbData, etsyData] = await Promise.all([
+          ebayRes.json(),
+          reverbRes.json(),
+          etsyRes.json(),
+        ]);
+
+        setConnectedPlatforms({
+          eBay: ebayData.connected || false,
+          Reverb: reverbData.connected || false,
+          Etsy: etsyData.connected || false,
+        });
+      } catch (error) {
+        console.error('Failed to fetch connection status:', error);
+      } finally {
+        setIsLoadingConnections(false);
+      }
+    };
+
+    fetchConnectionStatus();
+  }, []);
+
+  useEffect(() => {
+    // Pre-select top 2-3 recommended platforms that are connected
+    const topRecommended = recommendedPlatforms
+      .filter(platform => FREE_TIER_PLATFORMS.includes(platform))
+      .filter(platform => connectedPlatforms[platform as keyof PlatformConnectionStatus])
+      .slice(0, 3);
     setSelectedPlatforms(topRecommended);
-  }, [recommendedPlatforms]);
+  }, [recommendedPlatforms, connectedPlatforms]);
 
   const handlePlatformToggle = (platform: string) => {
+    // Check if platform is connected
+    const isConnected = connectedPlatforms[platform as keyof PlatformConnectionStatus];
+    if (!isConnected) {
+      toast.info(`Please connect your ${platform} account in Settings first!`, {
+        icon: '🔗',
+      });
+      return;
+    }
+
+    // Check if platform is allowed in free tier (unless premium is unlocked)
+    if (!isPremiumUnlocked && !FREE_TIER_PLATFORMS.includes(platform)) {
+      toast.info(`${platform} requires Premium features. Use a premium post to unlock!`, {
+        icon: '⭐',
+      });
+      return;
+    }
+
     setSelectedPlatforms(prev => {
       const isCurrentlySelected = prev.includes(platform);
       
@@ -513,62 +580,71 @@ export default function PlatformPreview({
 
       {/* Platform Selection */}
       <div className="mb-6">
-        <div className="grid grid-cols-3 gap-2">
-          {displayPlatforms.map((platform, index) => {
-            const isRecommended = recommendedPlatforms.includes(platform);
-            const isSelected = selectedPlatforms.includes(platform);
-            
-            // In free tier, only first 3 platforms (recommended) are selectable
-            // In premium, all platforms are selectable
-            const isWithinFreeLimit = index < MAX_PLATFORMS_FREE;
-            const canSelect = isPremiumUnlocked || isWithinFreeLimit;
-            
-            return (
-              <div
-                key={platform}
-                className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all ${
-                  canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
-                } ${
-                  isSelected
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => {
-                  if (!canSelect) {
-                    toast.info('This platform requires Premium features. Use a premium post to unlock!', {
-                      icon: '⭐',
-                    });
-                  } else {
-                    handlePlatformToggle(platform);
-                  }
-                }}
-              >
-                <Checkbox
-                  checked={isSelected}
-                  disabled={!canSelect}
-                  onCheckedChange={() => {
+        {isLoadingConnections ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {displayPlatforms.map((platform, index) => {
+              const isRecommended = recommendedPlatforms.includes(platform);
+              const isSelected = selectedPlatforms.includes(platform);
+              const isConnected = connectedPlatforms[platform as keyof PlatformConnectionStatus];
+              const isFreeTier = FREE_TIER_PLATFORMS.includes(platform);
+              
+              // Can select if:
+              // 1. Platform is connected
+              // 2. AND (Platform is in free tier OR premium is unlocked)
+              const canSelect = isConnected && (isFreeTier || isPremiumUnlocked);
+              
+              return (
+                <div
+                  key={platform}
+                  className={`flex items-center gap-2 p-2 rounded-lg border-2 transition-all ${
+                    canSelect ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'
+                  } ${
+                    isSelected
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => {
                     if (canSelect) {
                       handlePlatformToggle(platform);
+                    } else {
+                      handlePlatformToggle(platform); // Will show appropriate toast
                     }
                   }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className="font-medium text-xs truncate">
-                      {platform === 'Facebook Marketplace' ? 'FB Marketplace' : platform}
-                    </span>
-                    {isRecommended && (
-                      <Star className="w-3 h-3 fill-green-500 text-green-500 flex-shrink-0" />
-                    )}
-                    {!canSelect && (
-                      <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
-                    )}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    disabled={!canSelect}
+                    onCheckedChange={() => {
+                      if (canSelect) {
+                        handlePlatformToggle(platform);
+                      }
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="font-medium text-xs truncate">
+                        {platform === 'Facebook Marketplace' ? 'FB Marketplace' : platform}
+                      </span>
+                      {isRecommended && isConnected && (
+                        <Star className="w-3 h-3 fill-green-500 text-green-500 flex-shrink-0" />
+                      )}
+                      {!isConnected && (
+                        <span className="text-[10px] text-red-600 flex-shrink-0">🔒</span>
+                      )}
+                      {isConnected && !isFreeTier && !isPremiumUnlocked && (
+                        <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Platform-Specific Fields with Tabs - PREMIUM ONLY */}
