@@ -31,6 +31,7 @@ import PremiumPacksSection from './premium-packs-section';
 import ChipsRow from '@/src/components/ChipsRow';
 import QuickFactsPanel from '@/src/components/QuickFactsPanel';
 import { GisterNotification } from '@/src/notifications/types';
+import { trackEvent } from '@/lib/telemetry';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -154,6 +155,40 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         ...listing,
         [fieldName]: value,
         editedFields: newEditedFields,
+      });
+    }
+  };
+
+  const sendTelemetry = (eventType: string, metadata?: Record<string, any>) => {
+    if (!session?.user?.id) return;
+    void trackEvent({
+      userId: session.user.id,
+      listingId,
+      eventType,
+      metadata,
+    });
+  };
+
+  const handlePriceChange = (newPrice: number | null, source: 'manual' | 'chip' | 'api' = 'manual') => {
+    if (!listing) return;
+
+    const previousPrice = listing.price ?? null;
+    const priceChanged = previousPrice !== newPrice;
+
+    const updatedEditedFields = [...new Set([...(listing.editedFields || []), 'price'])];
+
+    setListing({
+      ...listing,
+      price: newPrice,
+      editedFields: updatedEditedFields,
+    });
+
+    if (priceChanged) {
+      sendTelemetry('price_updated', {
+        oldPrice: previousPrice,
+        newPrice,
+        condition: listing.condition,
+        source,
       });
     }
   };
@@ -342,10 +377,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   };
 
   const handleConditionChange = (value: string) => {
+    if (!listing) return;
+
+    const previousCondition = listing.condition ?? null;
+    const previousPrice = listing.price ?? null;
     const conditionPrice = calculatePriceForCondition(value);
-    
-    // Update both condition and price
-    if (listing && conditionPrice) {
+    const hasAutoPrice = typeof conditionPrice === 'number' && !Number.isNaN(conditionPrice);
+
+    if (hasAutoPrice) {
       setListing({
         ...listing,
         condition: value,
@@ -355,6 +394,15 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
     } else {
       handleFieldEdit('condition', value);
     }
+
+    const priceChanged = hasAutoPrice && conditionPrice !== previousPrice;
+
+    sendTelemetry('condition_changed', {
+      oldCondition: previousCondition,
+      newCondition: value,
+      priceUpdated: priceChanged,
+      autoPrice: hasAutoPrice ? conditionPrice : null,
+    });
   };
 
   const handleUpgradePremium = async () => {
@@ -835,7 +883,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         type="number"
                         step="0.01"
                         value={listing.price ?? ''}
-                        onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
+                        onChange={(e) => handlePriceChange(parseFloat(e.target.value) || null)}
                         className="mt-1"
                         placeholder="0.00"
                       />
@@ -845,8 +893,22 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                           section="price"
                           notifications={grouped.price}
                           onApply={(n) => {
+                            if (!listing) return;
                             if (n.actionType === 'setPrice' && n.actionData?.suggested) {
-                              handleFieldEdit('price', n.actionData.suggested);
+                              const previousPrice = listing.price ?? null;
+                              const suggested =
+                                typeof n.actionData.suggested === 'number'
+                                  ? n.actionData.suggested
+                                  : parseFloat(String(n.actionData.suggested)) || null;
+
+                              if (suggested === null) return;
+
+                              sendTelemetry('price_chip_clicked', {
+                                oldPrice: previousPrice,
+                                newPrice: suggested,
+                                chipType: n.actionData?.chipType || n.actionType || n.type,
+                              });
+                              handlePriceChange(suggested, 'chip');
                             }
                           }}
                           onJump={scrollToField}

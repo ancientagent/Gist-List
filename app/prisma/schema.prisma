@@ -596,3 +596,19 @@ model SearchIndex {
   @@index([geoHash])
   @@index([gradeScore])
 }
+
+// ========== TELEMETRY TRACKING ==========
+
+// Telemetry Event Tracking for User Behavior Analytics
+model TelemetryEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  listingId   String
+  eventType   String   // "price_updated", "condition_changed", "premium_uplift_applied", etc.
+  metadata    Json?    // Additional event data (oldPrice, newPrice, condition, etc.)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, eventType])
+  @@index([listingId, eventType])
+  @@index([createdAt])
+}
