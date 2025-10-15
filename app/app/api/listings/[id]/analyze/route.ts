@@ -32,7 +32,6 @@ export async function POST(
     } catch (e) {
       console.log('No request body or invalid JSON, using defaults');
     }
-    const skipImageAnalysis = body.skipImageAnalysis || false;
     const theGist = body.theGist || '';
 
     // Get listing with photos and user info
@@ -53,10 +52,16 @@ export async function POST(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    // Only require photo if NOT skipping image analysis
-    if (!skipImageAnalysis && !listing.photos?.[0]) {
-      return NextResponse.json({ error: 'No photo found' }, { status: 400 });
-    }
+    // Auto-detect if we should skip image analysis based on whether photos exist
+    const hasPhotos = !!(listing.photos && listing.photos.length > 0 && listing.photos[0]?.cloudStoragePath);
+    const skipImageAnalysis = body.skipImageAnalysis || !hasPhotos;
+    
+    console.log('📸 Photo check:', { 
+      hasPhotos, 
+      photoCount: listing.photos?.length || 0,
+      skipImageAnalysis,
+      requestedSkip: body.skipImageAnalysis 
+    });
 
     // Check if premium is requested and available
     // Only use premium if checkbox is checked AND not already used for this listing
