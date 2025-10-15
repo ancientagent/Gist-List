@@ -144,7 +144,7 @@ export default function CameraScreen() {
     }
   };
 
-  // Desktop handler (hold to record + capture on release)
+  // Desktop handler (hold to record + capture on release if camera is on)
   const handlePressStart = () => {
     if (isCapturing || isRecognitionActive.current) return;
     
@@ -177,8 +177,15 @@ export default function CameraScreen() {
       // Don't reset isRecognitionActive here - let onend handle it
     }
     
-    // Capture photo
-    await capturePhoto();
+    // Only capture photo if camera is enabled
+    if (cameraEnabled) {
+      await capturePhoto();
+    } else {
+      // If camera is off, submit text only
+      if (theGist.trim()) {
+        await submitTextOnly();
+      }
+    }
   };
 
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -334,6 +341,14 @@ export default function CameraScreen() {
     }
   };
 
+  // Handle Enter key for text submission when camera is off
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !cameraEnabled) {
+      e.preventDefault();
+      submitTextOnly();
+    }
+  };
+
   // Development helper: Create sample listing instantly
   const [isCreatingSample, setIsCreatingSample] = useState(false);
   const isDev = process.env.NODE_ENV !== 'production';
@@ -431,19 +446,6 @@ export default function CameraScreen() {
             <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm">
               {session?.user?.name || 'Guest'}
             </div>
-            {/* Camera Toggle */}
-            <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-2">
-              {cameraEnabled ? (
-                <Camera className="w-4 h-4 text-green-400" />
-              ) : (
-                <CameraOff className="w-4 h-4 text-gray-400" />
-              )}
-              <Switch
-                checked={cameraEnabled}
-                onCheckedChange={setCameraEnabled}
-                className="data-[state=checked]:bg-green-600"
-              />
-            </div>
           </div>
           <div className="flex items-center gap-2">
             {isListening && (
@@ -500,129 +502,150 @@ export default function CameraScreen() {
       </div>
 
       {/* The Gist Input Section */}
-      <div className="bg-white p-4 pb-safe">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          The Gist
-        </label>
-        <Textarea
-          placeholder="Brand, model, condition, preferences... (e.g., 'Sony camera, good condition, will ship')"
-          value={theGist}
-          onChange={(e) => setTheGist(e.target.value)}
-          className="w-full min-h-[80px] resize-none"
-          disabled={isCapturing || isListening}
-        />
+      <div className="bg-white p-4 pb-20">
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            The Gist
+          </label>
+          {/* Camera Toggle - moved here */}
+          <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1.5">
+            {cameraEnabled ? (
+              <Camera className="w-4 h-4 text-green-600" />
+            ) : (
+              <CameraOff className="w-4 h-4 text-gray-400" />
+            )}
+            <Switch
+              checked={cameraEnabled}
+              onCheckedChange={setCameraEnabled}
+              className="data-[state=checked]:bg-green-600"
+            />
+          </div>
+        </div>
         
-        {cameraEnabled ? (
-          <>
-            {/* Mobile: Combined hold-to-record and capture button */}
-            <div className="mt-4 block md:hidden">
-              <button
-                onTouchStart={handlePressStart}
-                onTouchEnd={handlePressEnd}
-                disabled={isCapturing || !stream}
-                className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
-                  isCapturing
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : isPressHolding
-                    ? 'bg-emerald-600 text-white scale-95 animate-pulse'
-                    : 'bg-green-600 active:bg-green-700 text-white active:scale-95'
-                }`}
-              >
-                {isCapturing ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Capturing...
-                  </>
-                ) : isPressHolding ? (
-                  <>
-                    <Mic className="mr-2 h-5 w-5" />
-                    Recording... Release to Snap
-                  </>
-                ) : (
+        {/* Textarea with embedded mic icon */}
+        <div className="relative">
+          <Textarea
+            placeholder="Brand, model, condition, preferences... (e.g., 'Sony camera, good condition, will ship')"
+            value={theGist}
+            onChange={(e) => setTheGist(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="w-full min-h-[80px] resize-none pr-12"
+            disabled={isCapturing || isListening}
+          />
+          {/* Mic icon embedded in textarea */}
+          <div className="absolute right-3 top-3">
+            <Mic 
+              className={`w-5 h-5 transition-colors ${
+                isListening ? 'text-green-500' : 'text-gray-400'
+              }`}
+            />
+          </div>
+        </div>
+        
+        {/* Mobile: Combined hold-to-record button (and capture if camera is on) */}
+        <div className="mt-4 block md:hidden">
+          <button
+            onTouchStart={handlePressStart}
+            onTouchEnd={handlePressEnd}
+            disabled={isCapturing || (!cameraEnabled && !theGist.trim())}
+            className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+              isCapturing
+                ? 'bg-gray-400 cursor-not-allowed'
+                : isPressHolding
+                ? 'bg-emerald-600 text-white scale-95 animate-pulse'
+                : cameraEnabled
+                ? 'bg-green-600 active:bg-green-700 text-white active:scale-95'
+                : 'bg-indigo-600 active:bg-indigo-700 text-white active:scale-95'
+            }`}
+          >
+            {isCapturing ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {cameraEnabled ? 'Capturing...' : 'Processing...'}
+              </>
+            ) : isPressHolding ? (
+              <>
+                <Mic className="mr-2 h-5 w-5" />
+                {cameraEnabled ? 'Recording... Release to Snap' : 'Recording... Release to Send'}
+              </>
+            ) : (
+              <>
+                {cameraEnabled ? (
                   <>
                     <Camera className="mr-2 h-5 w-5" />
                     Hold to Record, Release to Snap
                   </>
+                ) : (
+                  <>
+                    <Mic className="mr-2 h-5 w-5" />
+                    Hold to Record Voice
+                  </>
                 )}
-              </button>
-              
-              <p className="text-xs text-gray-500 text-center mt-3">
-                Press & hold to use voice, release to capture image
-              </p>
-            </div>
+              </>
+            )}
+          </button>
+          
+          <p className="text-xs text-gray-500 text-center mt-3">
+            {cameraEnabled 
+              ? 'Press & hold to use voice, release to capture image'
+              : 'Type and press Enter, or hold button to use voice'
+            }
+          </p>
+        </div>
 
-            {/* Desktop: Combined hold-to-record and capture button */}
-            <div className="mt-4 hidden md:block">
-              <button
-                onMouseDown={handlePressStart}
-                onMouseUp={handlePressEnd}
-                onMouseLeave={() => {
-                  if (isPressHolding) handlePressEnd();
-                }}
-                disabled={isCapturing || !stream}
-                className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
-                  isCapturing
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : isPressHolding
-                    ? 'bg-emerald-600 text-white scale-95'
-                    : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
-                }`}
-              >
-                {isCapturing ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Capturing...
-                  </>
-                ) : isPressHolding ? (
-                  <>
-                    <Mic className="mr-2 h-5 w-5" />
-                    Recording... Release to Snap
-                  </>
-                ) : (
+        {/* Desktop: Combined hold-to-record button (and capture if camera is on) */}
+        <div className="mt-4 hidden md:block">
+          <button
+            onMouseDown={handlePressStart}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={() => {
+              if (isPressHolding) handlePressEnd();
+            }}
+            disabled={isCapturing || (!cameraEnabled && !theGist.trim())}
+            className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+              isCapturing
+                ? 'bg-gray-400 cursor-not-allowed'
+                : isPressHolding
+                ? 'bg-emerald-600 text-white scale-95'
+                : cameraEnabled
+                ? 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+            }`}
+          >
+            {isCapturing ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {cameraEnabled ? 'Capturing...' : 'Processing...'}
+              </>
+            ) : isPressHolding ? (
+              <>
+                <Mic className="mr-2 h-5 w-5" />
+                {cameraEnabled ? 'Recording... Release to Snap' : 'Recording... Release to Send'}
+              </>
+            ) : (
+              <>
+                {cameraEnabled ? (
                   <>
                     <Camera className="mr-2 h-5 w-5" />
                     Hold to Record, Release to Snap
                   </>
-                )}
-              </button>
-              
-              <p className="text-xs text-gray-500 text-center mt-3">
-                Press & hold to use voice, release to capture image
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Text-only submission button (when camera is off) */}
-            <div className="mt-4">
-              <button
-                onClick={submitTextOnly}
-                disabled={isCapturing || !theGist.trim()}
-                className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
-                  isCapturing || !theGist.trim()
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
-                }`}
-              >
-                {isCapturing ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Processing...
-                  </>
                 ) : (
                   <>
-                    <Package className="mr-2 h-5 w-5" />
-                    Create Listing
+                    <Mic className="mr-2 h-5 w-5" />
+                    Hold to Record Voice
                   </>
                 )}
-              </button>
-              
-              <p className="text-xs text-gray-500 text-center mt-3">
-                Enter a description above to continue
-              </p>
-            </div>
-          </>
-        )}
+              </>
+            )}
+          </button>
+          
+          <p className="text-xs text-gray-500 text-center mt-3">
+            {cameraEnabled 
+              ? 'Press & hold to use voice, release to capture image'
+              : 'Type and press Enter, or hold button to use voice'
+            }
+          </p>
+        </div>
       </div>
 
       {/* Bottom Actions - Settings (left) and Listings (right) */}
