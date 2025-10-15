@@ -22,7 +22,16 @@ export async function POST(
 
   try {
     // Parse request body to check for skipImageAnalysis flag
-    const body = await request.json();
+    let body: any = {};
+    try {
+      const contentType = request.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const text = await request.text();
+        body = text ? JSON.parse(text) : {};
+      }
+    } catch (e) {
+      console.log('No request body or invalid JSON, using defaults');
+    }
     const skipImageAnalysis = body.skipImageAnalysis || false;
     const theGist = body.theGist || '';
 

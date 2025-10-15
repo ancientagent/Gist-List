@@ -184,6 +184,10 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       console.log('🔍 Starting analysis for listing:', listingId);
       const response = await fetch(`/api/listings/${listingId}/analyze`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
