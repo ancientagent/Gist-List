@@ -331,8 +331,15 @@ export default function CameraScreen() {
       }
 
       const data = await response.json();
+      
+      // Validate response data
+      if (!data.listingId) {
+        throw new Error('Invalid server response');
+      }
+
       toast.success('Processing your item...');
-      router.push('/listings');
+      // Navigate to the individual listing page (list mode)
+      router.push(`/listing/${data.listingId}`);
     } catch (error: any) {
       console.error('Submit error:', error);
       toast.error(error.message || 'Failed to create listing');
@@ -367,9 +374,15 @@ export default function CameraScreen() {
       }
 
       const data = await response.json();
+      
+      // Validate response data
+      if (!data.listingId) {
+        throw new Error('Invalid server response');
+      }
+
       toast.success('Processing sample item...');
-      // Navigate to listings page where they'll see the AI analyzing the item
-      router.push('/listings');
+      // Navigate to the individual listing page (list mode)
+      router.push(`/listing/${data.listingId}`);
     } catch (error: any) {
       console.error('Sample listing error:', error);
       toast.error(error.message || 'Failed to create sample listing');

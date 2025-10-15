@@ -40,14 +40,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Pick a random sample description
-    const randomDescription = sampleDescriptions[Math.floor(Math.random() * sampleDescriptions.length)];
+    // Check if theGist was provided in the request body
+    let description: string;
+    try {
+      const body = await request.json();
+      description = body.theGist || sampleDescriptions[Math.floor(Math.random() * sampleDescriptions.length)];
+    } catch {
+      // If no body or parsing fails, use random sample
+      description = sampleDescriptions[Math.floor(Math.random() * sampleDescriptions.length)];
+    }
 
     // Create a listing with just the brief description (theGist)
     const sampleListing = await prisma.listing.create({
       data: {
         userId: user.id,
-        theGist: randomDescription,
+        theGist: description,
         status: 'DRAFT',
       },
     });
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          theGist: randomDescription,
+          theGist: description,
           confidence: 0,
           skipImageAnalysis: true, // No photo for sample
         }),
@@ -72,7 +79,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to trigger background analysis:', error);
     }
 
-    return NextResponse.json(sampleListing);
+    return NextResponse.json({ listingId: sampleListing.id, ...sampleListing });
   } catch (error) {
     console.error('Error creating sample listing:', error);
     return NextResponse.json(
