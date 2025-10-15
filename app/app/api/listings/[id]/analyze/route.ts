@@ -296,7 +296,7 @@ CRITICAL REQUIREMENTS:
    - ONLY for fields that MUST be filled to continue
    - Examples: brand, model (if applicable), category
    - Format: { "field": "brand", "message": "Brand is required for this item" }
-   - If AI cannot determine a field but it's not critical, auto-fill with "N/A" or "Unknown" (no alert)
+   - If AI cannot determine a field but it's not critical, auto-fill with "unknown" (no alert)
    
    QUESTIONS (?) - BLUE - Actionable insights (always optional):
    - All other notifications go here
@@ -334,17 +334,17 @@ CRITICAL REQUIREMENTS:
    DO NOT create separate notifications for missing power supply, inoperability checks, etc. - consolidate into this ONE notification.
    
    Other QUESTIONS (non-consolidated):
-   - Unknown year/version: { "actionType": "unknown_year", "message": "Do you know the year/version of this item? If not, no biggie, we can keep it as unknown.", "data": { "possibleYears": ["suggestion1", "suggestion2", "suggestion3"] } }
-   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Unknown fields (brand, model, size) were set to N/A.", "data": { "fields": ["brand", "model", "size"] } }
+   - Unknown year/version: { "actionType": "unknown_year", "message": "Do you know if this item has a year or version number?", "data": { "possibleYears": ["suggestion1", "suggestion2", "suggestion3"] } }
+   - Unknown fields auto-filled: { "actionType": "unknown_fields", "message": "Some fields were set to unknown - add more details?", "data": { "fields": ["brand", "model", "size"] } }
    - Blurry/poor photo: { "actionType": "retake_photo", "message": "Image is blurry and poorly lit. Retake for better results?" }
    - Missing details for transparency: { "actionType": "question", "message": "Cannot see serial number/model plate. Add photo for transparency?" }
    - Cleaning needed: { "actionType": "question", "message": "Your item is showing some Dust/dirt, not the worst thing, but could be better. Wipe and Retake?" }
    - Price concern: { "actionType": "insight", "message": "Your price seems high for 'Poor' condition. Market suggests $X-Y. Adjust?" }
    
    CRITICAL FOR UNKNOWN FIELDS:
-   - If AI correctly identifies the item BUT cannot determine brand, model, year, or size, auto-set them to "N/A" or "Unknown"
+   - If AI correctly identifies the item BUT cannot determine brand, model, year, or size, auto-set them to "unknown"
    - Create a question notification listing all unknown fields that were auto-set
-   - This notification should always be optional and user can ignore it if the N/A values are correct
+   - This notification should always be optional and user can ignore it if the unknown values are correct
 
 11. SPECIAL ITEM DETECTION (ALWAYS REQUIRED - REGARDLESS OF PREMIUM STATUS):
     CRITICAL: Always detect if this is a "Special Item" - even for free users.
@@ -400,13 +400,13 @@ Provide a JSON response:
   "confidence": 0.0 to 1.0,
   "alternativeItems": [{"item": "Alternative item name 1", "confidence": 0.8}, {"item": "Alternative item name 2", "confidence": 0.6}] (ALWAYS provide 2-3 alternative identifications, even if confident about main identification),
   "category": "specific category",
-  "brand": "exact brand name or null or 'N/A' if unknown",
-  "model": "exact model number/name or null or 'N/A' if unknown",
-  "year": "year or version or null or 'Unknown' if unknown",
-  "color": "color/finish or null",
-  "material": "material(s) or null",
-  "size": "size/dimensions or null or 'N/A' if unknown",
-  "specs": "key specifications or null",
+  "brand": "exact brand name or 'unknown' if unknown",
+  "model": "exact model number/name or 'unknown' if unknown",
+  "year": "year or version or 'unknown' if unknown",
+  "color": "color/finish or 'unknown' if unknown",
+  "material": "material(s) or 'unknown' if unknown",
+  "size": "size/dimensions or 'unknown' if unknown",
+  "specs": "key specifications or 'unknown' if unknown",
   "estimatedWeight": number (in lbs) or null,
   "estimatedDimensions": "LxWxH" or null,
   "shippingCostEst": number or null,
@@ -485,7 +485,7 @@ CRITICAL REQUIREMENTS:
    - Specifications (storage, RAM, etc. if mentioned)
    - Serial numbers (if mentioned)
    - Original packaging status (if mentioned)
-   - For unknown/missing fields, set to null (NOT "N/A" - let frontend handle display)
+   - For unknown/missing fields, set to 'unknown' (NOT null or "N/A")
 
 6. PRICE INTELLIGENCE (CRITICAL - RESALE/SECONDHAND PRICES):
    Based on the identified item, fetch ACTUAL RESALE MARKET PRICES:
@@ -546,9 +546,8 @@ CRITICAL REQUIREMENTS:
     }
     
     Other possible questions:
-    - If year/version unknown: { "actionType": "unknown_year", "message": "Do you know the year/version of this item?", "data": { "possibleYears": [...] } }
+    - If year/version unknown: { "actionType": "unknown_year", "message": "Do you know if this item has a year or version number?", "data": { "possibleYears": [...] } }
     - If any unknown fields were set to null: { "actionType": "unknown_fields", "message": "Some details couldn't be determined from text. Add photos for better analysis?", "data": { "fields": [...] } }
-    - If shipping preference unclear: { "actionType": "question", "message": "Will you ship this item or prefer local pickup only?" }
     - If price concern: { "actionType": "insight", "message": "Market suggests pricing based on condition verification. Add photos?" }
 
 11. SPECIAL ITEM DETECTION (ALWAYS REQUIRED):
@@ -577,13 +576,13 @@ Provide a JSON response (same format as image analysis):
   "confidence": 0.0 to 1.0,
   "alternativeItems": [{"item": "Alternative 1", "confidence": 0.8}, ...],
   "category": "specific category",
-  "brand": "exact brand name or null",
-  "model": "exact model number/name or null",
-  "year": "year or null",
-  "color": "color or null",
-  "material": "material or null",
-  "size": "size or null",
-  "specs": "specifications or null",
+  "brand": "exact brand name or 'unknown'",
+  "model": "exact model number/name or 'unknown'",
+  "year": "year or 'unknown'",
+  "color": "color or 'unknown'",
+  "material": "material or 'unknown'",
+  "size": "size or 'unknown'",
+  "specs": "specifications or 'unknown'",
   "estimatedWeight": number or null,
   "estimatedDimensions": "LxWxH" or null,
   "shippingCostEst": number or null,
@@ -733,20 +732,20 @@ Respond with raw JSON only. No markdown, no code blocks.`,
                         itemIdentified: finalResult.itemIdentified ?? false,
                         confidence: finalResult.confidence ?? 0,
                         alternativeItems: finalResult.alternativeItems ? JSON.stringify(finalResult.alternativeItems) : null,
-                        category: finalResult.category ?? null,
-                        brand: finalResult.brand ?? null,
-                        model: finalResult.model ?? null,
-                        year: finalResult.year ?? null,
-                        color: finalResult.color ?? null,
-                        material: finalResult.material ?? null,
-                        size: finalResult.size ?? null,
-                        specs: finalResult.specs ?? null,
+                        category: finalResult.category ?? 'unknown',
+                        brand: finalResult.brand ?? 'unknown',
+                        model: finalResult.model ?? 'unknown',
+                        year: finalResult.year ?? 'unknown',
+                        color: finalResult.color ?? 'unknown',
+                        material: finalResult.material ?? 'unknown',
+                        size: finalResult.size ?? 'unknown',
+                        specs: finalResult.specs ?? 'unknown',
                         weight: finalResult.estimatedWeight ?? null,
                         dimensions: finalResult.estimatedDimensions ?? null,
                         shippingCostEst: finalResult.shippingCostEst ?? null,
-                        title: finalResult.title ?? null,
+                        title: finalResult.title ?? 'unknown',
                         description: finalResult.description ?? null,
-                        condition: finalCondition,
+                        condition: finalCondition ?? 'unknown',
                         conditionNotes: finalConditionNotes,
                         tags: finalResult.tags ?? [],
                         searchTags: finalResult.searchTags ?? [],

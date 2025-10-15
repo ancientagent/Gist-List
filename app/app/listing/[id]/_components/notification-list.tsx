@@ -203,8 +203,8 @@ export default function NotificationList({
                   >
                     <div className="flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-red-900">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-red-900 break-words">
                           {notification.message}
                         </p>
                         <p className="text-xs text-red-700 mt-1 font-medium">
@@ -235,8 +235,8 @@ export default function NotificationList({
                   >
                     <div className="flex items-start gap-3">
                       <Camera className="w-5 h-5 flex-shrink-0 mt-0.5 text-purple-600" />
-                      <div className="flex-1">
-                        <p className="text-sm text-purple-900">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-purple-900 break-words">
                           {notification.message}
                         </p>
                         <p className="text-xs text-purple-700 mt-1 font-medium">
@@ -267,8 +267,8 @@ export default function NotificationList({
                   >
                     <div className="flex items-start gap-3">
                       <Lightbulb className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
-                      <div className="flex-1">
-                        <p className="text-sm text-amber-900">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-amber-900 break-words">
                           {notification.message}
                         </p>
                         <p className="text-xs text-amber-700 mt-1 font-medium">
@@ -299,8 +299,8 @@ export default function NotificationList({
                   >
                     <div className="flex items-start gap-3">
                       <HelpCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
-                      <div className="flex-1">
-                        <p className="text-sm text-blue-900">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-blue-900 break-words">
                           {notification.message}
                         </p>
                         <p className="text-xs text-blue-700 mt-1 font-medium">
