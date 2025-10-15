@@ -21,6 +21,11 @@ export async function POST(
   const listingId = params.id;
 
   try {
+    // Parse request body to check for skipImageAnalysis flag
+    const body = await request.json();
+    const skipImageAnalysis = body.skipImageAnalysis || false;
+    const theGist = body.theGist || '';
+
     // Get listing with photos and user info
     const listing = await prisma.listing.findUnique({
       where: { id: listingId, userId },
@@ -39,7 +44,8 @@ export async function POST(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
 
-    if (!listing.photos?.[0]) {
+    // Only require photo if NOT skipping image analysis
+    if (!skipImageAnalysis && !listing.photos?.[0]) {
       return NextResponse.json({ error: 'No photo found' }, { status: 400 });
     }
 
@@ -50,39 +56,48 @@ export async function POST(
     const alreadyUsedPremium = !!(listing.premiumFacts || listing.usefulLinks); // Check if premium data already exists
     const shouldUsePremium = wantsPremium && premiumAvailable && !alreadyUsedPremium;
 
-    // Get signed URL for the photo
-    const cloudStoragePath = listing.photos[0]?.cloudStoragePath;
-    if (!cloudStoragePath) {
-      return NextResponse.json({ error: 'Photo not found or not uploaded yet' }, { status: 400 });
-    }
-    const photoUrl = await downloadFile(cloudStoragePath);
+    let base64Image: string | null = null;
+    
+    // Only fetch and convert image if NOT skipping image analysis
+    if (!skipImageAnalysis) {
+      // Get signed URL for the photo
+      const cloudStoragePath = listing.photos[0]?.cloudStoragePath;
+      if (!cloudStoragePath) {
+        return NextResponse.json({ error: 'Photo not found or not uploaded yet' }, { status: 400 });
+      }
+      const photoUrl = await downloadFile(cloudStoragePath);
 
-    // Fetch the image and convert to base64
-    const imageResponse = await fetch(photoUrl);
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const base64Image = Buffer.from(imageBuffer).toString('base64');
+      // Fetch the image and convert to base64
+      const imageResponse = await fetch(photoUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      base64Image = Buffer.from(imageBuffer).toString('base64');
+    }
 
     console.log('🔍 Starting AI analysis for listing:', listingId);
-    console.log('📸 Photo URL generated successfully');
+    console.log('📸 Photo analysis:', !skipImageAnalysis ? 'Enabled' : 'Skipped (text-only)');
+    console.log('📝 User GIST:', theGist || listing.theGist || 'None');
     console.log('🎯 Premium requested:', wantsPremium, 'Available:', premiumAvailable, 'Using:', shouldUsePremium);
     console.log('🔑 API Key present:', !!process.env.ABACUSAI_API_KEY);
     
     // Call LLM API with streaming
-    const messages = [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Image}`,
-            },
-          },
-          {
-            type: 'text',
-            text: `You are an EXPERT resale inspector and market analyst with years of experience evaluating items for condition and value. Analyze this image with EXTREME ATTENTION TO DETAIL.
+    const userGist = theGist || listing.theGist || '';
+    
+    // Build content array based on whether we have an image
+    const contentArray: any[] = [];
+    
+    if (base64Image) {
+      // Image analysis mode
+      contentArray.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:image/jpeg;base64,${base64Image}`,
+        },
+      });
+      contentArray.push({
+        type: 'text',
+        text: `You are an EXPERT resale inspector and market analyst with years of experience evaluating items for condition and value. Analyze this image with EXTREME ATTENTION TO DETAIL.
 
-${listing.theGist ? `User notes: "${listing.theGist}"` : ''}
+${userGist ? `User notes: "${userGist}"` : ''}
 
 CRITICAL REQUIREMENTS:
 
@@ -408,8 +423,190 @@ Provide a JSON response:
 }
 
 Respond with raw JSON only. No markdown, no code blocks.`,
-          },
-        ],
+      });
+    } else {
+      // Text-only analysis mode (no image)
+      contentArray.push({
+        type: 'text',
+        text: `You are an EXPERT resale market analyst with years of experience helping resellers create optimized listings. A user has provided a text description of an item they want to sell. Extract ALL available information and provide intelligent market insights.
+
+User description: "${userGist}"
+
+CRITICAL REQUIREMENTS:
+
+1. TEXT PARSING & EXTRACTION:
+   - Extract brand, model, year/version, condition, color, size, and any other specific details
+   - Identify shipping preferences (e.g., "shipping", "local pickup", "will ship", "locals welcome")
+   - Identify environment details (e.g., "smoke free home", "pet free", "single owner")
+   - Look for condition keywords (e.g., "good condition", "like new", "brand new", "sealed", "used")
+   - Extract location if mentioned (e.g., "Buda Texas", "Austin", "Dallas")
+   
+2. ITEM IDENTIFICATION:
+   - Identify the item with as much confidence as possible based on the text
+   - ALWAYS generate 2-3 alternative identifications if the description could match multiple items
+   - Include confidence scores (0.0-1.0) for each alternative
+   - If the description is too vague, set low confidence and suggest alternatives
+
+3. CONDITION ASSESSMENT (TEXT-ONLY):
+   IMPORTANT: Without a photo, condition CANNOT be fully assessed.
+   - If user explicitly states condition (e.g., "good condition", "brand new"), use that
+   - If user mentions specific damage or wear, document it in conditionNotes
+   - If NO condition is mentioned, set condition to null and conditionNotes explaining photo needed
+   - ALWAYS create a buyer_disclosure notification suggesting the user add photos and condition details
+   - Format conditionNotes from seller POV: "User states: [their description]. Photo verification recommended for buyers."
+
+4. TITLE GENERATION:
+   Use proven title formats:
+   - Format: [Brand] [Model] [Key Feature/Specs] - [Condition] [Size/Year]
+   - Front-load important keywords (brand, model, condition)
+   - Examples:
+     * "Artiphon Orba 1 Portable Synthesizer - Good Condition - Single Owner"
+     * "Apple iPhone 13 Pro 256GB Pacific Blue - Unlocked - Like New"
+     * "Vintage Fender Stratocaster Electric Guitar 1978 - Sunburst"
+
+5. COMPREHENSIVE FIELD EXTRACTION:
+   Extract what's available from text:
+   - Brand, Model, Year/Version, Color, Material
+   - Size/Dimensions (if mentioned)
+   - Specifications (storage, RAM, etc. if mentioned)
+   - Serial numbers (if mentioned)
+   - Original packaging status (if mentioned)
+   - For unknown/missing fields, set to null (NOT "N/A" - let frontend handle display)
+
+6. PRICE INTELLIGENCE (CRITICAL - RESALE/SECONDHAND PRICES):
+   Based on the identified item, fetch ACTUAL RESALE MARKET PRICES:
+   - brandNewPrice: Resale price for brand new sealed items
+   - priceRangeHigh: "Very Good" used items on secondhand markets
+   - priceRangeMid: "Good" used items on secondhand markets
+   - priceRangeLow: "Fair/Poor" used items on secondhand markets
+   - priceForParts: Broken/parts-only items
+   
+   Price Assignment Logic:
+   1. If user says "brand new" or "sealed": use brandNewPrice
+   2. If user provides condition: use corresponding price range
+   3. If NO condition provided: use priceRangeMid as default (can be adjusted when photos added)
+   
+   Include marketInsights with condition impact breakdown
+
+7. SHIPPING ESTIMATION:
+   - Estimate based on item category and typical dimensions
+   - If user mentions location (e.g., "Buda Texas"), note it
+   - If user mentions shipping preference (e.g., "will ship", "locals welcome"), document in description
+
+8. PLATFORM RECOMMENDATIONS:
+   Based on item category and shipping needs:
+   - eBay: Electronics, collectibles, vintage items, anything shippable
+   - Mercari: Fashion, home goods, general items
+   - Poshmark: Clothing, shoes, accessories
+   - Facebook Marketplace: Local pickup items, furniture, large items
+   - OfferUp/Nextdoor: Local items
+   - Reverb: Musical instruments, audio equipment
+   - Vinted: Fashion and accessories
+   
+   Recommend top 2-3 platforms, list all qualified platforms
+
+9. SEARCH TAGS (SEO OPTIMIZATION):
+   Generate up to 20 search tags ordered by effectiveness:
+   - Primary keywords (brand, model, category)
+   - Secondary keywords (color, material, size, condition)
+   - Style/aesthetic keywords
+   - Use case keywords
+
+10. ALERTS & QUESTIONS:
+    
+    ALERTS (!) - RED - Required fields only:
+    - ONLY if critical fields are completely missing and cannot be inferred
+    - Example: { "field": "category", "message": "Category is required to continue" }
+    
+    QUESTIONS (?) - BLUE - Actionable insights:
+    
+    CRITICAL: ALWAYS create a buyer_disclosure notification for text-only listings:
+    { 
+      "actionType": "buyer_disclosure", 
+      "message": "Photos and condition verification recommended. Add photos and details about the item's actual condition?",
+      "data": { 
+        "detectedIssues": ["no photo for condition verification", "condition cannot be assessed without images"],
+        "field": "description",
+        "needsPhotos": true
+      }
+    }
+    
+    Other possible questions:
+    - If year/version unknown: { "actionType": "unknown_year", "message": "Do you know the year/version of this item?", "data": { "possibleYears": [...] } }
+    - If any unknown fields were set to null: { "actionType": "unknown_fields", "message": "Some details couldn't be determined from text. Add photos for better analysis?", "data": { "fields": [...] } }
+    - If shipping preference unclear: { "actionType": "question", "message": "Will you ship this item or prefer local pickup only?" }
+    - If price concern: { "actionType": "insight", "message": "Market suggests pricing based on condition verification. Add photos?" }
+
+11. SPECIAL ITEM DETECTION (ALWAYS REQUIRED):
+    Detect if this is a special item:
+    - "Vintage" (20+ years), "Collectible", "Antique" (100+ years)
+    - "Luxury" (high-end brands), "Custom", "Art", "Rare"
+    
+    If special:
+    - Set isPremiumItem: true
+    - Set specialClass and specialItemReason
+
+${shouldUsePremium ? `12. PREMIUM FACTS & USEFUL LINKS:
+    Provide valuable information:
+    - Interesting facts about the item
+    - What makes it special or valuable
+    - Common issues buyers should know
+    - Maintenance tips
+    - Official manuals, repair shops, parts suppliers
+    Format links: [{ "title": "Description", "url": "https://..." }]` : `12. PREMIUM FEATURES:
+    SKIP - Set premiumFacts and usefulLinks to null.`}
+
+Provide a JSON response (same format as image analysis):
+{
+  "imageQualityIssue": null (no image provided),
+  "itemIdentified": true or false,
+  "confidence": 0.0 to 1.0,
+  "alternativeItems": [{"item": "Alternative 1", "confidence": 0.8}, ...],
+  "category": "specific category",
+  "brand": "exact brand name or null",
+  "model": "exact model number/name or null",
+  "year": "year or null",
+  "color": "color or null",
+  "material": "material or null",
+  "size": "size or null",
+  "specs": "specifications or null",
+  "estimatedWeight": number or null,
+  "estimatedDimensions": "LxWxH" or null,
+  "shippingCostEst": number or null,
+  "title": "optimized title",
+  "description": "comprehensive description including user's notes about shipping, location, environment",
+  "condition": "New/Like New/Very Good/Good/Fair/Poor" or null if not stated,
+  "conditionNotes": "User states: [their description]. Photo verification recommended." or null,
+  "tags": ["keywords"],
+  "searchTags": ["up to 20 SEO tags"],
+  "recommendedPlatforms": ["top 2-3"],
+  "qualifiedPlatforms": ["all qualifying"],
+  "brandNewPrice": number or null,
+  "priceRangeHigh": number or null,
+  "priceRangeMid": number or null,
+  "priceRangeLow": number or null,
+  "priceForParts": number or null,
+  "avgMarketPrice": number or null,
+  "suggestedPriceMin": number or null,
+  "suggestedPriceMax": number or null,
+  "marketInsights": "market analysis",
+  "isPremiumItem": true or false,
+  "specialClass": "category" or null,
+  "specialItemReason": "explanation" or null,
+  "premiumFacts": "facts" or null,
+  "usefulLinks": [{...}] or null,
+  "alerts": [{...}],
+  "questions": [{"actionType": "buyer_disclosure", "message": "Photos and condition verification recommended...", "data": {...}}, ...]
+}
+
+Respond with raw JSON only. No markdown, no code blocks.`,
+      });
+    }
+    
+    const messages = [
+      {
+        role: 'user',
+        content: contentArray,
       },
     ];
 
