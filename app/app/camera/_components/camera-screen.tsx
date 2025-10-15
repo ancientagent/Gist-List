@@ -3,9 +3,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Camera, Mic, Loader2, Package, Settings } from 'lucide-react';
+import { Camera, Mic, Loader2, Package, Settings, CameraOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -20,7 +21,8 @@ export default function CameraScreen() {
   const [isListening, setIsListening] = useState(false);
   const [isPressHolding, setIsPressHolding] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [showStartButton, setShowStartButton] = useState(false); // Changed to false - auto-start
+  const [showStartButton, setShowStartButton] = useState(false);
+  const [cameraEnabled, setCameraEnabled] = useState(true); // Camera toggle state
   const recognitionRef = useRef<any>(null);
   const isRecognitionActive = useRef(false);
   const hasAttemptedInit = useRef(false);
@@ -46,13 +48,25 @@ export default function CameraScreen() {
     }
   };
 
-  // Auto-initialize camera on mount
+  // Auto-initialize camera on mount (only if camera is enabled)
   useEffect(() => {
-    if (!hasAttemptedInit.current) {
+    if (cameraEnabled && !hasAttemptedInit.current) {
       hasAttemptedInit.current = true;
       initCamera();
     }
-  }, []);
+  }, [cameraEnabled]);
+
+  // Handle camera toggle
+  useEffect(() => {
+    if (cameraEnabled && !stream) {
+      initCamera();
+    } else if (!cameraEnabled && stream) {
+      // Stop camera when toggled off
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+      hasAttemptedInit.current = false;
+    }
+  }, [cameraEnabled]);
 
   // Cleanup camera on unmount
   useEffect(() => {
@@ -286,6 +300,40 @@ export default function CameraScreen() {
     await initCamera();
   };
 
+  // Submit text-only (without photo) when camera is off
+  const submitTextOnly = async () => {
+    if (!theGist.trim()) {
+      toast.error('Please enter a description');
+      return;
+    }
+
+    setIsCapturing(true);
+    try {
+      const response = await fetch('/api/listings/sample', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          theGist: theGist.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create listing');
+      }
+
+      const data = await response.json();
+      toast.success('Processing your item...');
+      router.push('/listings');
+    } catch (error: any) {
+      console.error('Submit error:', error);
+      toast.error(error.message || 'Failed to create listing');
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
   // Development helper: Create sample listing instantly
   const [isCreatingSample, setIsCreatingSample] = useState(false);
   const isDev = process.env.NODE_ENV !== 'production';
@@ -318,7 +366,29 @@ export default function CameraScreen() {
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Camera Viewfinder */}
       <div className="relative flex-1 overflow-hidden">
-        {capturedImage ? (
+        {!cameraEnabled ? (
+          // GISTer Assistant Mode (camera off)
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+            <div className="text-center p-8 max-w-md">
+              <div className="relative w-32 h-32 mx-auto mb-6">
+                {/* GISTer placeholder - will be replaced with actual character */}
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-2xl">
+                  <Package className="w-16 h-16 text-white" />
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg">
+                  <Mic className="w-6 h-6 text-indigo-600" />
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">Hey! I'm GISTer!</h2>
+              <p className="text-indigo-200 mb-6">
+                Tell me about your item and I'll help you create a listing. Just type or speak below!
+              </p>
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-sm text-white/80">
+                💡 Camera is off. Toggle it back on if you want to snap a photo!
+              </div>
+            </div>
+          </div>
+        ) : capturedImage ? (
           // Show captured image
           <img 
             src={capturedImage} 
@@ -357,8 +427,23 @@ export default function CameraScreen() {
         
         {/* Camera overlay indicators */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-          <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm">
-            {session?.user?.name || 'Guest'}
+          <div className="flex items-center gap-2">
+            <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-sm">
+              {session?.user?.name || 'Guest'}
+            </div>
+            {/* Camera Toggle */}
+            <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-2">
+              {cameraEnabled ? (
+                <Camera className="w-4 h-4 text-green-400" />
+              ) : (
+                <CameraOff className="w-4 h-4 text-gray-400" />
+              )}
+              <Switch
+                checked={cameraEnabled}
+                onCheckedChange={setCameraEnabled}
+                className="data-[state=checked]:bg-green-600"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {isListening && (
@@ -427,107 +512,136 @@ export default function CameraScreen() {
           disabled={isCapturing || isListening}
         />
         
-        {/* Mobile: Combined hold-to-record and capture button */}
-        <div className="mt-4 block md:hidden">
-          <button
-            onTouchStart={handlePressStart}
-            onTouchEnd={handlePressEnd}
-            disabled={isCapturing || !stream}
-            className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
-              isCapturing
-                ? 'bg-gray-400 cursor-not-allowed'
-                : isPressHolding
-                ? 'bg-emerald-600 text-white scale-95 animate-pulse'
-                : 'bg-green-600 active:bg-green-700 text-white active:scale-95'
-            }`}
-          >
-            {isCapturing ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Capturing...
-              </>
-            ) : isPressHolding ? (
-              <>
-                <Mic className="mr-2 h-5 w-5" />
-                Recording... Release to Snap
-              </>
-            ) : (
-              <>
-                <Camera className="mr-2 h-5 w-5" />
-                Hold to Record, Release to Snap
-              </>
-            )}
-          </button>
-          
-          <p className="text-xs text-gray-500 text-center mt-3">
-            Press & hold to use voice, release to capture image
-          </p>
-        </div>
+        {cameraEnabled ? (
+          <>
+            {/* Mobile: Combined hold-to-record and capture button */}
+            <div className="mt-4 block md:hidden">
+              <button
+                onTouchStart={handlePressStart}
+                onTouchEnd={handlePressEnd}
+                disabled={isCapturing || !stream}
+                className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+                  isCapturing
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : isPressHolding
+                    ? 'bg-emerald-600 text-white scale-95 animate-pulse'
+                    : 'bg-green-600 active:bg-green-700 text-white active:scale-95'
+                }`}
+              >
+                {isCapturing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Capturing...
+                  </>
+                ) : isPressHolding ? (
+                  <>
+                    <Mic className="mr-2 h-5 w-5" />
+                    Recording... Release to Snap
+                  </>
+                ) : (
+                  <>
+                    <Camera className="mr-2 h-5 w-5" />
+                    Hold to Record, Release to Snap
+                  </>
+                )}
+              </button>
+              
+              <p className="text-xs text-gray-500 text-center mt-3">
+                Press & hold to use voice, release to capture image
+              </p>
+            </div>
 
-        {/* Desktop: Combined hold-to-record and capture button */}
-        <div className="mt-4 hidden md:block">
-          <button
-            onMouseDown={handlePressStart}
-            onMouseUp={handlePressEnd}
-            onMouseLeave={() => {
-              if (isPressHolding) handlePressEnd();
-            }}
-            disabled={isCapturing || !stream}
-            className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
-              isCapturing
-                ? 'bg-gray-400 cursor-not-allowed'
-                : isPressHolding
-                ? 'bg-emerald-600 text-white scale-95'
-                : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
-            }`}
-          >
-            {isCapturing ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Capturing...
-              </>
-            ) : isPressHolding ? (
-              <>
-                <Mic className="mr-2 h-5 w-5" />
-                Recording... Release to Snap
-              </>
-            ) : (
-              <>
-                <Camera className="mr-2 h-5 w-5" />
-                Hold to Record, Release to Snap
-              </>
-            )}
-          </button>
-          
-          <p className="text-xs text-gray-500 text-center mt-3">
-            Press & hold to use voice, release to capture image
-          </p>
-        </div>
+            {/* Desktop: Combined hold-to-record and capture button */}
+            <div className="mt-4 hidden md:block">
+              <button
+                onMouseDown={handlePressStart}
+                onMouseUp={handlePressEnd}
+                onMouseLeave={() => {
+                  if (isPressHolding) handlePressEnd();
+                }}
+                disabled={isCapturing || !stream}
+                className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+                  isCapturing
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : isPressHolding
+                    ? 'bg-emerald-600 text-white scale-95'
+                    : 'bg-green-600 hover:bg-green-700 text-white active:scale-95'
+                }`}
+              >
+                {isCapturing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Capturing...
+                  </>
+                ) : isPressHolding ? (
+                  <>
+                    <Mic className="mr-2 h-5 w-5" />
+                    Recording... Release to Snap
+                  </>
+                ) : (
+                  <>
+                    <Camera className="mr-2 h-5 w-5" />
+                    Hold to Record, Release to Snap
+                  </>
+                )}
+              </button>
+              
+              <p className="text-xs text-gray-500 text-center mt-3">
+                Press & hold to use voice, release to capture image
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Text-only submission button (when camera is off) */}
+            <div className="mt-4">
+              <button
+                onClick={submitTextOnly}
+                disabled={isCapturing || !theGist.trim()}
+                className={`w-full h-16 text-lg rounded-lg font-semibold flex items-center justify-center transition-all ${
+                  isCapturing || !theGist.trim()
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-95'
+                }`}
+              >
+                {isCapturing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Package className="mr-2 h-5 w-5" />
+                    Create Listing
+                  </>
+                )}
+              </button>
+              
+              <p className="text-xs text-gray-500 text-center mt-3">
+                Enter a description above to continue
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-around">
-          <Link href="/listings">
-            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
-              <Package className="w-5 h-5" />
-              <span className="text-xs">Listings</span>
-            </Button>
-          </Link>
-          <Link href="/camera">
-            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1 text-indigo-600">
-              <Camera className="w-5 h-5" />
-              <span className="text-xs">Camera</span>
-            </Button>
-          </Link>
-          <Link href="/connections">
-            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
+      {/* Bottom Actions - Settings (left) and Listings (right) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-10 pb-safe">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between">
+          <Link href="/settings">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
               <Settings className="w-5 h-5" />
-              <span className="text-xs">Connections</span>
+              <span className="text-sm">Settings</span>
+            </Button>
+          </Link>
+          <Link href="/listings">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              <span className="text-sm">Listings</span>
             </Button>
           </Link>
         </div>
-      </nav>
+      </div>
 
       <style jsx>{`
         @keyframes listening-dots {

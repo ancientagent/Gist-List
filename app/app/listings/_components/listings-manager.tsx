@@ -17,6 +17,11 @@ import {
   CheckCircle,
   Archive,
   Crown,
+  Plug2,
+  Store,
+  Send,
+  AlertCircle,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,9 +102,12 @@ export default function ListingsManager() {
               {subscriptionTier === 'PRO' && <Crown className="w-3 h-3" />}
               {subscriptionTier}
             </Badge>
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="w-5 h-5" />
-            </Button>
+            {/* Connections button with cable icon */}
+            <Link href="/connections">
+              <Button variant="ghost" size="icon" title="Connections">
+                <Plug2 className="w-5 h-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -144,86 +152,132 @@ export default function ListingsManager() {
         ) : (
           <div className="space-y-3">
             {listings.map((listing) => (
-              <Link
+              <div
                 key={listing.id}
-                href={`/listing/${listing.id}`}
-                className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
               >
-                <div className="flex gap-3 p-3">
-                  {/* Photo Thumbnail */}
-                  <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                    {photoUrls[listing.id] ? (
-                      <Image
-                        src={photoUrls[listing.id]}
-                        alt={listing.title || 'Item'}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Package className="w-8 h-8 text-gray-300" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 truncate">
-                      {listing.title || 'Untitled Listing'}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      {listing.price ? (
-                        <span className="text-lg font-semibold text-indigo-600">
-                          ${(listing.price ?? 0).toFixed(2)}
-                        </span>
+                <Link
+                  href={`/listing/${listing.id}`}
+                  className="block"
+                >
+                  <div className="flex gap-3 p-3">
+                    {/* Photo Thumbnail */}
+                    <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                      {/* Notification Badge */}
+                      {listing.status === 'DRAFT' && (
+                        <div className="absolute -top-1 -right-1 z-10">
+                          <div className="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-lg">
+                            !
+                          </div>
+                        </div>
+                      )}
+                      {photoUrls[listing.id] ? (
+                        <Image
+                          src={photoUrls[listing.id]}
+                          alt={listing.title || 'Item'}
+                          fill
+                          className="object-cover"
+                        />
                       ) : (
-                        <span className="text-sm text-gray-500">No price set</span>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Package className="w-8 h-8 text-gray-300" />
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <StatusBadge status={listing.status} />
-                      <span className="text-xs text-gray-400">
-                        {new Date(listing.createdAt).toLocaleDateString()}
-                      </span>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {listing.title || 'Untitled Listing'}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        {listing.price ? (
+                          <span className="text-lg font-semibold text-indigo-600">
+                            ${(listing.price ?? 0).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-500">No price set</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <StatusBadge status={listing.status} />
+                        <span className="text-xs text-gray-400">
+                          {new Date(listing.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                </Link>
+                
+                {/* Post Status Bar & Actions */}
+                <div className="border-t bg-gray-50 px-3 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {listing.status === 'POSTED' ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-xs text-gray-600">Posted successfully</span>
+                      </>
+                    ) : listing.status === 'ACTIVE' ? (
+                      <>
+                        <Clock className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs text-gray-600">Ready to post</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-4 h-4 text-orange-600" />
+                        <span className="text-xs text-gray-600">Draft - needs review</span>
+                      </>
+                    )}
+                  </div>
+                  {listing.status !== 'POSTED' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toast.info('Post feature coming soon!');
+                      }}
+                    >
+                      <Send className="w-3 h-3 mr-1" />
+                      Post
+                    </Button>
+                  )}
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* FAB - New Post */}
-      <Link
-        href="/camera"
-        className="fixed bottom-24 right-6 bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-        title="New Post"
-      >
-        <Camera className="w-6 h-6" />
-      </Link>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-around">
-          <Link href="/listings">
-            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1 text-indigo-600">
-              <Package className="w-5 h-5" />
-              <span className="text-xs">Listings</span>
-            </Button>
-          </Link>
+      {/* Bottom Navigation - Gistings (left) and Store Manager (right, locked) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-10 pb-safe">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+          {/* Gistings - GIST Mode */}
           <Link href="/camera">
-            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2 text-indigo-600">
               <Camera className="w-5 h-5" />
-              <span className="text-xs">Camera</span>
+              <span className="text-sm font-medium">Gistings</span>
             </Button>
           </Link>
-          <Link href="/connections">
-            <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1">
-              <Settings className="w-5 h-5" />
-              <span className="text-xs">Connections</span>
-            </Button>
-          </Link>
+          
+          {/* Store Manager - Locked Premium Feature */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-2 text-gray-400 cursor-not-allowed relative"
+            disabled
+            onClick={(e) => {
+              e.preventDefault();
+              toast.info('Store Manager - Premium feature coming soon!');
+            }}
+          >
+            <div className="relative">
+              <Store className="w-5 h-5" />
+              <Lock className="w-3 h-3 absolute -top-1 -right-1 text-amber-500" />
+            </div>
+            <span className="text-sm font-medium">Store Manager</span>
+          </Button>
         </div>
       </nav>
     </div>
