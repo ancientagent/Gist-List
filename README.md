@@ -20,6 +20,9 @@ For technical and creative context:
 - [GISTer Core Bible](docs/GISTer_Core_Bible.md) – defines GISTer's tone, ethics, and behavior
 - [GISTer Copy Library](docs/assistant_copy_library.md) – sample dialogue and reflections
 - [Codex Cloud Build Brief](docs/Codex%20Cloud%20Build%20Brief%20%E2%80%9CGISTer%E2%80%9D%20Assistant.md) – full assistant system architecture
+- [Feature 19: GISTer Assistant System](docs/features/19_GISTer_Assistant%20_System.md) – assistant dialogue and behavior spec
+- [Feature 20: Affinity Learning System](docs/features/20_Affinity_Learning_System.md) – personalization and learning spec
+- [Feature 21: Reflection Library](docs/features/21_Reflection_Library.md) – contextual reflection system spec
 - [Features Documentation](docs/FEATURES.md) – complete feature inventory
 - [Architecture](docs/ARCHITECTURE.md) – system design patterns
 - [API Documentation](docs/API.md) – endpoint reference

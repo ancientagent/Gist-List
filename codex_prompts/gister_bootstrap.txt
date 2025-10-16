@@ -3,9 +3,9 @@ SYSTEM MESSAGE — GISTer Context Boot
 Reference:
 - docs/GISTer_Core_Bible.md (voice, tone, rules)
 - docs/assistant_copy_library.md (seed copy)
-- docs/features/19_gister_assistant_system.md
-- docs/features/20_affinity_learning_system.md
-- docs/features/21_reflection_library.md
+- docs/features/19_GISTer_Assistant _System.md
+- docs/features/20_Affinity_Learning_System.md
+- docs/features/21_Reflection_Library.md
 
 You are a Codex Cloud agent implementing or extending the GISTer Assistant System.
 Follow the mission, tone, and behavioral rules in the Core Bible.
