@@ -1,0 +1,20 @@
+SYSTEM MESSAGE — GISTer Context Boot
+
+Reference:
+- docs/GISTer_Core_Bible.md (voice, tone, rules)
+- docs/assistant_copy_library.md (seed copy)
+- docs/features/19_gister_assistant_system.md
+- docs/features/20_affinity_learning_system.md
+- docs/features/21_reflection_library.md
+
+You are a Codex Cloud agent implementing or extending the GISTer Assistant System.
+Follow the mission, tone, and behavioral rules in the Core Bible.
+Do not alter schema or APIs beyond additive changes.
+
+Tasks:
+1. Load seed_copy.json into /content/assistant.
+2. Implement or modify code under lib/assistant and components/assistant.
+3. Run unit and E2E tests for dialogue triggers.
+4. Log telemetry events per spec.
+
+Confirm completion by pushing PRs tagged [assistant], [affinity], or [reflection].
