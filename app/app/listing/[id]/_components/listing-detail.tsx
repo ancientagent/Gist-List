@@ -28,6 +28,7 @@ import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
 import AlternativeItemsSelector from './alternative-items-selector';
 import PremiumPacksSection from './premium-packs-section';
+import SmartChipBin from './smart-chip-bin';
 import ChipsRow from '@/src/components/ChipsRow';
 import QuickFactsPanel from '@/src/components/QuickFactsPanel';
 import { GisterNotification } from '@/src/notifications/types';
@@ -115,6 +116,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
   const [showQuickFacts, setShowQuickFacts] = useState(false);
+  const [showConditionChipBin, setShowConditionChipBin] = useState(false);
+  const [conditionChipCategory, setConditionChipCategory] = useState<'comes_with' | 'missing' | null>(null);
   
   // Collapsible sections state
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
@@ -167,6 +170,34 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       eventType,
       metadata,
     });
+  };
+
+  const openConditionChipSuggestions = (category: 'comes_with' | 'missing') => {
+    setConditionChipCategory(category);
+    setShowConditionChipBin(true);
+  };
+
+  const handleConditionChipSelect = (chipText: string) => {
+    if (!listing) return;
+
+    const existingNotes = listing.conditionNotes || '';
+    const normalizedLines = existingNotes
+      ? existingNotes
+          .split('\n')
+          .map(line => line.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+
+    if (normalizedLines.includes(chipText.trim().toLowerCase())) {
+      toast.info('Detail already noted');
+      setShowConditionChipBin(false);
+      return;
+    }
+
+    const updatedNotes = existingNotes ? `${existingNotes}\n${chipText}` : chipText;
+    handleFieldEdit('conditionNotes', updatedNotes);
+    toast.success('Detail added to condition notes');
+    setShowConditionChipBin(false);
   };
 
   const handlePriceChange = (newPrice: number | null, source: 'manual' | 'chip' | 'api' = 'manual') => {
@@ -403,6 +434,15 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       priceUpdated: priceChanged,
       autoPrice: hasAutoPrice ? conditionPrice : null,
     });
+
+    if (previousCondition !== value) {
+      const normalized = value.toLowerCase();
+      if (normalized === 'like new') {
+        openConditionChipSuggestions('comes_with');
+      } else if (normalized === 'poor' || normalized === 'for parts') {
+        openConditionChipSuggestions('missing');
+      }
+    }
   };
 
   const handleUpgradePremium = async () => {
@@ -1081,6 +1121,26 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         <InsightsSection listing={listing} />
 
         <QuickFactsPanel isOpen={showQuickFacts} onClose={() => setShowQuickFacts(false)} />
+        <SmartChipBin
+          isOpen={showConditionChipBin}
+          onClose={() => {
+            setShowConditionChipBin(false);
+            setConditionChipCategory(null);
+          }}
+          onChipSelect={handleConditionChipSelect}
+          notificationMessage={
+            conditionChipCategory === 'comes_with'
+              ? 'Document everything this item still includes.'
+              : conditionChipCategory === 'missing'
+              ? 'Call out any missing pieces so buyers know what to expect.'
+              : undefined
+          }
+          itemCategory={listing.category}
+          listingId={listingId}
+          notificationData={null}
+          allowMultiple={false}
+          initialCategory={conditionChipCategory}
+        />
 
         {/* Process Button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">

@@ -10,6 +10,7 @@
 - feat(telemetry): introduced `trackEvent` helper for client-side tracking
 - feat(telemetry): created `/api/telemetry/track` endpoint for event recording
 - feat(listing): instrumented manual price updates, condition changes, and price chip applications
+- feat(listing): surfaced Smart Chip suggestions when selecting Like New (comes with) or Poor (missing)
 
 ### Notes
 - note: exercise price + condition edits in dev and confirm events land in `TelemetryEvent`
