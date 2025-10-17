@@ -28,9 +28,11 @@ import InsightsSection from './insights-section';
 import NotificationList from './notification-list';
 import AlternativeItemsSelector from './alternative-items-selector';
 import PremiumPacksSection from './premium-packs-section';
+import SmartChipBin from './smart-chip-bin';
 import ChipsRow from '@/src/components/ChipsRow';
 import QuickFactsPanel from '@/src/components/QuickFactsPanel';
 import { GisterNotification } from '@/src/notifications/types';
+import { trackEvent } from '@/lib/telemetry';
 
 const CONDITION_OPTIONS = [
   'New',
@@ -114,6 +116,8 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
   const [showQuickFacts, setShowQuickFacts] = useState(false);
+  const [showConditionChipBin, setShowConditionChipBin] = useState(false);
+  const [conditionChipCategory, setConditionChipCategory] = useState<'comes_with' | 'missing' | null>(null);
   
   // Collapsible sections state
   const [sectionsCollapsed, setSectionsCollapsed] = useState({
@@ -154,6 +158,68 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         ...listing,
         [fieldName]: value,
         editedFields: newEditedFields,
+      });
+    }
+  };
+
+  const sendTelemetry = (eventType: string, metadata?: Record<string, any>) => {
+    if (!session?.user?.id) return;
+    void trackEvent({
+      userId: session.user.id,
+      listingId,
+      eventType,
+      metadata,
+    });
+  };
+
+  const openConditionChipSuggestions = (category: 'comes_with' | 'missing') => {
+    setConditionChipCategory(category);
+    setShowConditionChipBin(true);
+  };
+
+  const handleConditionChipSelect = (chipText: string) => {
+    if (!listing) return;
+
+    const existingNotes = listing.conditionNotes || '';
+    const normalizedLines = existingNotes
+      ? existingNotes
+          .split('\n')
+          .map(line => line.trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+
+    if (normalizedLines.includes(chipText.trim().toLowerCase())) {
+      toast.info('Detail already noted');
+      setShowConditionChipBin(false);
+      return;
+    }
+
+    const updatedNotes = existingNotes ? `${existingNotes}\n${chipText}` : chipText;
+    handleFieldEdit('conditionNotes', updatedNotes);
+    toast.success('Detail added to condition notes');
+    setShowConditionChipBin(false);
+  };
+
+  const handlePriceChange = (newPrice: number | null, source: 'manual' | 'chip' | 'api' = 'manual') => {
+    if (!listing) return;
+
+    const previousPrice = listing.price ?? null;
+    const priceChanged = previousPrice !== newPrice;
+
+    const updatedEditedFields = [...new Set([...(listing.editedFields || []), 'price'])];
+
+    setListing({
+      ...listing,
+      price: newPrice,
+      editedFields: updatedEditedFields,
+    });
+
+    if (priceChanged) {
+      sendTelemetry('price_updated', {
+        oldPrice: previousPrice,
+        newPrice,
+        condition: listing.condition,
+        source,
       });
     }
   };
@@ -342,10 +408,14 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
   };
 
   const handleConditionChange = (value: string) => {
+    if (!listing) return;
+
+    const previousCondition = listing.condition ?? null;
+    const previousPrice = listing.price ?? null;
     const conditionPrice = calculatePriceForCondition(value);
-    
-    // Update both condition and price
-    if (listing && conditionPrice) {
+    const hasAutoPrice = typeof conditionPrice === 'number' && !Number.isNaN(conditionPrice);
+
+    if (hasAutoPrice) {
       setListing({
         ...listing,
         condition: value,
@@ -354,6 +424,24 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
       });
     } else {
       handleFieldEdit('condition', value);
+    }
+
+    const priceChanged = hasAutoPrice && conditionPrice !== previousPrice;
+
+    sendTelemetry('condition_changed', {
+      oldCondition: previousCondition,
+      newCondition: value,
+      priceUpdated: priceChanged,
+      autoPrice: hasAutoPrice ? conditionPrice : null,
+    });
+
+    if (previousCondition !== value) {
+      const normalized = value.toLowerCase();
+      if (normalized === 'like new') {
+        openConditionChipSuggestions('comes_with');
+      } else if (normalized === 'poor' || normalized === 'for parts') {
+        openConditionChipSuggestions('missing');
+      }
     }
   };
 
@@ -835,7 +923,7 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                         type="number"
                         step="0.01"
                         value={listing.price ?? ''}
-                        onChange={(e) => handleFieldEdit('price', parseFloat(e.target.value) || null)}
+                        onChange={(e) => handlePriceChange(parseFloat(e.target.value) || null)}
                         className="mt-1"
                         placeholder="0.00"
                       />
@@ -845,8 +933,22 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
                           section="price"
                           notifications={grouped.price}
                           onApply={(n) => {
+                            if (!listing) return;
                             if (n.actionType === 'setPrice' && n.actionData?.suggested) {
-                              handleFieldEdit('price', n.actionData.suggested);
+                              const previousPrice = listing.price ?? null;
+                              const suggested =
+                                typeof n.actionData.suggested === 'number'
+                                  ? n.actionData.suggested
+                                  : parseFloat(String(n.actionData.suggested)) || null;
+
+                              if (suggested === null) return;
+
+                              sendTelemetry('price_chip_clicked', {
+                                oldPrice: previousPrice,
+                                newPrice: suggested,
+                                chipType: n.actionData?.chipType || n.actionType || n.type,
+                              });
+                              handlePriceChange(suggested, 'chip');
                             }
                           }}
                           onJump={scrollToField}
@@ -1019,6 +1121,26 @@ export default function ListingDetail({ listingId }: { listingId: string }) {
         <InsightsSection listing={listing} />
 
         <QuickFactsPanel isOpen={showQuickFacts} onClose={() => setShowQuickFacts(false)} />
+        <SmartChipBin
+          isOpen={showConditionChipBin}
+          onClose={() => {
+            setShowConditionChipBin(false);
+            setConditionChipCategory(null);
+          }}
+          onChipSelect={handleConditionChipSelect}
+          notificationMessage={
+            conditionChipCategory === 'comes_with'
+              ? 'Document everything this item still includes.'
+              : conditionChipCategory === 'missing'
+              ? 'Call out any missing pieces so buyers know what to expect.'
+              : undefined
+          }
+          itemCategory={listing.category}
+          listingId={listingId}
+          notificationData={null}
+          allowMultiple={false}
+          initialCategory={conditionChipCategory}
+        />
 
         {/* Process Button */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-10">

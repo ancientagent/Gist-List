@@ -18,6 +18,7 @@ interface SmartChipBinProps {
   listingId: string;
   notificationData?: any; // Additional data from the notification (e.g., possibleYears)
   allowMultiple?: boolean; // Allow multiple entries before closing
+  initialCategory?: string | null;
 }
 
 export default function SmartChipBin({
@@ -29,6 +30,7 @@ export default function SmartChipBin({
   listingId,
   notificationData,
   allowMultiple = false,
+  initialCategory = null,
 }: SmartChipBinProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [customChipText, setCustomChipText] = useState('');
@@ -87,9 +89,13 @@ export default function SmartChipBin({
   // Load user's custom chips
   useEffect(() => {
     if (isOpen) {
+      setActiveCategory(initialCategory ?? null);
+      setIsAddingCustom(false);
+      setSelectedDecade(null);
+      setAddedItems([]);
       loadUserChips();
     }
-  }, [isOpen]);
+  }, [isOpen, initialCategory]);
   
   const loadUserChips = async () => {
     try {
@@ -104,8 +110,8 @@ export default function SmartChipBin({
   };
   
   const handleParentChipClick = (category: string) => {
-    setActiveCategory(activeCategory === category ? null : category);
-    setIsAddingCustom(false);
+      setActiveCategory(activeCategory === category ? null : category);
+      setIsAddingCustom(false);
   };
   
   const handleChipClick = async (parentCategory: string, chip: ChipOption) => {
