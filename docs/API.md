@@ -894,3 +894,70 @@ See [NextAuth.js docs](https://next-auth.js.org/) for full API.
 
 **Last Updated**: 2025-10-14  
 **Maintained By**: All agents and developers
+
+---
+
+## 🤖 Agent Automation API
+
+All routes require authentication and respect the `AGENT_MODE=1` feature flag. See `docs/AGENT_API.md` for the localhost service contract.
+
+### POST /api/agent/start
+- **Purpose:** Mint a single-use JWS for the Electron agent and persist an `AgentSession` record.
+- **Request Body:**
+  ```json
+  {
+    "url": "https://poshmark.com/create-listing",
+    "actions": ["open", "fill", "upload", "click"],
+    "device": { "id": "optional", "os": "macOS", "name": "Laptop" }
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "token": "<jwt>",
+    "expiresAt": "2025-10-15T18:45:00.000Z",
+    "session": {
+      "id": "cls...",
+      "consentState": "pending",
+      "domain": "poshmark.com",
+      "actions": ["open", "fill", "upload", "click"]
+    }
+  }
+  ```
+
+### POST /api/agent/run
+- **Purpose:** Mint a token, start a localhost session, and optionally execute recipe steps through the SDK.
+- **Request Body:**
+  ```json
+  {
+    "url": "https://www.mercari.com/sell/",
+    "actions": ["open", "fill", "upload", "click"],
+    "steps": [
+      { "type": "open", "url": "https://www.mercari.com/sell/" },
+      { "type": "fill", "items": [{ "selector": "input[name=title]", "text": "Sample" }] },
+      { "type": "click", "selector": "button[type=submit]" },
+      { "type": "wait", "event": "PUBLISHED", "timeoutMs": 20000 }
+    ],
+    "device": { "os": "Windows", "name": "Desktop" }
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "session": {
+      "id": "cls...",
+      "agentSessionId": "f4a5...",
+      "consent": "pending",
+      "expiresAt": "2025-10-15T18:45:00.000Z"
+    }
+  }
+  ```
+
+### GET /api/agent/events/:jobId
+- **Purpose:** Proxy Server-Sent Events from the localhost agent to authenticated clients.
+- **Notes:** Resolves the job via Prisma; returns `404` if session not found or owned by another user.
+
+### POST /api/agent/strategy
+- **Purpose:** Determine posting pipeline (`agent`, `api`, or `extension`) for a given domain.
+- **Request Body:** `{ "domain": "poshmark.com" }`
+- **Response:** `{ "strategy": "agent" }`

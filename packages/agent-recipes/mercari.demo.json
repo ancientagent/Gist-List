@@ -1,0 +1,20 @@
+{
+  "name": "mercari.demo",
+  "steps": [
+    { "type": "open", "url": "https://www.mercari.com/sell/" },
+    {
+      "type": "fill",
+      "items": [
+        { "selector": "input[name=title]", "text": "Mercari Sample Listing" },
+        { "selector": "textarea[name=description]", "text": "Great condition, includes original packaging." }
+      ]
+    },
+    {
+      "type": "upload",
+      "selector": "input[type=file]",
+      "files": ["file:///Users/example/Pictures/mercari-sample.jpg"]
+    },
+    { "type": "click", "selector": "button[type=submit]" },
+    { "type": "wait", "event": "PUBLISHED", "timeoutMs": 20000 }
+  ]
+}

@@ -740,3 +740,59 @@ const connected = {
 **Last Updated**: 2025-10-14  
 **Maintained By**: All agents and developers
 **Schema Version**: See `app/prisma/schema.prisma`
+
+---
+
+## 🤖 Agent Automation Models
+
+### AgentDevice
+
+Registered local machines that can execute automation jobs for a user. Updated whenever the device requests a token.
+
+```prisma
+model AgentDevice {
+  id           String   @id @default(cuid())
+  userId       String
+  os           String
+  name         String
+  lastSeenAt   DateTime?
+  healthySites String[] @default([])
+  jsonPolicy   Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions AgentSession[]
+}
+```
+
+- `healthySites`: cached allow-listed domains verified during health checks.
+- `jsonPolicy`: optional snapshot of the effective policy blob delivered to the device.
+- `lastSeenAt`: refreshed on every `/api/agent/start` or `/api/agent/run` invocation.
+
+### AgentSession
+
+Minted automation sessions tied to a device. Stores JWT metadata, consent state, and the remote agent session identifier used for SSE proxying.
+
+```prisma
+model AgentSession {
+  id              String   @id @default(cuid())
+  userId          String
+  deviceId        String
+  token           String   @unique
+  agentSessionId  String?  @unique
+  domain          String
+  actions         String[]
+  consentState    String   @default("pending")
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device AgentDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+}
+```
+
+- `token`: Single-use JWS shared with the localhost agent.
+- `agentSessionId`: Identifier returned by the Electron runtime; required to proxy `/v1/events/stream`.
+- `consentState`: `pending`, `allowed`, or `denied`, updated by the backend as automation progresses.
+- `expiresAt`: Mirrors the JWT TTL (≤120 s) to simplify cleanup jobs.

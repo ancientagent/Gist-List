@@ -7,6 +7,7 @@ const nextConfig = {
   experimental: {
     outputFileTracingRoot: path.join(__dirname, '../'),
   },
+  transpilePackages: ['@gister/agent-sdk'],
   eslint: {
     ignoreDuringBuilds: true,
   },
