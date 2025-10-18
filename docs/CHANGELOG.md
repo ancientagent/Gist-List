@@ -4,6 +4,38 @@
 
 ---
 
+## 2025-10-18 - Agent hardening & policy enforcement
+
+### Changed
+- fix(agent): Enforce token domain binding, per-action approvals, and session expiry handling in the Electron runtime.
+- fix(agent): Normalize file upload paths (absolute + file://) and guard navigation to approved domains only.
+- fix(api): Filter agent actions server-side before minting tokens to prevent invalid requests.
+
+### Documentation
+- docs(agent): Document new consent-denied/expired error codes and refreshed feature status.
+
+---
+
+## 2025-10-15 - Local Agent Automation Stack
+
+### Added
+- feat(agent): Electron-based localhost agent with consent overlay, policy enforcement, and Puppeteer CDP control
+- feat(agent-sdk): TypeScript SDK for `/v1/*` endpoints with SSE streaming helpers
+- feat(recipes): Poshmark & Mercari JSON recipes plus CLI runner
+- feat(api): `/api/agent/start`, `/api/agent/run`, `/api/agent/events/:jobId`, `/api/agent/strategy` routes behind `AGENT_MODE`
+- feat(db): `AgentDevice` and `AgentSession` Prisma models for device/session tracking
+
+### Changed
+- refactor(config): Next.js config transpiles `@gister/agent-sdk` and exposes strategy helper
+- chore(package): Added `jose` dependency for HS256 token minting
+
+### Documentation
+- docs: Authored `docs/AGENT_API.md`, `docs/RECIPES.md`, and `docs/LOCAL_DEV.md`
+- docs: Updated `docs/DATABASE.md` with new agent models
+- docs: Expanded README quickstart for agent automation
+
+---
+
 ## 2025-10-14 - DeepAgent (Session 2)
 
 ### Added

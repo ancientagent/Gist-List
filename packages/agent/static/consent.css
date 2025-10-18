@@ -1,0 +1,93 @@
+:root {
+  color-scheme: light dark;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+main {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  width: 360px;
+  padding: 24px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.4);
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.intro {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #cbd5f5;
+}
+
+.summary {
+  margin-top: 16px;
+  background: rgba(30, 41, 59, 0.7);
+  padding: 16px;
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.summary h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 0 0 4px;
+}
+
+.summary p {
+  margin: 0;
+  word-break: break-word;
+}
+
+.summary ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+button {
+  border: none;
+  border-radius: 9999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+button.primary {
+  background: linear-gradient(120deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+button.secondary {
+  background: rgba(148, 163, 184, 0.1);
+  color: #e2e8f0;
+}
+
+button:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}

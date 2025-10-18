@@ -1,0 +1,18 @@
+{
+  "allowDomains": [
+    "poshmark.com",
+    "www.poshmark.com",
+    "mercari.com",
+    "www.mercari.com"
+  ],
+  "typing": {
+    "minDelayMs": 25,
+    "maxDelayMs": 60
+  },
+  "rateLimits": {
+    "maxActionsPerMinute": 120
+  },
+  "navigation": {
+    "sameOriginOnly": true
+  }
+}

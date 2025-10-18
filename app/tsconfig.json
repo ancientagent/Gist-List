@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@gister/agent-sdk": [
+        "../packages/agent-sdk/src"
       ]
     }
   },
@@ -34,7 +37,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".build/types/**/*.ts"
+    ".build/types/**/*.ts",
+    "../packages/agent-sdk/src/**/*.ts"
   ],
   "exclude": [
     "node_modules"

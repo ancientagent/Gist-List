@@ -1,0 +1,20 @@
+{
+  "name": "poshmark.demo",
+  "steps": [
+    { "type": "open", "url": "https://poshmark.com/create-listing" },
+    {
+      "type": "fill",
+      "items": [
+        { "selector": "input[name=title]", "text": "Vintage Denim Jacket" },
+        { "selector": "textarea[name=description]", "text": "Lightly worn denim jacket with classic fit." }
+      ]
+    },
+    {
+      "type": "upload",
+      "selector": "input[type=file]",
+      "files": ["file:///Users/example/Pictures/poshmark-sample.jpg"]
+    },
+    { "type": "click", "selector": "button[type=submit]" },
+    { "type": "wait", "event": "PUBLISHED", "timeoutMs": 20000 }
+  ]
+}

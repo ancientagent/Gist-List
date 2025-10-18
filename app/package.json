@@ -96,6 +96,7 @@
     "gray-matter": "4.0.3",
     "input-otp": "1.2.4",
     "jotai": "2.6.0",
+    "jose": "5.8.0",
     "jsonwebtoken": "9.0.2",
     "lodash": "4.17.21",
     "lucide-react": "0.446.0",

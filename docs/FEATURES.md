@@ -486,3 +486,36 @@ None yet.
 1. Move to "Deprecated Features" section
 2. Document reason for deprecation
 3. Note migration path (if any)
+
+### 8. Local Agent Automation System
+**Status**: 🚀 In Beta (Production Hardened)
+**Last Updated**: 2025-10-18
+
+**Description**: Consent-gated Electron agent that drives the user’s local Chrome via CDP to automate form-only marketplaces such as Poshmark and Mercari.
+
+**Key Components**:
+- Electron runtime + Express API (`packages/agent`)
+- TypeScript SDK (`packages/agent-sdk`)
+- Policy allow-list (`packages/agent/policy.json`)
+- Backend orchestration routes (`app/app/api/agent/*`)
+- Prisma models (`AgentDevice`, `AgentSession`)
+- Recipes & CLI runner (`packages/agent-recipes`, `examples/run-recipe.js`)
+
+**Security & Compliance**:
+- HS256 JWS tokens with ≤120 s TTL and single-use enforcement
+- Consent overlay with domain + action disclosure
+- Domain allow-list, action rate limiting, same-origin navigation guard
+- Token domain binding + per-session action whitelisting
+- No sensitive field logging—only structural event telemetry
+
+**Workflow**:
+1. Backend mint token (`/api/agent/start`) and record session/device metadata.
+2. Electron agent verifies token, presents consent overlay, and opens Chrome via CDP.
+3. SDK executes recipe steps (`open`, `fill`, `upload`, `click`, `wait`) with human-paced typing.
+4. SSE events are proxied through `/api/agent/events/:jobId` for mobile/extension clients.
+
+**Dependencies**:
+- `puppeteer-core` for Chrome DevTools Protocol control
+- `electron` for desktop container and overlay UI
+- `jose` for HS256 token minting
+- Next.js App Router for backend orchestration

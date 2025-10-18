@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GISTer Agent Consent</title>
+    <link rel="stylesheet" href="consent.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Allow Local Automation?</h1>
+      <p class="intro">
+        GISTer Agent wants to automate actions on your behalf. Review the details
+        below and choose whether to continue.
+      </p>
+      <section class="summary">
+        <div>
+          <h2>Domain</h2>
+          <p id="domain">–</p>
+        </div>
+        <div>
+          <h2>Page</h2>
+          <p id="url">–</p>
+        </div>
+        <div>
+          <h2>Allowed Actions</h2>
+          <ul id="actions"></ul>
+        </div>
+      </section>
+      <footer>
+        <button id="cancel" class="secondary">Cancel</button>
+        <button id="allow" class="primary">Allow</button>
+      </footer>
+    </main>
+    <script src="consent.js" type="module"></script>
+  </body>
+</html>
